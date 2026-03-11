@@ -17,8 +17,8 @@ export default function Navbar() {
     supabase.auth.getUser().then(({ data: { user: u } }) => {
       setUser(u)
       if (u) {
-        supabase.from('profiles').select('full_name, points').eq('id', u.id).single()
-          .then(({ data }) => setProfile(data || null))
+        supabase.from('profiles').select('full_name, loyalty_points, points').eq('id', u.id).single()
+          .then(({ data }: any) => setProfile(data ? { full_name: data.full_name, points: data.points ?? data.loyalty_points ?? 0 } : null))
       } else {
         setProfile(null)
       }
@@ -26,8 +26,8 @@ export default function Navbar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        supabase.from('profiles').select('full_name, points').eq('id', session.user.id).single()
-          .then(({ data }) => setProfile(data || null))
+        supabase.from('profiles').select('full_name, loyalty_points, points').eq('id', session.user.id).single()
+          .then(({ data }: any) => setProfile(data ? { full_name: data.full_name, points: data.points ?? data.loyalty_points ?? 0 } : null))
       } else {
         setProfile(null)
       }

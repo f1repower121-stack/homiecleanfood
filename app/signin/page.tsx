@@ -1,10 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
-export default function SignInPage() {
+function SignInForm() {
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/dashboard'
   const [mode, setMode] = useState<'signin' | 'register'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,7 +26,7 @@ export default function SignInPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         setMessage({ type: 'success', text: 'Welcome back! Redirecting...' })
-        setTimeout(() => window.location.href = '/dashboard', 1000)
+        setTimeout(() => window.location.href = redirect, 1000)
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
@@ -151,5 +154,17 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-homie-cream">
+        <p className="text-homie-gray">Loading...</p>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   )
 }
