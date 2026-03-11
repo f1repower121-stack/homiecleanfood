@@ -23,11 +23,12 @@ function SignInForm() {
 
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+        if (!data.session) throw new Error('No session returned')
         setMessage({ type: 'success', text: 'Welcome back! Redirecting...' })
-        await supabase.auth.getSession()
-        window.location.replace(redirect)
+        await new Promise(resolve => setTimeout(resolve, 500))
+        window.location.href = redirect
       } else {
         const { error } = await supabase.auth.signUp({
           email, password,
