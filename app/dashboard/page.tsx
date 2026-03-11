@@ -125,7 +125,8 @@ export default function DashboardPage() {
   const today = new Date().toISOString().split('T')[0]
 
   const fetchData = useCallback(async () => {
-    const { data: { user: u } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const u = session?.user
     if (!u) {
       router.replace('/signin')
       return
