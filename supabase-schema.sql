@@ -61,3 +61,37 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 CREATE POLICY "Users can view own orders" ON orders FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own orders" ON orders FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can view own loyalty" ON loyalty_transactions FOR SELECT USING (auth.uid() = user_id);
+
+-- Menu items (for admin management)
+CREATE TABLE IF NOT EXISTS menu_items (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  category text DEFAULT 'chicken',
+  lean_price integer DEFAULT 215,
+  bulk_price integer DEFAULT 250,
+  description text,
+  image_url text,
+  calories_lean integer,
+  protein_lean integer,
+  carb_lean integer,
+  fat_lean integer,
+  available boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read menu_items" ON menu_items FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert menu_items" ON menu_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update menu_items" ON menu_items FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete menu_items" ON menu_items FOR DELETE USING (true);
+
+-- Push subscriptions (for admin order notifications)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  endpoint text UNIQUE NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage push_subscriptions" ON push_subscriptions FOR ALL USING (true) WITH CHECK (true);

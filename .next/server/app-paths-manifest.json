@@ -1,7 +1,13 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/push/send/route": "app/api/push/send/route.js",
+  "/api/push/subscribe/route": "app/api/push/subscribe/route.js",
   "/contact/page": "app/contact/page.js",
-  "/page": "app/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/loyalty/page": "app/loyalty/page.js",
+  "/order/page": "app/order/page.js",
   "/menu/page": "app/menu/page.js",
+  "/page": "app/page.js",
   "/signin/page": "app/signin/page.js"
 }
