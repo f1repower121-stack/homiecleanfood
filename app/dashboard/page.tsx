@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import { menuItems, type MenuItem } from '@/lib/menuData'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

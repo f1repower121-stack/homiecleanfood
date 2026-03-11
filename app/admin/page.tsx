@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import NotificationBell from '@/components/admin/NotificationBell'
 
 const ADMIN_PASSWORD = 'homie2024'

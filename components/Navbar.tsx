@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCart } from './CartProvider'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import { ShoppingBag, Menu, X, User } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 

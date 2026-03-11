@@ -1,6 +1,6 @@
 'use client'
 import { useState, Suspense } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'

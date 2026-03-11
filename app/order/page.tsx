@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useCart } from '@/components/CartProvider'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import { sendOrderPushNotification } from '@/lib/sendOrderPushNotification'
 import Link from 'next/link'
 import { menuItems } from '@/lib/menuData'
