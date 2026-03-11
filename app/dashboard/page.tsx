@@ -165,8 +165,17 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        fetchData().finally(() => setLoading(false))
+      } else {
+        router.replace('/signin')
+      }
+    })
+    // Also try immediately
     fetchData().finally(() => setLoading(false))
-  }, [fetchData])
+    return () => subscription.unsubscribe()
+  }, [fetchData, router])
 
   // Compute today's consumed from orders + aggregate from calorie_logs
   useEffect(() => {
