@@ -92,7 +92,7 @@ function calcBurned(activity: string, durationMin: number): number {
   return Math.round((met * DEFAULT_WEIGHT_KG * (durationMin / 60)))
 }
 
-function getNutritionFromOrder(order: Order) {
+function getNutritionFromOrder(cat /Users/emre/Downloads/homiecleanfood/.env.localorder: Order) {
   let calories = 0
   if (!Array.isArray(order.items)) return calories
   for (const item of order.items) {
