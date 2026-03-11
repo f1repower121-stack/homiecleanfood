@@ -92,7 +92,7 @@ function calcBurned(activity: string, durationMin: number): number {
   return Math.round((met * DEFAULT_WEIGHT_KG * (durationMin / 60)))
 }
 
-function getNutritionFromOrder(cat /Users/emre/Downloads/homiecleanfood/.env.localorder: Order) {
+function getNutritionFromOrder(order: Order) {
   let calories = 0
   if (!Array.isArray(order.items)) return calories
   for (const item of order.items) {
@@ -165,17 +165,8 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        fetchData().finally(() => setLoading(false))
-      } else {
-        router.replace('/signin')
-      }
-    })
-    // Also try immediately
     fetchData().finally(() => setLoading(false))
-    return () => subscription.unsubscribe()
-  }, [fetchData, router])
+  }, [fetchData])
 
   // Compute today's consumed from orders + aggregate from calorie_logs
   useEffect(() => {
