@@ -134,7 +134,7 @@ export default function DashboardPage() {
     setUser(u)
 
     const [profileRes, ordersRes, goalsRes, logsRes, exRes] = await Promise.allSettled([
-      supabase.from('profiles').select('full_name, loyalty_points, points, daily_calorie_goal, weekly_calorie_goal').eq('id', u.id).single(),
+      supabase.from('profiles').select('full_name, points, daily_calorie_goal, weekly_calorie_goal').eq('id', u.id).single(),
       supabase.from('orders').select('*').eq('user_id', u.id).order('created_at', { ascending: false }),
       supabase.from('user_goals').select('calorie_target, weekly_calorie_goal').eq('user_id', u.id).maybeSingle(),
       supabase.from('calorie_logs').select('*').eq('user_id', u.id).order('log_date', { ascending: false }).limit(14),
