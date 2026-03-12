@@ -1,6 +1,10 @@
 import Link from 'next/link'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app'
+
 export default function Footer() {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(SITE_URL)}`
+
   return (
     <footer className="bg-homie-green text-white mt-16">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -11,6 +15,10 @@ export default function Footer() {
             Macro-balanced meals crafted fresh daily in Bangkok.<br />
             Fueling your lifestyle — one clean bite at a time.
           </p>
+          <Link href="/qr" className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-xl px-3 py-2 transition-colors mb-4">
+            <img src={qrUrl} alt="QR Code" className="w-10 h-10 rounded" width={40} height={40} />
+            <span className="text-sm font-medium">Scan to order</span>
+          </Link>
           <div className="flex gap-3">
             <a href="https://web.facebook.com/homiecleanfood" target="_blank" rel="noreferrer"
               className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors text-sm font-bold">f</a>
