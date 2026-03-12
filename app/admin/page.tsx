@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import NotificationBell from '@/components/admin/NotificationBell'
 
@@ -19,7 +19,7 @@ type MenuItem = {
 }
 type Customer = {
   id: string; full_name: string; email: string; phone: string
-  points: number; tier: string; total_spent: number; created_at: string
+  points: number; tier: string; created_at: string
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -40,9 +40,18 @@ const STATUS_DOT: Record<string,string> = {
   out_for_delivery:'bg-purple-400', delivered:'bg-emerald-400',
 }
 const TIER_BADGE: Record<string,{label:string,cls:string}> = {
-  homie:{label:'🥗 Homie',cls:'bg-gray-100 text-gray-600'},
-  clean_eater:{label:'⭐ Clean Eater',cls:'bg-blue-100 text-blue-700'},
+  homie:{label:'🌱 Homie',cls:'bg-gray-100 text-gray-600'},
+  'Homie':{label:'🌱 Homie',cls:'bg-gray-100 text-gray-600'},
+  clean_eater:{label:'🥗 Clean Eater',cls:'bg-lime-100 text-lime-700'},
+  'Clean Eater':{label:'🥗 Clean Eater',cls:'bg-lime-100 text-lime-700'},
   protein_king:{label:'👑 Protein King',cls:'bg-amber-100 text-amber-700'},
+  'Protein King':{label:'👑 Protein King',cls:'bg-amber-100 text-amber-700'},
+}
+
+function getTierFromPoints(pts: number): string {
+  if (pts >= 500) return 'Protein King'
+  if (pts >= 200) return 'Clean Eater'
+  return 'Homie'
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,7 +93,6 @@ export default function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
   const [tab, setTab] = useState('orders')
-  const [notifOpen, setNotifOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [role, setRole] = useState<'admin'|'kitchen'>('admin')
 
@@ -104,6 +112,14 @@ export default function AdminPage() {
   // Customers
   const [customers, setCustomers] = useState<Customer[]>([])
   const [custSearch, setCustSearch] = useState('')
+  const [custLoading, setCustLoading] = useState(false)
+
+  // Loyalty management
+  const [loyaltySearch, setLoyaltySearch] = useState('')
+  const [editingPoints, setEditingPoints] = useState<string|null>(null)
+  const [pointsInput, setPointsInput] = useState('')
+  const [pointsMsg, setPointsMsg] = useState('')
+  const [pointsSaving, setPointsSaving] = useState(false)
 
   // Analytics
   const [period, setPeriod] = useState('7')
@@ -111,7 +127,7 @@ export default function AdminPage() {
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
     const { data } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
-    setOrders(data||[])
+    setOrders((data||[]).filter((o:any) => o.status !== 'redeemed'))
     setLoadingOrders(false)
   }, [])
 
@@ -122,11 +138,39 @@ export default function AdminPage() {
     } catch { setMenuItems([]) }
   }, [])
 
+  // ✅ FIXED: fetch from 'profiles' joined with auth users
   const fetchCustomers = useCallback(async () => {
+    setCustLoading(true)
     try {
-      const { data } = await supabase.from('wix_customers').select('*').order('total_spent',{ascending:false})
-      setCustomers(data||[])
-    } catch { setCustomers([]) }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, points, tier, created_at')
+        .order('points', { ascending: false })
+
+      if (error) throw error
+
+      // Also get order totals per user
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('user_id, total')
+        .neq('status', 'redeemed')
+
+      const spendMap: Record<string, number> = {}
+      ;(orderData||[]).forEach((o: any) => {
+        if (o.user_id) spendMap[o.user_id] = (spendMap[o.user_id] || 0) + (o.total || 0)
+      })
+
+      const enriched = (data||[]).map((p: any) => ({
+        ...p,
+        tier: p.tier || getTierFromPoints(p.points || 0),
+        total_spent: spendMap[p.id] || 0,
+      }))
+      setCustomers(enriched)
+    } catch (e) {
+      console.error('fetchCustomers error:', e)
+      setCustomers([])
+    }
+    setCustLoading(false)
   }, [])
 
   useEffect(() => {
@@ -160,6 +204,46 @@ export default function AdminPage() {
   const deleteMenuItem = async (id:string) => {
     if (!confirm('Delete this item?')) return
     await supabase.from('menu_items').delete().eq('id',id); fetchMenu()
+  }
+
+  // ✅ NEW: manually adjust points for a user
+  const savePoints = async (customerId: string) => {
+    const delta = parseInt(pointsInput)
+    if (isNaN(delta)) return
+    setPointsSaving(true)
+    try {
+      const { error } = await supabase.rpc('add_points', { user_id: customerId, points_to_add: delta })
+      if (error) throw error
+      setPointsMsg(delta > 0 ? `+${delta} pts added ✅` : `${delta} pts removed ✅`)
+      setEditingPoints(null)
+      setPointsInput('')
+      fetchCustomers()
+      setTimeout(() => setPointsMsg(''), 3000)
+    } catch {
+      setPointsMsg('❌ Failed to update points')
+      setTimeout(() => setPointsMsg(''), 3000)
+    }
+    setPointsSaving(false)
+  }
+
+  // ✅ NEW: set points to absolute value
+  const setAbsolutePoints = async (customerId: string, newTotal: number) => {
+    const customer = customers.find(c => c.id === customerId)
+    if (!customer) return
+    const delta = newTotal - (customer.points || 0)
+    setPointsSaving(true)
+    try {
+      await supabase.rpc('add_points', { user_id: customerId, points_to_add: delta })
+      setPointsMsg(`Points set to ${newTotal} ✅`)
+      setEditingPoints(null)
+      setPointsInput('')
+      fetchCustomers()
+      setTimeout(() => setPointsMsg(''), 3000)
+    } catch {
+      setPointsMsg('❌ Failed')
+      setTimeout(() => setPointsMsg(''), 3000)
+    }
+    setPointsSaving(false)
   }
 
   const exportCSV = () => {
@@ -254,42 +338,34 @@ export default function AdminPage() {
   const text = dm ? 'text-gray-100' : 'text-gray-900'
   const muted = dm ? 'text-gray-400' : 'text-gray-500'
   const sidebarBg = dm ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'
+  const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'border-gray-200'}`
 
   return (
     <div className={`min-h-screen ${bg} ${text} flex`}>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <aside className={`${sidebarBg} border-r flex flex-col transition-all duration-300 ${sidebarOpen?'w-56':'w-16'} shrink-0 sticky top-0 h-screen overflow-hidden z-20`}>
-        {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-inherit">
           <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-700 rounded-lg flex items-center justify-center shrink-0 text-sm">🥗</div>
           {sidebarOpen && <span className="font-bold text-sm text-green-700 truncate">Homie Admin</span>}
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 py-4 overflow-y-auto">
           {navItems.map(item=>(
             <button key={item.key} onClick={()=>setTab(item.key)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all relative
-                ${tab===item.key
-                  ? 'bg-green-50 text-green-700 border-r-2 border-green-600'
-                  : `${muted} hover:bg-gray-50 hover:${text}`}`}>
+                ${tab===item.key?'bg-green-50 text-green-700 border-r-2 border-green-600':`${muted} hover:bg-gray-50`}`}>
               <span className="text-base shrink-0">{item.icon}</span>
               {sidebarOpen && <span className="truncate">{item.label}</span>}
               {item.badge ? <span className={`${sidebarOpen?'ml-auto':'absolute top-1.5 right-1.5'} bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold`}>{item.badge}</span> : null}
             </button>
           ))}
         </nav>
-
-        {/* Bottom */}
-        <div className={`border-t border-inherit p-3 space-y-1`}>
-          <button onClick={()=>setDarkMode(!dm)}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${muted} hover:bg-gray-100 transition-all`}>
+        <div className="border-t border-inherit p-3 space-y-1">
+          <button onClick={()=>setDarkMode(!dm)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${muted} hover:bg-gray-100 transition-all`}>
             <span>{dm?'☀️':'🌙'}</span>
             {sidebarOpen && <span>{dm?'Light Mode':'Dark Mode'}</span>}
           </button>
-          <button onClick={()=>setAuthed(false)}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all`}>
+          <button onClick={()=>setAuthed(false)} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all">
             <span>🚪</span>
             {sidebarOpen && <span>Logout</span>}
           </button>
@@ -298,39 +374,29 @@ export default function AdminPage() {
 
       {/* ── Main ────────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-
-        {/* Top Header */}
         <header className={`${card} border-b sticky top-0 z-10 flex items-center gap-3 px-4 py-3`}>
-          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`${muted} hover:${text} p-1.5 rounded-lg hover:bg-gray-100`}>
+          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`${muted} p-1.5 rounded-lg hover:bg-gray-100`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
-
-          {/* Search */}
           <div className="flex-1 max-w-sm relative">
             <svg className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${muted}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input placeholder="Search orders, customers..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
               className={`w-full pl-9 pr-4 py-2 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'bg-gray-50 border-gray-200'}`}/>
           </div>
-
           <div className="flex items-center gap-2 ml-auto">
-            {/* Today stats pill */}
             <div className={`hidden sm:flex items-center gap-2 text-xs ${muted} ${dm?'bg-gray-800':'bg-gray-100'} rounded-xl px-3 py-1.5`}>
               <span className="text-green-600 font-semibold">Today</span>
               <span>{todayOrders.length} orders</span>
               <span>·</span>
               <span className="font-semibold text-green-600">฿{fmt(todayRev)}</span>
             </div>
-
-            <NotificationBell onSelectOrder={()=>{setTab('orders');setNotifOpen(false)}} darkMode={dm} />
-
-            {/* Avatar */}
+            <NotificationBell onSelectOrder={()=>setTab('orders')} darkMode={dm} />
             <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
               {role==='admin'?'A':'K'}
             </div>
           </div>
         </header>
 
-        {/* ── Content ──────────────────────────────────────────────────────── */}
         <main className="flex-1 p-4 md:p-6 overflow-auto">
 
           {/* ═══ ORDERS ═══════════════════════════════════════════════════ */}
@@ -345,8 +411,6 @@ export default function AdminPage() {
                   <span>↻</span> Refresh
                 </button>
               </div>
-
-              {/* Status filters */}
               <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
                 {['all',...STATUS_STEPS].map(s=>(
                   <button key={s} onClick={()=>setOrderFilter(s)}
@@ -357,19 +421,17 @@ export default function AdminPage() {
                   </button>
                 ))}
               </div>
-
               {loadingOrders && (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/>
                 </div>
               )}
-
               <div className="space-y-3">
                 {filteredOrders.map(order=>(
                   <div key={order.id} className={`${card} border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow`}>
                     <div className="p-4 cursor-pointer select-none" onClick={()=>setExpanded(expanded===order.id?null:order.id)}>
                       <div className="flex items-start gap-3">
-                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-lg shrink-0`}>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-lg shrink-0">
                           {order.status==='delivered'?'✅':order.status==='out_for_delivery'?'🚚':order.status==='preparing'?'👨‍🍳':'📦'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -387,10 +449,8 @@ export default function AdminPage() {
                         <svg className={`w-4 h-4 ${muted} shrink-0 transition-transform mt-1 ${expanded===order.id?'rotate-180':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
                       </div>
                     </div>
-
                     {expanded===order.id && (
                       <div className={`border-t border-inherit px-4 pb-4 ${dm?'bg-gray-800/50':''}`}>
-                        {/* Items list */}
                         <div className="mt-3 mb-3">
                           <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>Order Items</p>
                           <div className="space-y-1">
@@ -402,18 +462,15 @@ export default function AdminPage() {
                             ))}
                           </div>
                         </div>
-
                         {order.notes && (
                           <div className="bg-amber-50 border border-amber-100 rounded-xl p-2.5 mb-3 text-sm text-amber-800 flex gap-2">
                             <span>📝</span><span>{order.notes}</span>
                           </div>
                         )}
-
-                        {/* Progress bar */}
                         <div className="mb-3">
                           <div className="flex justify-between mb-1.5">
                             {STATUS_STEPS.map((s,i)=>(
-                              <div key={s} className={`flex flex-col items-center text-center flex-1`}>
+                              <div key={s} className="flex flex-col items-center text-center flex-1">
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mb-1 transition-all
                                   ${STATUS_STEPS.indexOf(order.status)>=i?'bg-green-500 text-white':'bg-gray-200 text-gray-400'}`}>
                                   {STATUS_STEPS.indexOf(order.status)>i?'✓':(i+1)}
@@ -425,8 +482,6 @@ export default function AdminPage() {
                             ))}
                           </div>
                         </div>
-
-                        {/* Action buttons */}
                         <div className="flex gap-2 flex-wrap">
                           {STATUS_STEPS.map(s=>(
                             <button key={s} onClick={()=>updateStatus(order,s)}
@@ -468,21 +523,17 @@ export default function AdminPage() {
                   + Add Meal
                 </button>
               </div>
-
               {editItem && (
                 <div className={`${card} border rounded-2xl p-5 mb-5 shadow-sm`}>
                   <h3 className="font-bold mb-4">{isNew?'Add New Meal':'Edit Meal'}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Meal Name *</label>
-                      <input value={editItem.name||''} onChange={e=>setEditItem({...editItem,name:e.target.value})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="e.g. Paprika Chicken"/>
+                      <input value={editItem.name||''} onChange={e=>setEditItem({...editItem,name:e.target.value})} className={inputCls} placeholder="e.g. Paprika Chicken"/>
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Category</label>
-                      <select value={editItem.category||'chicken'} onChange={e=>setEditItem({...editItem,category:e.target.value})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}>
+                      <select value={editItem.category||'chicken'} onChange={e=>setEditItem({...editItem,category:e.target.value})} className={inputCls}>
                         <option value="chicken">🍗 Chicken</option>
                         <option value="beef">🥩 Beef</option>
                         <option value="fish">🐟 Fish</option>
@@ -490,70 +541,52 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Availability</label>
-                      <select value={editItem.available?'yes':'no'} onChange={e=>setEditItem({...editItem,available:e.target.value==='yes'})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}>
+                      <select value={editItem.available?'yes':'no'} onChange={e=>setEditItem({...editItem,available:e.target.value==='yes'})} className={inputCls}>
                         <option value="yes">✅ Available</option>
                         <option value="no">❌ Hidden</option>
                       </select>
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Lean Price (฿)</label>
-                      <input type="number" value={editItem.lean_price||''} onChange={e=>setEditItem({...editItem,lean_price:parseInt(e.target.value)})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="215"/>
+                      <input type="number" value={editItem.lean_price||''} onChange={e=>setEditItem({...editItem,lean_price:parseInt(e.target.value)})} className={inputCls} placeholder="215"/>
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Bulk Price (฿)</label>
-                      <input type="number" value={editItem.bulk_price||''} onChange={e=>setEditItem({...editItem,bulk_price:parseInt(e.target.value)})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="250"/>
+                      <input type="number" value={editItem.bulk_price||''} onChange={e=>setEditItem({...editItem,bulk_price:parseInt(e.target.value)})} className={inputCls} placeholder="250"/>
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Calories (Lean)</label>
-                      <input type="number" value={editItem.calories_lean||''} onChange={e=>setEditItem({...editItem,calories_lean:parseInt(e.target.value)})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="450"/>
+                      <input type="number" value={editItem.calories_lean||''} onChange={e=>setEditItem({...editItem,calories_lean:parseInt(e.target.value)})} className={inputCls} placeholder="450"/>
                     </div>
                     <div>
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Protein (g)</label>
-                      <input type="number" value={editItem.protein_lean||''} onChange={e=>setEditItem({...editItem,protein_lean:parseInt(e.target.value)})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="40"/>
+                      <input type="number" value={editItem.protein_lean||''} onChange={e=>setEditItem({...editItem,protein_lean:parseInt(e.target.value)})} className={inputCls} placeholder="40"/>
                     </div>
                     <div className="col-span-2">
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Description</label>
-                      <textarea value={editItem.description||''} onChange={e=>setEditItem({...editItem,description:e.target.value})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        rows={2} placeholder="Short description..."/>
+                      <textarea value={editItem.description||''} onChange={e=>setEditItem({...editItem,description:e.target.value})} className={inputCls} rows={2} placeholder="Short description..."/>
                     </div>
                     <div className="col-span-2">
                       <label className={`text-xs font-medium ${muted} block mb-1`}>Image URL</label>
-                      <input value={editItem.image_url||''} onChange={e=>setEditItem({...editItem,image_url:e.target.value})}
-                        className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
-                        placeholder="https://..."/>
+                      <input value={editItem.image_url||''} onChange={e=>setEditItem({...editItem,image_url:e.target.value})} className={inputCls} placeholder="https://..."/>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4 items-center">
-                    <button onClick={saveMenuItem} disabled={menuSaving}
-                      className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={saveMenuItem} disabled={menuSaving} className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
                       {menuSaving?'Saving...':'Save Meal'}
                     </button>
-                    <button onClick={()=>setEditItem(null)} className="border px-5 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                      Cancel
-                    </button>
+                    <button onClick={()=>setEditItem(null)} className="border px-5 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
                     {menuMsg && <span className="text-green-600 text-sm font-medium">{menuMsg}</span>}
                   </div>
                 </div>
               )}
-
               {menuItems.length===0 && !editItem && (
                 <div className={`text-center py-16 ${muted}`}>
                   <p className="text-4xl mb-2">🍱</p>
-                  <p className="mb-1">No menu items yet</p>
-                  <p className="text-xs">Run the SQL in Supabase first, then add your meals</p>
+                  <p className="mb-1">No menu items yet in database</p>
+                  <p className="text-xs">Add meals using the button above</p>
                 </div>
               )}
-
               <div className="grid gap-3">
                 {menuItems.map(item=>(
                   <div key={item.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow`}>
@@ -572,10 +605,8 @@ export default function AdminPage() {
                       {item.calories_lean && <p className={`text-xs ${muted}`}>{item.calories_lean} kcal · {item.protein_lean}g protein</p>}
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={()=>{setIsNew(false);setEditItem(item)}}
-                        className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-green-300">Edit</button>
-                      <button onClick={()=>deleteMenuItem(item.id)}
-                        className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-300">Delete</button>
+                      <button onClick={()=>{setIsNew(false);setEditItem(item)}} className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-green-300">Edit</button>
+                      <button onClick={()=>deleteMenuItem(item.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-300">Delete</button>
                     </div>
                   </div>
                 ))}
@@ -588,38 +619,50 @@ export default function AdminPage() {
             <div>
               <div className="mb-5">
                 <h2 className="text-xl font-bold">Customers</h2>
-                <p className={`text-sm ${muted}`}>{customers.length} registered customers</p>
+                <p className={`text-sm ${muted}`}>{customers.length} registered users</p>
               </div>
-              <input placeholder="Search by name, email or phone..."
+              <input placeholder="Search by name..."
                 value={custSearch} onChange={e=>setCustSearch(e.target.value)}
                 className={`w-full border rounded-xl px-4 py-2.5 text-sm mb-4 outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}/>
+
+              {custLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/>
+                </div>
+              )}
+
+              {!custLoading && customers.length === 0 && (
+                <div className={`text-center py-16 ${muted}`}>
+                  <p className="text-4xl mb-2">👥</p>
+                  <p>No customers yet</p>
+                </div>
+              )}
+
               <div className="grid gap-3">
                 {customers
-                  .filter(c=>!custSearch||
-                    c.full_name?.toLowerCase().includes(custSearch.toLowerCase())||
-                    c.email?.toLowerCase().includes(custSearch.toLowerCase())||
-                    c.phone?.includes(custSearch))
-                  .map(c=>(
-                    <div key={c.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow`}>
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
-                        {(c.full_name||'G')[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">{c.full_name||'Unknown'}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${(TIER_BADGE[c.tier]||TIER_BADGE.homie).cls}`}>
-                            {(TIER_BADGE[c.tier]||TIER_BADGE.homie).label}
-                          </span>
+                  .filter(c=>!custSearch ||
+                    c.full_name?.toLowerCase().includes(custSearch.toLowerCase()))
+                  .map(c=>{
+                    const tier = c.tier || getTierFromPoints(c.points || 0)
+                    const badge = TIER_BADGE[tier] || TIER_BADGE['Homie']
+                    return (
+                      <div key={c.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow`}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
+                          {(c.full_name||'?')[0].toUpperCase()}
                         </div>
-                        <p className={`text-xs ${muted}`}>{c.email}</p>
-                        <p className={`text-xs ${muted}`}>{c.phone}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">{c.full_name||'Unknown'}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                          </div>
+                          <p className={`text-xs ${muted}`}>Joined {new Date(c.created_at).toLocaleDateString('en-GB')}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-bold text-green-600 text-sm">฿{fmt(c.total_spent||0)}</p>
-                        <p className={`text-xs ${muted}`}>{c.points||0} pts</p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
               </div>
             </div>
           )}
@@ -628,59 +671,165 @@ export default function AdminPage() {
           {tab==='loyalty' && (
             <div>
               <div className="mb-5">
-                <h2 className="text-xl font-bold">Loyalty Points</h2>
-                <p className={`text-sm ${muted}`}>Overview of tier distribution</p>
+                <h2 className="text-xl font-bold">Loyalty Points Management</h2>
+                <p className={`text-sm ${muted}`}>View and manually adjust customer points</p>
               </div>
+
+              {/* Summary cards */}
               <div className="grid grid-cols-3 gap-4 mb-6">
-                {(['homie','clean_eater','protein_king'] as const).map(tier=>{
-                  const count = customers.filter(c=>c.tier===tier).length
-                  const b = TIER_BADGE[tier]
+                {(['Homie','Clean Eater','Protein King'] as const).map(tierName=>{
+                  const count = customers.filter(c=> (c.tier || getTierFromPoints(c.points||0)) === tierName).length
+                  const badge = TIER_BADGE[tierName]
                   return (
-                    <div key={tier} className={`${card} border rounded-2xl p-4 text-center`}>
-                      <p className="text-2xl mb-1">{tier==='protein_king'?'👑':tier==='clean_eater'?'⭐':'🥗'}</p>
+                    <div key={tierName} className={`${card} border rounded-2xl p-4 text-center`}>
+                      <p className="text-2xl mb-1">{tierName==='Protein King'?'👑':tierName==='Clean Eater'?'🥗':'🌱'}</p>
                       <p className="text-2xl font-bold">{count}</p>
-                      <p className={`text-xs ${muted}`}>{b.label.replace(/^[^ ]+ /,'')}</p>
+                      <p className={`text-xs ${muted}`}>{tierName}</p>
                     </div>
                   )
                 })}
               </div>
-              <div className={`${card} border rounded-2xl p-4 mb-4`}>
-                <h3 className="font-semibold mb-3 text-sm">Tier Requirements</h3>
-                <div className="space-y-3">
+
+              {/* Tier requirements */}
+              <div className={`${card} border rounded-2xl p-4 mb-5`}>
+                <h3 className="font-semibold text-sm mb-3">Tier Thresholds</h3>
+                <div className="grid grid-cols-3 gap-3">
                   {[
-                    {tier:'🥗 Homie',pts:'0+ pts',perks:'1pt per ฿10, birthday +50pts'},
-                    {tier:'⭐ Clean Eater',pts:'200+ pts',perks:'1.5× multiplier, free delivery ฿500+'},
-                    {tier:'👑 Protein King',pts:'500+ pts',perks:'2× multiplier, free meal every 10 orders'},
+                    {emoji:'🌱',name:'Homie',pts:'0–199 pts',perks:'1pt / ฿10'},
+                    {emoji:'🥗',name:'Clean Eater',pts:'200–499 pts',perks:'1.5× multiplier'},
+                    {emoji:'👑',name:'Protein King',pts:'500+ pts',perks:'2× multiplier'},
                   ].map(t=>(
-                    <div key={t.tier} className={`flex items-start gap-3 p-3 rounded-xl ${dm?'bg-gray-800':'bg-gray-50'}`}>
-                      <span className="text-lg">{t.tier.split(' ')[0]}</span>
-                      <div>
-                        <p className="text-sm font-semibold">{t.tier.slice(2)}</p>
-                        <p className={`text-xs ${muted}`}>{t.pts} · {t.perks}</p>
-                      </div>
+                    <div key={t.name} className={`p-3 rounded-xl ${dm?'bg-gray-800':'bg-gray-50'} text-center`}>
+                      <p className="text-xl mb-1">{t.emoji}</p>
+                      <p className="text-sm font-bold">{t.name}</p>
+                      <p className={`text-xs font-medium text-green-600`}>{t.pts}</p>
+                      <p className={`text-xs ${muted}`}>{t.perks}</p>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Points message */}
+              {pointsMsg && (
+                <div className={`mb-4 p-3 rounded-xl text-sm font-medium ${pointsMsg.includes('✅')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200'}`}>
+                  {pointsMsg}
+                </div>
+              )}
+
+              {/* Search */}
+              <input
+                placeholder="Search customers by name..."
+                value={loyaltySearch} onChange={e=>setLoyaltySearch(e.target.value)}
+                className={`w-full border rounded-xl px-4 py-2.5 text-sm mb-4 outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}
+              />
+
+              {/* Customer list with point editing */}
               <div className={`${card} border rounded-2xl overflow-hidden`}>
                 <div className={`px-4 py-3 border-b border-inherit flex items-center justify-between`}>
-                  <p className="font-semibold text-sm">Top Point Holders</p>
+                  <p className="font-semibold text-sm">All Customers — Points</p>
+                  <button onClick={fetchCustomers} className="text-xs text-green-600 hover:underline">↻ Refresh</button>
                 </div>
-                {customers.sort((a,b)=>(b.points||0)-(a.points||0)).slice(0,10).map((c,i)=>(
-                  <div key={c.id} className={`px-4 py-3 border-b border-inherit last:border-0 flex items-center gap-3`}>
-                    <span className={`text-sm font-bold w-5 ${muted}`}>{i+1}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{c.full_name||'Unknown'}</p>
-                      <p className={`text-xs ${muted}`}>{c.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${(TIER_BADGE[c.tier]||TIER_BADGE.homie).cls}`}>
-                        {(TIER_BADGE[c.tier]||TIER_BADGE.homie).label}
-                      </span>
-                    </div>
+
+                {customers.length === 0 && !custLoading && (
+                  <div className={`text-center py-12 ${muted}`}>
+                    <p>No customers found</p>
                   </div>
-                ))}
+                )}
+
+                {customers
+                  .filter(c=>!loyaltySearch || c.full_name?.toLowerCase().includes(loyaltySearch.toLowerCase()))
+                  .sort((a,b)=>(b.points||0)-(a.points||0))
+                  .map((c, i)=>{
+                    const tier = c.tier || getTierFromPoints(c.points || 0)
+                    const badge = TIER_BADGE[tier] || TIER_BADGE['Homie']
+                    const isEditing = editingPoints === c.id
+                    return (
+                      <div key={c.id} className={`px-4 py-3 border-b border-inherit last:border-0`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-sm font-bold w-5 ${muted}`}>{i+1}</span>
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                            {(c.full_name||'?')[0].toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{c.full_name||'Unknown'}</p>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
+                          </div>
+                          {!isEditing ? (
+                            <button
+                              onClick={()=>{setEditingPoints(c.id); setPointsInput('')}}
+                              className="ml-2 text-xs border px-3 py-1.5 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-green-300 shrink-0">
+                              Edit
+                            </button>
+                          ) : (
+                            <button onClick={()=>{setEditingPoints(null);setPointsInput('')}}
+                              className="ml-2 text-xs text-gray-400 hover:text-gray-600 shrink-0">✕</button>
+                          )}
+                        </div>
+
+                        {/* Inline editor */}
+                        {isEditing && (
+                          <div className={`mt-3 ml-8 p-4 rounded-2xl border ${dm?'bg-gray-800 border-gray-700':'bg-gray-50 border-gray-200'}`}>
+                            <p className="text-xs font-semibold mb-3 text-gray-600">Adjust points for <span className="text-green-600">{c.full_name}</span></p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {/* Add/subtract */}
+                              <div>
+                                <label className={`text-xs ${muted} block mb-1`}>Add / Remove (e.g. +50 or -30)</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    placeholder="e.g. 50 or -20"
+                                    value={pointsInput}
+                                    onChange={e=>setPointsInput(e.target.value)}
+                                    className={`flex-1 border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-700 border-gray-600 text-white':'border-gray-200'}`}
+                                    onKeyDown={e=>{ if(e.key==='Enter') savePoints(c.id) }}
+                                  />
+                                  <button
+                                    onClick={()=>savePoints(c.id)}
+                                    disabled={pointsSaving || !pointsInput}
+                                    className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-40 shrink-0">
+                                    Apply
+                                  </button>
+                                </div>
+                              </div>
+                              {/* Set absolute */}
+                              <div>
+                                <label className={`text-xs ${muted} block mb-1`}>Set to exact value</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    placeholder={`Current: ${c.points||0}`}
+                                    value={pointsInput}
+                                    onChange={e=>setPointsInput(e.target.value)}
+                                    className={`flex-1 border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-700 border-gray-600 text-white':'border-gray-200'}`}
+                                  />
+                                  <button
+                                    onClick={()=>setAbsolutePoints(c.id, parseInt(pointsInput))}
+                                    disabled={pointsSaving || !pointsInput}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 shrink-0">
+                                    Set
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Quick presets */}
+                            <div className="flex gap-2 mt-3 flex-wrap">
+                              <p className={`text-xs ${muted} w-full`}>Quick add:</p>
+                              {[10, 50, 100, 200, -50, -100].map(n=>(
+                                <button key={n} onClick={()=>{ setPointsInput(String(n)); }}
+                                  className={`text-xs px-3 py-1.5 rounded-xl border transition-all font-medium
+                                    ${n>0?'border-green-200 text-green-600 hover:bg-green-50':'border-red-200 text-red-500 hover:bg-red-50'}`}>
+                                  {n>0?`+${n}`:n}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             </div>
           )}
@@ -706,16 +855,13 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                 <StatCard icon="💰" label="Total Revenue" value={`฿${fmt(totalRev)}`} color="green"/>
                 <StatCard icon="📦" label="Total Orders" value={filteredByPeriod.length} color="blue"/>
                 <StatCard icon="📈" label="Avg Order" value={`฿${fmt(Math.round(avgOrder))}`} color="orange"/>
                 <StatCard icon="👥" label="Customers" value={customers.length} color="purple"/>
               </div>
-
               <div className="grid md:grid-cols-2 gap-4">
-                {/* Top items */}
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-bold mb-4 text-sm">🏆 Best Selling Items</h3>
                   {topItemsSorted.length===0
@@ -734,8 +880,6 @@ export default function AdminPage() {
                       ))
                   }
                 </div>
-
-                {/* Revenue by day */}
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-bold mb-4 text-sm">📅 Revenue by Day</h3>
                   {Object.keys(revenueByDay).length===0
@@ -754,8 +898,6 @@ export default function AdminPage() {
                       ))
                   }
                 </div>
-
-                {/* Order status breakdown */}
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-bold mb-4 text-sm">📊 Orders by Status</h3>
                   {STATUS_STEPS.map(s=>{
@@ -767,13 +909,11 @@ export default function AdminPage() {
                         <div className={`flex-1 h-5 ${dm?'bg-gray-700':'bg-gray-100'} rounded-lg overflow-hidden`}>
                           <div className={`h-full ${STATUS_DOT[s]} rounded-lg transition-all`} style={{width:`${Math.max(pct>0?4:0,pct)}%`}}/>
                         </div>
-                        <span className={`text-xs font-medium w-6 text-right`}>{count}</span>
+                        <span className="text-xs font-medium w-6 text-right">{count}</span>
                       </div>
                     )
                   })}
                 </div>
-
-                {/* Payment methods */}
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-bold mb-4 text-sm">💳 Payment Methods</h3>
                   {(() => {
@@ -781,7 +921,7 @@ export default function AdminPage() {
                     filteredByPeriod.forEach(o=>{ pm[o.payment_method||'unknown']=(pm[o.payment_method||'unknown']||0)+1 })
                     return Object.entries(pm).sort((a,b)=>b[1]-a[1]).map(([method,count])=>(
                       <div key={method} className="flex justify-between items-center mb-2">
-                        <span className="text-sm">{method==='promptpay'?'📱 PromptPay':method==='cash'?'💵 Cash':method==='transfer'?'🏦 Transfer':'💳 '+method}</span>
+                        <span className="text-sm">{method==='promptpay'?'📱 PromptPay':method==='cash'?'💵 Cash':method==='cod'?'💵 Cash on Delivery':method==='transfer'?'🏦 Transfer':'💳 '+method}</span>
                         <span className="font-semibold text-sm">{count}</span>
                       </div>
                     ))
@@ -812,7 +952,6 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-semibold text-sm mb-3">Role / Access</h3>
                   <div className="flex gap-2">
@@ -825,7 +964,6 @@ export default function AdminPage() {
                   </div>
                   <p className={`text-xs ${muted} mt-2`}>Kitchen mode only shows orders tab</p>
                 </div>
-
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-semibold text-sm mb-1">Business Info</h3>
                   <div className="space-y-2 text-sm">
@@ -835,7 +973,6 @@ export default function AdminPage() {
                     <div className="flex justify-between"><span className={muted}>Location</span><span>Huai Kwang, Bangkok</span></div>
                   </div>
                 </div>
-
                 <div className={`${card} border rounded-2xl p-4`}>
                   <h3 className="font-semibold text-sm mb-3">Auto-refresh</h3>
                   <p className={`text-xs ${muted}`}>Orders auto-refresh every 30 seconds when admin panel is open.</p>
@@ -853,3 +990,4 @@ export default function AdminPage() {
     </div>
   )
 }
+
