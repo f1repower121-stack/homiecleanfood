@@ -53,6 +53,7 @@ interface Order {
   status: string
   created_at: string
   items: OrderItem[]
+  notes?: string
 }
 
 interface CalorieLog {
