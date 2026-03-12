@@ -181,7 +181,7 @@ export default function AdmityTab({ darkMode = false }: Props) {
   const sections = [
     { key: 'overview', label: 'Overview', icon: '📊' },
     { key: 'earn', label: 'Earn Rules', icon: '⚡' },
-    { key: 'tiers', labers', icon: '🏆' },
+    { key: 'tiers', label: 'Tiers', icon: '🏆' },
     { key: 'rewards', label: 'Rewards', icon: '🎁' },
     { key: 'customers', label: 'Customers', icon: '👥' },
     { key: 'history', label: 'History', icon: '📋' },
