@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { menuItems } from '@/lib/menuData'
 
 export default function HomePage() {
@@ -8,7 +9,6 @@ export default function HomePage() {
     <div>
       {/* Hero Section */}
       <section className="relative bg-homie-green overflow-hidden min-h-[85vh] flex items-center">
-        {/* Background texture */}
         <div className="absolute inset-0 opacity-10"
           style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #7CB518 0%, transparent 50%), radial-gradient(circle at 80% 20%, #7CB518 0%, transparent 40%)' }} />
         
@@ -26,7 +26,8 @@ export default function HomePage() {
                 Macro-balanced meals crafted fresh daily. Choose Lean or Bulk portions — chicken, fish & beef options. Order by 5 PM for same-day freshness.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/order" className="bg-homie-lime hover:bg-lime-500 text-white font-bold px-8 py-4 rounded-full transition-all hover:shadow-xl hover:shadow-lime-500/25 active:scale-95">
+                {/* FIX: Order Now goes to /menu */}
+                <Link href="/menu" className="bg-homie-lime hover:bg-lime-500 text-white font-bold px-8 py-4 rounded-full transition-all hover:shadow-xl hover:shadow-lime-500/25 active:scale-95">
                   Order Now 🛒
                 </Link>
                 <Link href="/menu" className="border-2 border-white/30 text-white hover:bg-white hover:text-homie-green font-semibold px-8 py-4 rounded-full transition-all">
@@ -76,7 +77,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Menu */}
+      {/* Featured Menu — FIX: real photos instead of emojis */}
       <section className="py-16 bg-homie-cream">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-end justify-between mb-8">
@@ -90,9 +91,16 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {featured.map(item => (
-              <div key={item.id} className="card overflow-hidden group">
-                <div className="bg-gradient-to-br from-homie-green/10 to-homie-lime/10 p-6 text-center text-5xl group-hover:scale-110 transition-transform duration-300">
-                  {item.emoji.split('').slice(0, 2).join('')}
+              <Link key={item.id} href="/menu" className="card overflow-hidden group block">
+                {/* FIX: real image from menuData */}
+                <div className="relative aspect-square bg-homie-cream overflow-hidden">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  />
                 </div>
                 <div className="p-4">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -106,12 +114,12 @@ export default function HomePage() {
                   <p className="text-xs text-homie-gray mt-1 line-clamp-2">{item.description}</p>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="font-bold text-homie-green">฿{item.leanPrice}</span>
-                    <Link href="/order" className="text-xs bg-homie-lime text-white px-3 py-1.5 rounded-full hover:bg-homie-green transition-colors">
+                    <span className="text-xs bg-homie-lime text-white px-3 py-1.5 rounded-full">
                       Add +
-                    </Link>
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -141,7 +149,7 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <Link href="/order" className="inline-block mt-12 bg-homie-green text-white font-bold px-10 py-4 rounded-full hover:bg-homie-lime transition-colors hover:shadow-lg">
+          <Link href="/menu" className="inline-block mt-12 bg-homie-green text-white font-bold px-10 py-4 rounded-full hover:bg-homie-lime transition-colors hover:shadow-lg">
             Start Ordering →
           </Link>
         </div>

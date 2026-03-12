@@ -7,6 +7,7 @@ export interface CartItem {
   portion: 'lean' | 'bulk'
   price: number
   quantity: number
+  image?: string  // FIX: added image field
 }
 
 interface CartContextType {

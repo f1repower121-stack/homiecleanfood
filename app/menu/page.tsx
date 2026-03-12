@@ -10,6 +10,9 @@ export default function MenuPage() {
   const { addItem } = useCart()
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [portion, setPortion] = useState<'lean' | 'bulk'>('lean')
+  const [activeCategory, setActiveCategory] = useState<'all' | 'chicken' | 'beef' | 'fish'>('all')
+
+  const filtered = activeCategory === 'all' ? menuItems : menuItems.filter(i => i.category === activeCategory)
 
   const handleAddToCart = (item: MenuItem, p: 'lean' | 'bulk') => {
     addItem({
@@ -18,6 +21,7 @@ export default function MenuPage() {
       portion: p,
       price: p === 'lean' ? item.leanPrice : item.bulkPrice,
       quantity: 1,
+      image: item.image, // FIX: pass image to cart
     })
     setSelectedItem(null)
   }
@@ -25,16 +29,38 @@ export default function MenuPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       <h1 className="font-display text-3xl font-bold text-homie-green mb-2">Full Menu</h1>
-      <p className="text-homie-gray mb-8">Click any meal to view details and add to cart</p>
+      <p className="text-homie-gray mb-6">Click any meal to view details and add to cart</p>
+
+      {/* Category Filter */}
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+        {[
+          { key: 'all', label: '🍽️ All' },
+          { key: 'chicken', label: '🍗 Chicken' },
+          { key: 'beef', label: '🥩 Beef' },
+          { key: 'fish', label: '🐟 Fish' },
+        ].map(cat => (
+          <button
+            key={cat.key}
+            onClick={() => setActiveCategory(cat.key as any)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              activeCategory === cat.key
+                ? 'bg-homie-green text-white'
+                : 'bg-homie-cream text-homie-gray hover:bg-homie-lime hover:text-white'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {menuItems.map(item => (
+        {filtered.map(item => (
           <button
             key={item.id}
             onClick={() => { setSelectedItem(item); setPortion('lean') }}
             className="card overflow-hidden group text-left w-full"
           >
-            <div className="relative aspect-square bg-homie-cream">
+            <div className="relative aspect-square bg-homie-cream overflow-hidden">
               <Image
                 src={item.image}
                 alt={item.name}
@@ -53,7 +79,10 @@ export default function MenuPage() {
               </span>
               <h3 className="font-semibold text-sm mt-2 leading-tight text-homie-dark">{item.name}</h3>
               <p className="text-xs text-homie-gray mt-1 line-clamp-2">{item.description}</p>
-              <p className="mt-3 font-bold text-homie-green">฿{item.leanPrice} - ฿{item.bulkPrice}</p>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="font-bold text-homie-green">฿{item.leanPrice} - ฿{item.bulkPrice}</span>
+                <span className="text-xs bg-homie-lime text-white px-3 py-1.5 rounded-full">Add +</span>
+              </div>
             </div>
           </button>
         ))}
@@ -73,11 +102,11 @@ export default function MenuPage() {
         const onClose = () => { setSelectedItem(null); setPortion('lean') }
         return (
           <div
-            className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 bg-black/50 transition-opacity duration-200"
+            className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 bg-black/50"
             onClick={onClose}
           >
             <div
-              className="relative bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-lg max-h-[92vh] md:max-h-[90vh] flex flex-col animate-slideUp md:animate-zoomIn"
+              className="relative bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-lg max-h-[92vh] md:max-h-[90vh] flex flex-col"
               onClick={e => e.stopPropagation()}
             >
               <button
@@ -128,83 +157,58 @@ export default function MenuPage() {
                     </div>
                   )}
 
-                  <div className="mt-6 rounded-xl overflow-hidden border border-gray-200">
+                  {/* Portion toggle */}
+                  <div className="flex gap-2 mt-6 mb-2">
+                    <button
+                      onClick={() => setPortion('lean')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${portion === 'lean' ? 'bg-homie-lime text-white' : 'bg-gray-100 text-gray-600'}`}
+                    >
+                      Lean — ฿{selectedItem.leanPrice}
+                    </button>
+                    <button
+                      onClick={() => setPortion('bulk')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${portion === 'bulk' ? 'bg-homie-lime text-white' : 'bg-gray-100 text-gray-600'}`}
+                    >
+                      Bulk — ฿{selectedItem.bulkPrice}
+                    </button>
+                  </div>
+
+                  {/* Nutrition */}
+                  <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
                     <div className="bg-gray-900 px-4 py-3">
                       <h3 className="text-white font-bold text-sm tracking-wide">Nutrition Facts</h3>
                       <p className="text-4xl font-black text-white mt-1">{cal} <span className="text-lg font-semibold text-gray-300">cal</span></p>
                     </div>
                     <div className="p-4 space-y-4 bg-white">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-gray-700">Protein</span>
-                          <span className="text-gray-500">{protein}g · {proteinPct}% DV</span>
+                      {[
+                        { label: 'Protein', value: protein, pct: proteinPct, color: 'bg-homie-lime' },
+                        { label: 'Carbs', value: carb, pct: carbPct, color: 'bg-homie-green' },
+                        { label: 'Fat', value: fat, pct: fatPct, color: 'bg-amber-500' },
+                      ].map(n => (
+                        <div key={n.label}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium text-gray-700">{n.label}</span>
+                            <span className="text-gray-500">{n.value}g · {n.pct}% DV</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full ${n.color} rounded-full`} style={{ width: `${n.pct}%` }} />
+                          </div>
                         </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-homie-lime rounded-full transition-all" style={{ width: `${Math.min(100, proteinPct)}%` }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-gray-700">Carbs</span>
-                          <span className="text-gray-500">{carb}g · {carbPct}% DV</span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-homie-green rounded-full transition-all" style={{ width: `${Math.min(100, carbPct)}%` }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-gray-700">Fat</span>
-                          <span className="text-gray-500">{fat}g · {fatPct}% DV</span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${Math.min(100, fatPct)}%` }} />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-4 mb-2">
-                    <button
-                      onClick={() => setPortion('lean')}
-                      className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${portion === 'lean' ? 'bg-homie-lime text-white' : 'bg-gray-100 text-gray-600'}`}
-                    >
-                      Lean
-                    </button>
-                    <button
-                      onClick={() => setPortion('bulk')}
-                      className={`flex-1 py-1.5 rounded-lg text-sm font-semibold transition-colors ${portion === 'bulk' ? 'bg-homie-lime text-white' : 'bg-gray-100 text-gray-600'}`}
-                    >
-                      Bulk
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div className="border border-gray-200 rounded-xl p-4">
-                      <p className="text-xs font-medium text-homie-gray">Lean</p>
-                      <p className="font-bold text-homie-green">฿{selectedItem.leanPrice}</p>
-                      <button
-                        onClick={() => handleAddToCart(selectedItem, 'lean')}
-                        className="mt-2 w-full bg-homie-lime text-white font-semibold py-2 rounded-lg hover:bg-homie-green transition-colors text-sm"
-                      >
-                        Add Lean
-                      </button>
-                    </div>
-                    <div className="border border-gray-200 rounded-xl p-4">
-                      <p className="text-xs font-medium text-homie-gray">Bulk</p>
-                      <p className="font-bold text-homie-green">฿{selectedItem.bulkPrice}</p>
-                      <button
-                        onClick={() => handleAddToCart(selectedItem, 'bulk')}
-                        className="mt-2 w-full bg-homie-lime text-white font-semibold py-2 rounded-lg hover:bg-homie-green transition-colors text-sm"
-                      >
-                        Add Bulk
-                      </button>
-                    </div>
-                  </div>
+                  {/* Add to Cart button */}
+                  <button
+                    onClick={() => handleAddToCart(selectedItem, portion)}
+                    className="mt-4 w-full bg-homie-green text-white font-bold py-4 rounded-xl hover:bg-homie-lime transition-colors text-base"
+                  >
+                    Add {portion === 'lean' ? 'Lean' : 'Bulk'} to Cart — ฿{portion === 'lean' ? selectedItem.leanPrice : selectedItem.bulkPrice}
+                  </button>
 
                   <Link
                     href="/order"
-                    className="block mt-4 text-center text-homie-lime font-semibold text-sm hover:underline"
+                    className="block mt-3 text-center text-homie-lime font-semibold text-sm hover:underline"
                   >
                     View Cart →
                   </Link>
