@@ -670,7 +670,7 @@ export default function AdminPage() {
 
                     {tab==='loyalty' && (
             <AdminLoyaltyTab darkMode={dm} />
-          )}}
+          )}
 
           {/* ═══ ANALYTICS ════════════════════════════════════════════════ */}
           {tab==='analytics' && (
