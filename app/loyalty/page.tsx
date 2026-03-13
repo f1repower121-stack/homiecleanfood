@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { DEFAULT_LOYALTY } from '@/lib/loyalty'
 
 const tiers = [
-  { name: 'Homie', minPoints: 0, color: 'bg-gray-100 text-gray-600', emoji: '🌱', perks: ['1 point per ฿10 spent', 'Birthday bonus 50 pts', 'Member-only deals'] },
+  { name: 'Homie', minPoints: 0, color: 'bg-gray-100 text-gray-600', emoji: '🌱', perks: ['1 point per ฿100 spent', 'Birthday bonus 50 pts', 'Member-only deals'] },
   { name: 'Clean Eater', minPoints: 200, color: 'bg-lime-100 text-lime-700', emoji: '🥗', perks: ['1.5x points multiplier', 'Free delivery on orders ฿500+', 'Early menu access'] },
   { name: 'Protein King', minPoints: 500, color: 'bg-green-100 text-green-700', emoji: '💪', perks: ['2x points multiplier', 'Free meal every 10 orders', 'Priority delivery', 'Exclusive monthly box'] },
 ]
@@ -19,7 +19,7 @@ export default function LoyaltyPage() {
     })
   }, [])
 
-  const ptsPerBaht10 = Math.round((config as any).points_per_baht * 10)
+  const ptsPerBaht100 = Math.round((config as any).points_per_baht * 100)
   const firstOrderBonus = (config as any).first_order_bonus ?? 50
   const birthdayBonus = (config as any).birthday_bonus ?? 50
   const referralBonus = (config as any).referral_bonus ?? 50
@@ -38,7 +38,7 @@ export default function LoyaltyPage() {
         <h2 className="font-display text-2xl font-bold text-homie-green mb-6">How to Earn Points</h2>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { icon: '🛒', label: 'Every Order', value: `${ptsPerBaht10} pt / ฿10`, desc: 'Automatically added' },
+            { icon: '🛒', label: 'Every Order', value: `${ptsPerBaht100} pt / ฿100`, desc: 'Automatically added' },
             { icon: '👤', label: 'First Order', value: `+${firstOrderBonus} pts`, desc: 'One-time welcome bonus' },
             { icon: '🎂', label: 'Birthday', value: `+${birthdayBonus} pts`, desc: 'On your birthday month' },
             { icon: '📣', label: 'Refer a Friend', value: `+${referralBonus} pts`, desc: 'When they first order' },

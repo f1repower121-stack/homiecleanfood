@@ -99,7 +99,7 @@ function getNutritionFromOrder(order: Order) {
 
 // Loyalty config
 const TIERS = [
-  { name: 'Homie', minPoints: 0, color: 'bg-gray-100 text-gray-600', emoji: '🌱', perks: ['1 point per ฿10 spent', 'Birthday bonus 50 pts', 'Member-only deals'] },
+  { name: 'Homie', minPoints: 0, color: 'bg-gray-100 text-gray-600', emoji: '🌱', perks: ['1 point per ฿100 spent', 'Birthday bonus 50 pts', 'Member-only deals'] },
   { name: 'Clean Eater', minPoints: 200, color: 'bg-lime-100 text-lime-700', emoji: '🥗', perks: ['1.5x points multiplier', 'Free delivery on orders ฿500+', 'Early menu access'] },
   { name: 'Protein King', minPoints: 500, color: 'bg-green-100 text-green-700', emoji: '💪', perks: ['2x points multiplier', 'Free meal every 10 orders', 'Priority delivery', 'Exclusive monthly box'] },
 ]
@@ -520,7 +520,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { icon: '🛒', label: 'Every Order', value: `${Math.round(loyaltyConfig.points_per_baht * 10)} pt / ฿10` },
+                    { icon: '🛒', label: 'Every Order', value: `${Math.round(loyaltyConfig.points_per_baht * 100)} pt / ฿100` },
                     { icon: '👤', label: 'First Order', value: `+${(loyaltyConfig as any).first_order_bonus ?? 50} pts` },
                     { icon: '🎂', label: 'Birthday', value: `+${(loyaltyConfig as any).birthday_bonus ?? 50} pts` },
                     { icon: '📣', label: 'Refer a Friend', value: `+${(loyaltyConfig as any).referral_bonus ?? 50} pts` },

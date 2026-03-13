@@ -3,7 +3,7 @@
 // Removed rewards - now only points for discount
 
 export const DEFAULT_LOYALTY = {
-  points_per_baht: 0.1,
+  points_per_baht: 0.01,
   multiplier_homie: 1.0,
   multiplier_clean_eater: 1.5,
   multiplier_protein_king: 2.0,
@@ -20,7 +20,7 @@ export function getTierFromPoints(pts: number, cfg: LoyaltyConfig): string {
 }
 
 export function calcPointsEarned(amount: number, cfg: LoyaltyConfig, tier: string): number {
-  const ptsPerBaht = cfg.points_per_baht ?? 0.1
+  const ptsPerBaht = cfg.points_per_baht ?? 0.01
   const mult =
     tier === 'Protein King'
       ? (cfg.multiplier_protein_king ?? 2)

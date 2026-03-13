@@ -10,7 +10,7 @@ interface LoyaltyConfig {
 }
 interface Customer { id: string; full_name: string; points: number; tier: string; created_at: string }
 const DEFAULT_CONFIG: LoyaltyConfig = {
-  id: 'singleton', points_per_baht: 0.1, first_order_bonus: 50, birthday_bonus: 50,
+  id: 'singleton', points_per_baht: 0.01, first_order_bonus: 50, birthday_bonus: 50,
   referral_bonus: 50, tier_clean_eater: 200, tier_protein_king: 500,
   multiplier_homie: 1.0, multiplier_clean_eater: 1.5, multiplier_protein_king: 2.0,
 }
@@ -148,7 +148,7 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <p className={`font-medium text-xs uppercase tracking-wide ${muted} mb-2`}>Earning</p>
-                <div className="flex justify-between"><span className={muted}>Per ฿10 spent</span><span className="font-medium">{Math.round(config.points_per_baht*10)} pt</span></div>
+                <div className="flex justify-between"><span className={muted}>Per ฿100 spent</span><span className="font-medium">{Math.round(config.points_per_baht*100)} pt</span></div>
                 <div className="flex justify-between"><span className={muted}>First order bonus</span><span className="font-medium">+{config.first_order_bonus} pts</span></div>
                 <div className="flex justify-between"><span className={muted}>Birthday bonus</span><span className="font-medium">+{config.birthday_bonus} pts</span></div>
                 <div className="flex justify-between"><span className={muted}>Referral bonus</span><span className="font-medium">+{config.referral_bonus} pts</span></div>
@@ -171,8 +171,8 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
           <div className={`${card} border rounded-2xl p-5`}>
             <h3 className="font-semibold mb-4">Points per Purchase</h3>
             <label className={`text-xs font-medium ${muted} block mb-1`}>Points earned per ฿1 spent</label>
-            <input type="number" step="0.01" value={config.points_per_baht} onChange={e=>setConfig({...config,points_per_baht:parseFloat(e.target.value)||0})} className={inputCls} placeholder="0.1"/>
-            <p className={`text-xs ${muted} mt-1`}>e.g. 0.1 = 1 point per ฿10</p>
+            <input type="number" step="0.001" value={config.points_per_baht} onChange={e=>setConfig({...config,points_per_baht:parseFloat(e.target.value)||0})} className={inputCls} placeholder="0.01"/>
+            <p className={`text-xs ${muted} mt-1`}>e.g. 0.01 = 1 point per ฿100</p>
             <div className={`mt-3 p-3 rounded-xl text-sm ${dm?'bg-gray-800':'bg-gray-50'}`}>
               Preview: ฿300 order earns <span className="text-green-600 font-bold">{Math.round(300*config.points_per_baht)} points</span>
             </div>
