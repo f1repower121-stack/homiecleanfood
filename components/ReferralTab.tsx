@@ -10,46 +10,53 @@ interface ReferralTabProps {
 export default function ReferralTab({ profile, user }: ReferralTabProps) {
   const [referrals, setReferrals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!user) return
 
     const fetchReferrals = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('referrals')
-        .select(`
-          *,
-          referred_user:profiles!referred_user_id(full_name)
-        `)
+        .select(`*, referred_user:profiles!referred_user_id(full_name)`)
         .eq('referrer_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (!error) {
-        setReferrals(data || [])
-      }
+      setReferrals(data || [])
       setLoading(false)
     }
 
     fetchReferrals()
-  }, [user])
+  }, [user, profile])
 
-  const referralLink = profile?.referral_code
+  const referralLink = profile?.referral_code && typeof window !== 'undefined'
     ? `${window.location.origin}/signin?ref=${profile.referral_code}`
     : ''
 
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(referralLink)
-      alert('Referral link copied!')
-    } catch (err) {
-      console.error('Failed to copy: ', err)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const el = document.createElement('textarea')
+      el.value = referralLink
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  const completedCount = referrals.filter(r => r.status === 'completed').length
+  const pendingCount = referrals.filter(r => r.status === 'pending').length
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/>
+        <div className="w-8 h-8 border-2 border-homie-green border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -57,80 +64,98 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold mb-2">Referral Program</h2>
-        <p className="text-gray-600">Share your referral link and earn points when friends make their first order!</p>
+        <h2 className="text-xl font-bold text-homie-dark mb-1">Referral Program</h2>
+        <p className="text-sm text-homie-gray">Share your link — earn <span className="font-semibold text-homie-green">100 points</span> when a friend makes their first order!</p>
       </div>
 
-      {/* Referral Code */}
-      <div className="bg-white rounded-xl border p-6">
-        <h3 className="font-semibold mb-3">Your Referral Link</h3>
-        <div className="flex gap-3">
+      {/* Your referral link */}
+      <div className="bg-white rounded-2xl border p-6">
+        <h3 className="font-semibold text-homie-dark mb-1">Your Referral Link</h3>
+        <p className="text-xs text-homie-gray mb-3">Anyone who registers using this link will be linked to your account.</p>
+        <div className="flex gap-2">
           <input
             type="text"
             value={referralLink}
             readOnly
-            className="flex-1 px-4 py-2 border rounded-lg bg-gray-50"
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-homie-cream text-sm text-homie-dark font-mono"
           />
           <button
             onClick={copyToClipboard}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-5 py-2.5 bg-homie-green text-white text-sm font-semibold rounded-xl hover:bg-homie-lime transition-colors"
           >
-            Copy
+            {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-2">
-          Share this link with friends. You'll earn 100 points when they make their first order!
-        </p>
+        {profile?.referral_code && (
+          <p className="text-xs text-homie-gray mt-2">
+            Or share your code: <span className="font-bold text-homie-green tracking-widest">{profile.referral_code}</span>
+          </p>
+        )}
       </div>
 
-      {/* Referral Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-4">
-          <div className="text-2xl font-bold text-green-600">{referrals.length}</div>
-          <div className="text-sm text-gray-600">Total Referrals</div>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl border p-4 text-center">
+          <div className="text-2xl font-bold text-homie-green">{referrals.length}</div>
+          <div className="text-xs text-homie-gray mt-1">Total Referred</div>
         </div>
-        <div className="bg-white rounded-xl border p-4">
-          <div className="text-2xl font-bold text-blue-600">
-            {referrals.filter(r => r.status === 'completed').length}
-          </div>
-          <div className="text-sm text-gray-600">Completed</div>
+        <div className="bg-white rounded-2xl border p-4 text-center">
+          <div className="text-2xl font-bold text-yellow-500">{pendingCount}</div>
+          <div className="text-xs text-homie-gray mt-1">Pending</div>
         </div>
-        <div className="bg-white rounded-xl border p-4">
-          <div className="text-2xl font-bold text-purple-600">
-            {referrals.filter(r => r.status === 'completed').length * 100}
-          </div>
-          <div className="text-sm text-gray-600">Points Earned</div>
+        <div className="bg-white rounded-2xl border p-4 text-center">
+          <div className="text-2xl font-bold text-purple-600">{completedCount * 100}</div>
+          <div className="text-xs text-homie-gray mt-1">Points Earned</div>
         </div>
       </div>
 
-      {/* Referral History */}
-      <div className="bg-white rounded-xl border">
-        <div className="p-6 border-b">
-          <h3 className="font-semibold">Referral History</h3>
+      {/* How it works */}
+      <div className="bg-homie-cream rounded-2xl p-5">
+        <h3 className="font-semibold text-homie-dark mb-3">How it works</h3>
+        <div className="space-y-2 text-sm text-homie-gray">
+          <div className="flex items-start gap-3">
+            <span className="w-6 h-6 rounded-full bg-homie-green text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+            <span>Share your referral link or code with friends</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="w-6 h-6 rounded-full bg-homie-green text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+            <span>Friend registers using your link or enters the code manually</span>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="w-6 h-6 rounded-full bg-homie-green text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+            <span>When they place their <strong>first order</strong>, you automatically receive <strong>100 points</strong></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Referral history */}
+      <div className="bg-white rounded-2xl border">
+        <div className="p-5 border-b">
+          <h3 className="font-semibold text-homie-dark">Referral History</h3>
         </div>
         <div className="divide-y">
           {referrals.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              No referrals yet. Share your link to get started!
+            <div className="p-8 text-center text-homie-gray text-sm">
+              No referrals yet — share your link to get started!
             </div>
           ) : (
-            referrals.map((referral) => (
-              <div key={referral.id} className="p-4 flex items-center justify-between">
+            referrals.map((r) => (
+              <div key={r.id} className="p-4 flex items-center justify-between">
                 <div>
-                  <div className="font-medium">
-                    {referral.referred_user?.full_name || 'Unknown User'}
+                  <div className="font-medium text-sm text-homie-dark">
+                    {r.referred_user?.full_name || 'Friend'}
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(referral.created_at).toLocaleDateString()}
+                  <div className="text-xs text-homie-gray mt-0.5">
+                    {new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  referral.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  r.status === 'completed'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {referral.status === 'completed' ? 'Completed (+100 pts)' : 'Pending'}
-                </div>
+                  {r.status === 'completed' ? '+100 pts earned' : 'Pending first order'}
+                </span>
               </div>
             ))
           )}

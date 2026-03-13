@@ -170,22 +170,15 @@ export default function OrderPage() {
         const tier = prof?.tier || getTierFromPoints(prof?.points ?? 0, cfgMerged)
         const pts = calcPointsEarned(orderTotal, cfgMerged, tier)
         setPointsEarned(pts)
-        fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Processing referral bonus',data:{userId:u.id,pointsEarned:pts},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
 
         try {
           await supabase.rpc('add_points', { user_id: u.id, points_to_add: pts })
-          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Points added successfully',data:{userId:u.id,points:pts},runId:'referral-debug',hypothesisId:'POINTS_ADD',timestamp:Date.now()})}).catch(()=>{})
-        } catch (e) {
-          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Points add failed',data:{error:e},runId:'referral-debug',hypothesisId:'POINTS_ADD',timestamp:Date.now()})}).catch(()=>{})
-        }
+        } catch { }
 
         // Process referral bonus if this is the user's first order
         try {
-          const { data: bonusResult } = await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
-          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Referral bonus processed',data:{userId:u.id,result:bonusResult},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
-        } catch (e) {
-          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Referral bonus failed',data:{error:e},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
-        }
+          await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
+        } catch { }
       }
 
       setOrderId(data?.id?.slice(0, 8).toUpperCase() || 'HCF001')

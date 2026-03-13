@@ -8,10 +8,12 @@ import { Eye, EyeOff } from 'lucide-react'
 function SignInForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
+  const urlRefCode = searchParams.get('ref') || ''
   const [mode, setMode] = useState<'signin' | 'register'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [refInput, setRefInput] = useState(urlRefCode)
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -32,7 +34,7 @@ function SignInForm() {
       } else {
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
-          options: { data: { full_name: name } }
+          options: { data: { full_name: name, ref_code: refInput.trim().toUpperCase() || undefined } }
         })
         if (error) throw error
         if (signUpData.session) {
@@ -98,6 +100,25 @@ function SignInForm() {
               </div>
             )}
 
+            {mode === 'register' && (
+              <div>
+                <label className="block text-sm font-medium text-homie-dark mb-1">
+                  Referral Code <span className="text-homie-gray font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={refInput}
+                  onChange={e => setRefInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. ABC12345"
+                  maxLength={8}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime uppercase tracking-widest"
+                />
+                {urlRefCode && (
+                  <p className="text-xs text-homie-lime mt-1">Referral code applied from your invite link!</p>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-homie-dark mb-1">Email Address</label>
               <input
@@ -152,6 +173,7 @@ function SignInForm() {
                 <li>🎁 Redeem points for free meals</li>
                 <li>📋 View your full order history</li>
                 <li>🚀 Faster checkout every time</li>
+                <li>🤝 Refer friends &amp; earn 100 pts when they order</li>
               </ul>
             </div>
           )}

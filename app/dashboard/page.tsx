@@ -5,6 +5,7 @@ import { menuItems, type MenuItem } from '@/lib/menuData'
 import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import ReferralTab from '@/components/ReferralTab'
 import {
   Card,
   CardContent,
@@ -29,6 +30,7 @@ import {
   Dumbbell,
   UtensilsCrossed,
   Star,
+  Users,
 } from 'lucide-react'
 import {
   BarChart,
@@ -296,6 +298,7 @@ export default function DashboardPage() {
     { key: 'exercise' as const, label: 'Exercise', icon: <Dumbbell size={18} /> },
     { key: 'recommendations' as const, label: 'Recommend', icon: <UtensilsCrossed size={18} /> },
     { key: 'loyalty' as const, label: 'Loyalty', icon: <Star size={18} /> },
+    { key: 'referrals' as const, label: 'Referrals', icon: <Users size={18} /> },
   ]
 
   return (
@@ -652,6 +655,11 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
+        )}
+
+        {/* REFERRALS TAB */}
+        {tab === 'referrals' && (
+          <ReferralTab profile={profile} user={user} />
         )}
       </div>
     </div>
