@@ -33,21 +33,51 @@ export default function HomePage() {
                   View Menu
                 </Link>
               </div>
+
+              {/* Stats row */}
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: '🍽️', label: 'Dishes Sold', value: '500k+' },
+                  { icon: '💪', label: 'Protein/meal', value: '50g+' },
+                  { icon: '📸', label: 'Instagram', value: '28.2k' },
+                  { icon: '⭐', label: 'Happy Customers', value: '1000+' },
+                ].map((s, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur border border-white/15 rounded-2xl px-3 py-3 text-center">
+                    <div className="text-lg mb-0.5">{s.icon}</div>
+                    <div className="font-display font-bold text-white text-lg leading-tight">{s.value}</div>
+                    <div className="text-green-300 text-xs mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: '🍽️', label: 'Dishes Sold', value: '500k+' },
-                { icon: '💪', label: 'Protein per meal', value: '50g+' },
-                { icon: '📸', label: 'Instagram', value: '28.2k' },
-                { icon: '⭐', label: 'Happy Customers', value: '1000+' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white/10 backdrop-blur rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
-                  <div className="text-3xl mb-2">{s.icon}</div>
-                  <div className="text-2xl font-display font-bold text-white">{s.value}</div>
-                  <div className="text-green-300 text-sm font-medium">{s.label}</div>
-                </div>
+            {/* Featured Meals in Hero */}
+            <div className="grid grid-cols-2 gap-3">
+              {featured.map(item => (
+                <Link key={item.id} href="/menu" className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all block">
+                  <div className="relative aspect-square overflow-hidden bg-gray-100">
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 45vw, 200px"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <p className="text-homie-dark font-semibold text-sm leading-tight line-clamp-1">{item.name}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-homie-green font-bold text-sm">฿{item.leanPrice}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        item.category === 'beef' ? 'bg-red-50 text-red-600' :
+                        item.category === 'fish' ? 'bg-blue-50 text-blue-600' :
+                        'bg-lime-50 text-homie-lime'
+                      }`}>
+                        {item.category}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
 
