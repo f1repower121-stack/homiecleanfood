@@ -119,8 +119,8 @@ export default function OrderPage() {
       await sendOrderPushNotification({
         id: data?.id,
         customer_name: form.name,
-        total: orderTotal,
-        items: orderItems,
+        total: total,
+        items: items,
         payment_method: payMethod,
       })
 
