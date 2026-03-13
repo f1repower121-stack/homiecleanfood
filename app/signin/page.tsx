@@ -30,12 +30,19 @@ function SignInForm() {
         await new Promise(resolve => setTimeout(resolve, 500))
         window.location.href = redirect
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: { data: { full_name: name } }
         })
         if (error) throw error
-        setMessage({ type: 'success', text: '🎉 Account created! Check your email to confirm.' })
+        if (signUpData.session) {
+          // Email confirmation disabled — session returned immediately
+          setMessage({ type: 'success', text: '🎉 Account created! Redirecting...' })
+          await new Promise(resolve => setTimeout(resolve, 500))
+          window.location.href = redirect
+        } else {
+          setMessage({ type: 'success', text: '🎉 Account created! Check your email to confirm.' })
+        }
       }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Something went wrong. Please try again.' })
