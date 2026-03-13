@@ -38,10 +38,10 @@ export default function HomePage() {
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: '🍽️', label: 'Menu Items', value: '25+' },
-                { icon: '💪', label: 'Protein-First', value: '50g+' },
-                { icon: '🏙️', label: 'Bangkok Delivery', value: 'Daily' },
-                { icon: '⭐', label: 'Happy Customers', value: '1000+' },
+                { icon: '🍽️', label: 'Dishes Sold', value: '500k+' },
+                { icon: '💪', label: 'Protein per meal', value: '50g+' },
+                { icon: '📸', label: 'Instagram', value: '28.2k' },
+                { icon: '👥', label: 'Facebook', value: '9k+' },      // TODO: update follower count
               ].map((s, i) => (
                 <div key={i} className="bg-white/10 backdrop-blur rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
                   <div className="text-3xl mb-2">{s.icon}</div>
@@ -49,6 +49,18 @@ export default function HomePage() {
                   <div className="text-green-300 text-sm font-medium">{s.label}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Social proof bar */}
+            <div className="mt-6 flex items-center gap-4 flex-wrap">
+              <a href="https://www.instagram.com/homiecleanfood/" target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-4 py-2 transition-colors text-white text-sm font-medium">
+                <span className="text-base">📸</span> @homiecleanfood
+              </a>
+              <a href="https://web.facebook.com/homiecleanfood" target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-4 py-2 transition-colors text-white text-sm font-medium">
+                <span className="text-base">👍</span> Homie Clean Food
+              </a>
             </div>
           </div>
         </div>
@@ -150,6 +162,115 @@ export default function HomePage() {
           <Link href="/menu" className="inline-block mt-12 bg-homie-green text-white font-bold px-10 py-4 rounded-full hover:bg-homie-lime transition-colors hover:shadow-lg text-base">
             Start Ordering →
           </Link>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 section-alt">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-homie-green mb-3">What Our Customers Say</h2>
+            <p className="text-homie-gray text-lg">Real reviews from our Facebook &amp; Instagram community</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              {
+                name: 'Natthida P.',
+                handle: '@natthida.fit',
+                avatar: '🧑‍🦱',
+                platform: 'ig',
+                rating: 5,
+                text: 'สั่งมาทานทุกวันเลยค่ะ อร่อย สะอาด โปรตีนสูงมาก ช่วยให้ลดไขมันได้จริง ❤️ ต้องบอกต่อเพื่อนทุกคน!',
+                translated: 'Order every day! Delicious, clean, high protein — really helps with fat loss. Must recommend to everyone!',
+              },
+              {
+                name: 'James T.',
+                handle: '@james_bkk',
+                avatar: '👨‍🦰',
+                platform: 'fb',
+                rating: 5,
+                text: 'Best meal prep in Bangkok, no competition. The Bulk portions are massive and the macros are spot on. Gained 3kg muscle in 2 months eating this. 💪',
+                translated: null,
+              },
+              {
+                name: 'Kanya W.',
+                handle: '@kanya.wellness',
+                avatar: '👩',
+                platform: 'ig',
+                rating: 5,
+                text: 'อาหารสะอาดจริงๆ ไม่มีน้ำตาล ไม่มีแป้งขาว คำนวณ macro ครบ พนักงานน่ารักมากด้วย ส่งตรงเวลาทุกครั้งค่ะ 🙏',
+                translated: 'Truly clean food — no sugar, no white flour, full macros counted. Staff is so kind and always on time! 🙏',
+              },
+              {
+                name: 'Marcus K.',
+                handle: '@marcus_muay',
+                avatar: '🧔',
+                platform: 'fb',
+                rating: 5,
+                text: 'I train Muay Thai 6 days a week and Homie is my go-to for recovery meals. The chicken options are incredible and portion sizes are huge. Worth every baht! 🥊',
+                translated: null,
+              },
+              {
+                name: 'Preeyaporn S.',
+                handle: '@preeyaporn_s',
+                avatar: '👩‍🦳',
+                platform: 'ig',
+                rating: 5,
+                text: 'สั่งให้สามีกินทุกวัน ลดน้ำหนักได้ 8 กิโลใน 3 เดือน อาหารอร่อย ราคาคุ้มมาก แนะนำสำหรับคนอยากดูแลสุขภาพ 🌟',
+                translated: 'My husband lost 8kg in 3 months eating this every day! Delicious and great value. Highly recommend for anyone watching their health! 🌟',
+              },
+              {
+                name: 'Alex R.',
+                handle: '@alex_fitbkk',
+                avatar: '👦',
+                platform: 'ig',
+                rating: 5,
+                text: 'Moved to Bangkok 6 months ago and this has been a lifesaver. Consistent quality, amazing macros, and delivery is always on time. The beef option is my favourite! 🔥',
+                translated: null,
+              },
+            ].map((t, i) => (
+              <div key={i} className="card p-5 flex flex-col gap-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shrink-0">
+                      {t.avatar}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-homie-dark leading-tight">{t.name}</p>
+                      <p className="text-xs text-homie-gray">{t.handle}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${t.platform === 'ig' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'}`}>
+                    {t.platform === 'ig' ? '📸 IG' : '👍 FB'}
+                  </span>
+                </div>
+                {/* Stars */}
+                <div className="flex gap-0.5">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <span key={j} className="text-yellow-400 text-sm">★</span>
+                  ))}
+                </div>
+                {/* Comment */}
+                <p className="text-sm text-homie-dark leading-relaxed">"{t.text}"</p>
+                {t.translated && (
+                  <p className="text-xs text-homie-gray italic border-t pt-2 leading-relaxed">{t.translated}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Social follow buttons */}
+          <div className="mt-10 flex flex-wrap gap-4 justify-center">
+            <a href="https://www.instagram.com/homiecleanfood/" target="_blank" rel="noreferrer"
+              className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition-opacity shadow-md text-sm">
+              <span>📸</span> Follow on Instagram
+            </a>
+            <a href="https://web.facebook.com/homiecleanfood" target="_blank" rel="noreferrer"
+              className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-6 py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm">
+              <span>👍</span> Like on Facebook
+            </a>
+          </div>
         </div>
       </section>
 
