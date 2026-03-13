@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { menuItems, type MenuItem } from '@/lib/menuData'
+import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -118,16 +119,17 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<CalorieLog[]>([])
   const [exercises, setExercises] = useState<ExerciseLog[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [profile, setProfile] = useState<{ full_name: string | null; points: number } | null>(null)
+  const [profile, setProfile] = useState<{ full_name: string | null; points: number; tier?: string; referral_code?: string } | null>(null)
   const [todayCalories, setTodayCalories] = useState(0)
   const [burnedCalories, setBurnedCalories] = useState(0)
   const [recommendations, setRecommendations] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
   const [exName, setExName] = useState('Walking')
   const [exDuration, setExDuration] = useState('')
-  const [tab, setTab] = useState<'overview' | 'tracker' | 'exercise' | 'recommendations' | 'loyalty'>('overview')
+  const [tab, setTab] = useState<'overview' | 'tracker' | 'exercise' | 'recommendations' | 'loyalty' | 'referrals'>('overview')
   const [redeemMsg, setRedeemMsg] = useState<string | null>(null)
   const [redeemLoading, setRedeemLoading] = useState(false)
+  const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -140,19 +142,24 @@ export default function DashboardPage() {
     }
     setUser(u)
 
-    const [profileRes, ordersRes, goalsRes, logsRes, exRes] = await Promise.allSettled([
-      supabase.from('profiles').select('full_name, points, daily_calorie_goal, weekly_calorie_goal').eq('id', u.id).single(),
+    const [profileRes, ordersRes, goalsRes, logsRes, exRes, cfgRes] = await Promise.allSettled([
+      supabase.from('profiles').select('full_name, points, tier, daily_calorie_goal, weekly_calorie_goal, referral_code').eq('id', u.id).single(),
       supabase.from('orders').select('*').eq('user_id', u.id).order('created_at', { ascending: false }),
       supabase.from('user_goals').select('calorie_target, weekly_calorie_goal').eq('user_id', u.id).maybeSingle(),
       supabase.from('calorie_logs').select('*').eq('user_id', u.id).order('log_date', { ascending: false }).limit(14),
       supabase.from('exercise_logs').select('*').eq('user_id', u.id).gte('log_date', getWeekStart()).order('log_date', { ascending: false }),
+      supabase.from('loyalty_config').select('*').eq('id', 'singleton').single(),
     ])
 
     const p = profileRes.status === 'fulfilled' ? profileRes.value.data : null
     const pts = (p as any)?.points ?? 0
+    const configForTier = cfgRes.status === 'fulfilled' ? (cfgRes.value.data as any) : null
+    const mergedCfg = { ...DEFAULT_LOYALTY, ...configForTier }
+    const tier = (p as any)?.tier || getTierFromPoints(pts, mergedCfg)
     setProfile({
       full_name: (p as any)?.full_name ?? u.user_metadata?.full_name ?? null,
       points: pts,
+      tier,
     })
 
     const daily = (p as any)?.daily_calorie_goal ?? 2000
@@ -163,6 +170,8 @@ export default function DashboardPage() {
     setOrders((ordersRes.status === 'fulfilled' ? ordersRes.value.data : null) as Order[] || [])
     setLogs((logsRes.status === 'fulfilled' ? logsRes.value.data : null) as CalorieLog[] || [])
     setExercises((exRes.status === 'fulfilled' ? exRes.value.data : null) as ExerciseLog[] || [])
+    const cfg = cfgRes.status === 'fulfilled' ? cfgRes.value.data : null
+    if (cfg) setLoyaltyConfig(c => ({ ...DEFAULT_LOYALTY, ...c, ...cfg }))
   }, [router])
 
   function getWeekStart() {
@@ -386,14 +395,18 @@ export default function DashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.filter(o => o.status !== 'redeemed').slice(0, 5).map(o => (
-                        <TableRow key={o.id}>
-                          <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
-                          <TableCell>฿{o.total}</TableCell>
-                          <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
-                          <TableCell className="text-yellow-500 font-medium">+{Math.floor(o.total / 10)} ⭐</TableCell>
-                        </TableRow>
-                      ))}
+                      {orders.filter(o => o.status !== 'redeemed').slice(0, 5).map(o => {
+                        const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
+                        const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
+                            <TableCell>฿{o.total}</TableCell>
+                            <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
+                            <TableCell className="text-yellow-500 font-medium">+{pts} ⭐</TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 )}

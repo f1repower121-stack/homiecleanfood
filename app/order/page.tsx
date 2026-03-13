@@ -5,8 +5,9 @@ import { supabase } from '@/lib/supabase/client'
 import { sendOrderPushNotification } from '@/lib/sendOrderPushNotification'
 import Link from 'next/link'
 import Image from 'next/image'
-import { menuItems } from '@/lib/menuData'
-import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react'
+import { menuItems, type MenuItem } from '@/lib/menuData'
+import { Minus, Plus, Trash2, ShoppingBag, Star } from 'lucide-react'
+import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 
 export default function OrderPage() {
   const { items, removeItem, updateQty, total, clearCart } = useCart()
@@ -25,33 +26,40 @@ export default function OrderPage() {
   const [pointsEarned, setPointsEarned] = useState(0)
   const [userLoaded, setUserLoaded] = useState(false)
 
-  // FIX: Auto-fill user details from profile if logged in
+  // Loyalty redemption state
+  const [user, setUser] = useState<any>(null)
+  const [userPoints, setUserPoints] = useState(0)
+  const [userTier, setUserTier] = useState<string>('Homie')
+  const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
+  const [pointsInput, setPointsInput] = useState('')
+
+  // Auto-fill user details + load loyalty data
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      setUser(u)
+      if (u) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
+          .select('full_name, points, tier')
+          .eq('id', u.id)
           .single()
+        const pts = profile?.points ?? 0
+        setUserPoints(pts)
 
-        // Pre-fill name from profile, email as fallback
         setForm(prev => ({
           ...prev,
-          name: profile?.full_name || user.user_metadata?.full_name || '',
-          phone: user.user_metadata?.phone || '',
+          name: profile?.full_name || u.user_metadata?.full_name || '',
+          phone: u.user_metadata?.phone || '',
         }))
 
-        // Also check last order for address
         const { data: lastOrder } = await supabase
           .from('orders')
           .select('delivery_address, customer_phone')
-          .eq('user_id', user.id)
+          .eq('user_id', u.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single()
-
         if (lastOrder) {
           setForm(prev => ({
             ...prev,
@@ -65,6 +73,24 @@ export default function OrderPage() {
     loadUser()
   }, [])
 
+  // Load loyalty config when user exists (for points calc + redemption)
+  useEffect(() => {
+    if (!user) return
+    const loadLoyalty = async () => {
+      try {
+        const { data: cfg } = await supabase.from('loyalty_config').select('*').eq('id', 'singleton').single()
+        const config = { ...DEFAULT_LOYALTY, ...cfg }
+        setLoyaltyConfig(config)
+        const { data: profile } = await supabase.from('profiles').select('points, tier').eq('id', user.id).single()
+        if (profile) {
+          const tier = profile.tier || getTierFromPoints(profile.points ?? 0, config)
+          setUserTier(tier)
+        }
+      } catch { }
+    }
+    loadLoyalty()
+  }, [user])
+
   // Set default delivery date to tomorrow
   useEffect(() => {
     const tomorrow = new Date()
@@ -75,17 +101,35 @@ export default function OrderPage() {
 
   const suggestedItems = menuItems.slice(0, 3).filter(m => !items.find(i => i.id === m.id))
 
+  // Redemption math: Custom points = 1 pt = 1 ฿ off
+  const ptsPerBaht = loyaltyConfig.points_to_baht ?? 1
+  const pointsToUse = parseInt(pointsInput, 10) || 0
+  const discountAmount = pointsToUse * ptsPerBaht
+  const cappedDiscount = Math.min(discountAmount, total, userPoints * ptsPerBaht)
+  const pointsToDeduct = Math.min(pointsToUse, userPoints, Math.floor(cappedDiscount / ptsPerBaht))
+  const maxPointsByPct = Math.floor((total * ((loyaltyConfig.max_redeem_pct ?? 30) / 100)) / ptsPerBaht)
+  const maxPointsUserCanUse = Math.min(userPoints, maxPointsByPct, Math.ceil(total / ptsPerBaht))
+  const canUsePoints = user && userPoints >= (loyaltyConfig.min_redeem_points ?? 100) && total > 0
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user: u } } = await supabase.auth.getUser()
+      const orderTotal = finalTotal
+      const redemptionNote = pointsToDeduct > 0
+        ? `Used ${pointsToDeduct} pts for ฿${cappedDiscount} off`
+        : ''
+      const allNotes = [form.note, redemptionNote].filter(Boolean).join(' | ')
+
+      const orderItems = items
+
       const { data, error } = await supabase.from('orders').insert({
-        user_id: user?.id || null,
-        items: items,
-        total: total,
+        user_id: u?.id || null,
+        items: orderItems,
+        total: orderTotal,
         payment_method: payMethod,
         status: 'pending',
-        notes: form.note,
+        notes: allNotes,
         customer_name: form.name,
         customer_phone: form.phone,
         delivery_address: form.address,
@@ -98,17 +142,39 @@ export default function OrderPage() {
       await sendOrderPushNotification({
         id: data?.id,
         customer_name: form.name,
-        total: total,
-        items: items,
+        total: orderTotal,
+        items: orderItems,
         payment_method: payMethod,
       })
 
-      // FIX: Add loyalty points if logged in
-      if (user) {
-        const points = Math.floor(total / 10)
-        setPointsEarned(points)
+      // Deduct points if redeemed
+      if (u && pointsToDeduct > 0) {
         try {
-          await supabase.rpc('add_points', { user_id: user.id, points_to_add: points })
+          await supabase.rpc('add_points', { user_id: u.id, points_to_add: -pointsToDeduct })
+          await supabase.from('loyalty_redemptions').insert({
+            user_id: u.id,
+            reward_name: `${pointsToDeduct} pts discount`,
+            points_spent: pointsToDeduct,
+            discount_applied: cappedDiscount,
+            status: 'applied',
+          }).then(() => {})
+        } catch { }
+      }
+
+      // Add earned points (on amount paid) — uses admin loyalty_config
+      if (u) {
+        const { data: cfg } = await supabase.from('loyalty_config').select('*').eq('id', 'singleton').single()
+        const cfgMerged = { ...DEFAULT_LOYALTY, ...cfg }
+        const { data: prof } = await supabase.from('profiles').select('points, tier').eq('id', u.id).single()
+        const tier = prof?.tier || getTierFromPoints(prof?.points ?? 0, cfgMerged)
+        const pts = calcPointsEarned(orderTotal, cfgMerged, tier)
+        setPointsEarned(pts)
+        try {
+          await supabase.rpc('add_points', { user_id: u.id, points_to_add: pts })
+        } catch { }
+        // Process referral bonus if this is the user's first order
+        try {
+          await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
         } catch { }
       }
 
@@ -116,8 +182,8 @@ export default function OrderPage() {
       clearCart()
       setStep('success')
     } catch (err) {
-      const points = Math.floor(total / 10)
-      setPointsEarned(points)
+      const pts = calcPointsEarned(finalTotal, loyaltyConfig, userTier)
+      setPointsEarned(pts)
       setOrderId('HCF' + Date.now().toString().slice(-5))
       clearCart()
       setStep('success')
@@ -347,16 +413,59 @@ export default function OrderPage() {
                 ))}
               </div>
 
-              {/* Loyalty points preview */}
+              {/* Loyalty redemption - only for logged-in users */}
+              {canUsePoints && (
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-6">
+                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-5 py-4 border-b border-amber-100">
+                    <h3 className="font-semibold text-homie-dark flex items-center gap-2">
+                      <Star size={20} className="text-amber-500" /> Loyalty Points
+                    </h3>
+                    <p className="text-sm text-homie-gray mt-1">
+                      You have <span className="font-bold text-amber-700">{userPoints.toLocaleString()} pts</span> — 1 pt = ฿1 off
+                    </p>
+                  </div>
+                  <div className="p-5">
+                    <label className="block text-sm font-medium text-homie-dark mb-2">Use points for discount</label>
+                    <p className="text-xs text-homie-gray mb-2">Max {maxPointsUserCanUse} pts (up to {loyaltyConfig.max_redeem_pct ?? 30}% of order)</p>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxPointsUserCanUse}
+                        placeholder="0"
+                        value={pointsInput}
+                        onChange={e => setPointsInput(e.target.value.replace(/\D/g, ''))}
+                        className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-homie-lime focus:border-transparent"
+                      />
+                      <span className="text-sm text-homie-gray shrink-0">pts</span>
+                    </div>
+                    {pointsInput && (
+                      <p className="text-sm text-homie-lime mt-2 font-medium">
+                        = ฿{Math.min((parseInt(pointsInput, 10) || 0) * ptsPerBaht, total)} off
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!user && total > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-6">
+                  <p className="text-sm text-amber-800">
+                    <Link href="/signin" className="font-semibold text-amber-700 underline hover:no-underline">Sign in</Link> to use your loyalty points for discounts at checkout.
+                  </p>
+                </div>
+              )}
+
+              {/* Points earned preview — uses admin loyalty_config */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-700">
-                ⭐ You'll earn <strong>{Math.floor(total / 10)} points</strong> for this order!
+                ⭐ You&apos;ll earn <strong>{calcPointsEarned(finalTotal, loyaltyConfig, userTier)} points</strong> for this order{userTier !== 'Homie' && ` (${userTier} ${userTier === 'Protein King' ? '2x' : '1.5x'} bonus)`}!
               </div>
 
               <div className="flex gap-3">
                 <button onClick={() => setStep('details')} className="flex-1 border-2 border-gray-200 text-homie-gray font-semibold py-3 rounded-xl hover:border-homie-green hover:text-homie-green transition-colors">← Back</button>
-                <button onClick={handleSubmit} disabled={loading}
+                <button onClick={handleSubmit} disabled={loading || pointsToDeduct > userPoints}
                   className="flex-1 bg-homie-green text-white font-bold py-3 rounded-xl hover:bg-homie-lime transition-colors disabled:opacity-60">
-                  {loading ? 'Placing Order...' : `Confirm Order ฿${total}`}
+                  {loading ? 'Placing Order...' : `Confirm Order ฿${finalTotal}`}
                 </button>
               </div>
             </div>
@@ -380,8 +489,11 @@ export default function OrderPage() {
                 <div className="border-t pt-3 space-y-1">
                   <div className="flex justify-between text-sm"><span className="text-homie-gray">Subtotal</span><span>฿{total}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-homie-gray">Delivery</span><span className="text-homie-lime font-medium">Free</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-homie-gray">Points earned</span><span className="text-yellow-600 font-medium">+{Math.floor(total / 10)} ⭐</span></div>
-                  <div className="flex justify-between font-bold text-homie-green text-lg pt-1 border-t"><span>Total</span><span>฿{total}</span></div>
+                  {cappedDiscount > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-homie-gray">Points discount</span><span className="text-green-600 font-medium">−฿{cappedDiscount}</span></div>
+                  )}
+                  <div className="flex justify-between text-sm"><span className="text-homie-gray">Points earned</span><span className="text-yellow-600 font-medium">+{calcPointsEarned(finalTotal, loyaltyConfig, userTier)} ⭐</span></div>
+                  <div className="flex justify-between font-bold text-homie-green text-lg pt-1 border-t"><span>Total</span><span>฿{finalTotal}</span></div>
                 </div>
               </>
             )}
