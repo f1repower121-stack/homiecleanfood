@@ -11,11 +11,20 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
   const [referrals, setReferrals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [referralCode, setReferralCode] = useState<string | null>(profile?.referral_code ?? null)
 
   useEffect(() => {
     if (!user) return
 
-    const fetchReferrals = async () => {
+    const fetchData = async () => {
+      // Fetch referral code directly — don't rely solely on parent prop
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('referral_code')
+        .eq('id', user.id)
+        .single()
+      if (prof?.referral_code) setReferralCode(prof.referral_code)
+
       const { data } = await supabase
         .from('referrals')
         .select(`*, referred_user:profiles!referred_user_id(full_name)`)
@@ -26,11 +35,11 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
       setLoading(false)
     }
 
-    fetchReferrals()
-  }, [user, profile])
+    fetchData()
+  }, [user])
 
-  const referralLink = profile?.referral_code && typeof window !== 'undefined'
-    ? `${window.location.origin}/signin?ref=${profile.referral_code}`
+  const referralLink = referralCode
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://homiecleanfood.vercel.app'}/signin?ref=${referralCode}`
     : ''
 
   const copyToClipboard = async () => {
@@ -86,9 +95,9 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
-        {profile?.referral_code && (
+        {referralCode && (
           <p className="text-xs text-homie-gray mt-2">
-            Or share your code: <span className="font-bold text-homie-green tracking-widest">{profile.referral_code}</span>
+            Or share your code: <span className="font-bold text-homie-green tracking-widest">{referralCode}</span>
           </p>
         )}
       </div>
