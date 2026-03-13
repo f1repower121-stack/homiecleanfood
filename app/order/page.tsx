@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useCart } from '@/components/CartProvider'
 import { supabase } from '@/lib/supabase/client'
 import { sendOrderPushNotification } from '@/lib/sendOrderPushNotification'
@@ -8,11 +8,15 @@ import Image from 'next/image'
 import { menuItems, type MenuItem } from '@/lib/menuData'
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react'
 import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
+import generatePayload from 'promptpay-qr'
+import QRCode from 'qrcode'
+
+const PROMPTPAY_PHONE = '0959505111' // Homie Clean Food PromptPay number
 
 export default function OrderPage() {
   const { items, removeItem, updateQty, total, clearCart } = useCart()
   const [step, setStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart')
-  const [payMethod, setPayMethod] = useState<'card' | 'cod'>('cod')
+  const [payMethod, setPayMethod] = useState<'promptpay' | 'card' | 'cod'>('cod')
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -25,6 +29,8 @@ export default function OrderPage() {
   const [orderId, setOrderId] = useState('')
   const [pointsEarned, setPointsEarned] = useState(0)
   const [userLoaded, setUserLoaded] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [qrPaid, setQrPaid] = useState(false)
 
   // Loyalty state
   const [user, setUser] = useState<any>(null)
@@ -92,6 +98,14 @@ export default function OrderPage() {
     const dateStr = tomorrow.toISOString().split('T')[0]
     setForm(prev => ({ ...prev, deliveryDate: dateStr, deliveryTime: '12:00' }))
   }, [])
+
+  // Generate PromptPay QR when method is selected
+  useEffect(() => {
+    if (payMethod !== 'promptpay' || !total) return
+    const payload = generatePayload(PROMPTPAY_PHONE, { amount: total })
+    QRCode.toDataURL(payload, { width: 280, margin: 2, color: { dark: '#1a1a1a', light: '#ffffff' } })
+      .then(url => setQrDataUrl(url))
+  }, [payMethod, total])
 
   const suggestedItems = menuItems.slice(0, 3).filter(m => !items.find(i => i.id === m.id))
 
@@ -359,8 +373,9 @@ export default function OrderPage() {
 
               <div className="space-y-3 mb-6">
                 {[
-                  { key: 'card', label: 'Credit / Debit Card', desc: 'Visa, Mastercard, JCB — Powered by Omise', icon: '💳' },
+                  { key: 'promptpay', label: 'PromptPay QR', desc: 'Scan with any Thai banking app — instant transfer', icon: '🇹🇭' },
                   { key: 'cod', label: 'Cash on Delivery', desc: 'Pay when your order arrives', icon: '💵' },
+                  { key: 'card', label: 'Credit / Debit Card', desc: 'Visa, Mastercard, JCB — Powered by Omise', icon: '💳' },
                 ].map(m => (
                   <button key={m.key} onClick={() => setPayMethod(m.key as any)}
                     className={`w-full text-left p-4 rounded-xl border-2 transition-all ${payMethod === m.key ? 'border-homie-lime bg-lime-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
@@ -378,6 +393,32 @@ export default function OrderPage() {
                 ))}
               </div>
 
+              {/* PromptPay QR Code */}
+              {payMethod === 'promptpay' && (
+                <div className="card p-5 mb-6 text-center border-2 border-homie-lime">
+                  <p className="font-semibold text-homie-green mb-1">Scan to Pay via PromptPay</p>
+                  <p className="text-xs text-homie-gray mb-4">Open your banking app → Scan QR → Amount is pre-filled</p>
+                  {qrDataUrl ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <img src={qrDataUrl} alt="PromptPay QR" className="w-52 h-52 mx-auto rounded-xl border border-gray-100" />
+                      <div className="bg-homie-green text-white px-5 py-2 rounded-full font-bold text-lg">
+                        ฿{total.toLocaleString()}
+                      </div>
+                      <p className="text-xs text-homie-gray">PromptPay: {PROMPTPAY_PHONE} · Homie Clean Food</p>
+                      <label className="flex items-center gap-2 cursor-pointer mt-1">
+                        <input type="checkbox" checked={qrPaid} onChange={e => setQrPaid(e.target.checked)}
+                          className="w-4 h-4 accent-homie-lime" />
+                        <span className="text-sm font-medium text-homie-dark">I have transferred the payment</span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="w-52 h-52 mx-auto bg-gray-50 rounded-xl flex items-center justify-center">
+                      <div className="text-homie-gray text-sm">Generating QR...</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Points earned preview — uses admin loyalty_config */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-700">
                 ⭐ You&apos;ll earn <strong>{calcPointsEarned(total, loyaltyConfig, userTier)} points</strong> for this order{userTier !== 'Homie' && ` (${userTier} ${userTier === 'Protein King' ? '2x' : '1.5x'} bonus)`}!
@@ -385,9 +426,9 @@ export default function OrderPage() {
 
               <div className="flex gap-3">
                 <button onClick={() => setStep('details')} className="flex-1 border-2 border-gray-200 text-homie-gray font-semibold py-3 rounded-xl hover:border-homie-green hover:text-homie-green transition-colors">← Back</button>
-                <button onClick={handleSubmit} disabled={loading}
+                <button onClick={handleSubmit} disabled={loading || (payMethod === 'promptpay' && !qrPaid)}
                   className="flex-1 bg-homie-green text-white font-bold py-3 rounded-xl hover:bg-homie-lime transition-colors disabled:opacity-60">
-                  {loading ? 'Placing Order...' : `Confirm Order ฿${total}`}
+                  {loading ? 'Placing Order...' : payMethod === 'promptpay' ? `Confirm Payment ฿${total}` : `Confirm Order ฿${total}`}
                 </button>
               </div>
             </div>
