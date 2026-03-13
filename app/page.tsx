@@ -41,7 +41,7 @@ export default function HomePage() {
                 { icon: '🍽️', label: 'Dishes Sold', value: '500k+' },
                 { icon: '💪', label: 'Protein per meal', value: '50g+' },
                 { icon: '📸', label: 'Instagram', value: '28.2k' },
-                { icon: '👥', label: 'Facebook', value: '9k+' },      // TODO: update follower count
+                { icon: '⭐', label: 'Happy Customers', value: '1000+' },
               ].map((s, i) => (
                 <div key={i} className="bg-white/10 backdrop-blur rounded-2xl p-5 border border-white/10 hover:bg-white/15 transition-colors">
                   <div className="text-3xl mb-2">{s.icon}</div>
