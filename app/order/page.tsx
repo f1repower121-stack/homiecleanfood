@@ -115,6 +115,7 @@ export default function OrderPage() {
     setLoading(true)
     try {
       const { data: { user: u } } = await supabase.auth.getUser()
+      const finalTotal = Math.max(0, total - cappedDiscount)
       const orderTotal = finalTotal
       const redemptionNote = pointsToDeduct > 0
         ? `Used ${pointsToDeduct} pts for ฿${cappedDiscount} off`
@@ -169,19 +170,29 @@ export default function OrderPage() {
         const tier = prof?.tier || getTierFromPoints(prof?.points ?? 0, cfgMerged)
         const pts = calcPointsEarned(orderTotal, cfgMerged, tier)
         setPointsEarned(pts)
+        fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Processing referral bonus',data:{userId:u.id,pointsEarned:pts},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
+
         try {
           await supabase.rpc('add_points', { user_id: u.id, points_to_add: pts })
-        } catch { }
+          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Points added successfully',data:{userId:u.id,points:pts},runId:'referral-debug',hypothesisId:'POINTS_ADD',timestamp:Date.now()})}).catch(()=>{})
+        } catch (e) {
+          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Points add failed',data:{error:e},runId:'referral-debug',hypothesisId:'POINTS_ADD',timestamp:Date.now()})}).catch(()=>{})
+        }
+
         // Process referral bonus if this is the user's first order
         try {
-          await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
-        } catch { }
+          const { data: bonusResult } = await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
+          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Referral bonus processed',data:{userId:u.id,result:bonusResult},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
+        } catch (e) {
+          fetch('http://127.0.0.1:7426/ingest/fd09308f-9de4-4f80-86f5-ab510d549f09',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5dbbd7'},body:JSON.stringify({sessionId:'5dbbd7',location:'order.tsx:handleSubmit',message:'Referral bonus failed',data:{error:e},runId:'referral-debug',hypothesisId:'REFERRAL_BONUS',timestamp:Date.now()})}).catch(()=>{})
+        }
       }
 
       setOrderId(data?.id?.slice(0, 8).toUpperCase() || 'HCF001')
       clearCart()
       setStep('success')
     } catch (err) {
+      const finalTotal = Math.max(0, total - cappedDiscount)
       const pts = calcPointsEarned(finalTotal, loyaltyConfig, userTier)
       setPointsEarned(pts)
       setOrderId('HCF' + Date.now().toString().slice(-5))
@@ -458,14 +469,14 @@ export default function OrderPage() {
 
               {/* Points earned preview — uses admin loyalty_config */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-700">
-                ⭐ You&apos;ll earn <strong>{calcPointsEarned(finalTotal, loyaltyConfig, userTier)} points</strong> for this order{userTier !== 'Homie' && ` (${userTier} ${userTier === 'Protein King' ? '2x' : '1.5x'} bonus)`}!
+                ⭐ You&apos;ll earn <strong>{calcPointsEarned(Math.max(0, total - cappedDiscount), loyaltyConfig, userTier)} points</strong> for this order{userTier !== 'Homie' && ` (${userTier} ${userTier === 'Protein King' ? '2x' : '1.5x'} bonus)`}!
               </div>
 
               <div className="flex gap-3">
                 <button onClick={() => setStep('details')} className="flex-1 border-2 border-gray-200 text-homie-gray font-semibold py-3 rounded-xl hover:border-homie-green hover:text-homie-green transition-colors">← Back</button>
                 <button onClick={handleSubmit} disabled={loading || pointsToDeduct > userPoints}
                   className="flex-1 bg-homie-green text-white font-bold py-3 rounded-xl hover:bg-homie-lime transition-colors disabled:opacity-60">
-                  {loading ? 'Placing Order...' : `Confirm Order ฿${finalTotal}`}
+                  {loading ? 'Placing Order...' : `Confirm Order ฿${Math.max(0, total - cappedDiscount)}`}
                 </button>
               </div>
             </div>
@@ -492,8 +503,8 @@ export default function OrderPage() {
                   {cappedDiscount > 0 && (
                     <div className="flex justify-between text-sm"><span className="text-homie-gray">Points discount</span><span className="text-green-600 font-medium">−฿{cappedDiscount}</span></div>
                   )}
-                  <div className="flex justify-between text-sm"><span className="text-homie-gray">Points earned</span><span className="text-yellow-600 font-medium">+{calcPointsEarned(finalTotal, loyaltyConfig, userTier)} ⭐</span></div>
-                  <div className="flex justify-between font-bold text-homie-green text-lg pt-1 border-t"><span>Total</span><span>฿{finalTotal}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-homie-gray">Points earned</span><span className="text-yellow-600 font-medium">+{calcPointsEarned(Math.max(0, total - cappedDiscount), loyaltyConfig, userTier)} ⭐</span></div>
+                  <div className="flex justify-between font-bold text-homie-green text-lg pt-1 border-t"><span>Total</span><span>฿{Math.max(0, total - cappedDiscount)}</span></div>
                 </div>
               </>
             )}
