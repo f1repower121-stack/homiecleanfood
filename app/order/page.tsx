@@ -115,9 +115,17 @@ export default function OrderPage() {
   // Generate PromptPay QR when method or total changes
   useEffect(() => {
     if (payMethod !== 'promptpay' || !total) return
-    const payload = generatePayload(promptpayPhone, { amount: total })
-    QRCode.toDataURL(payload, { width: 280, margin: 2, color: { dark: '#1a1a1a', light: '#ffffff' } })
-      .then(url => setQrDataUrl(url))
+    try {
+      // Handle both CJS default and named export
+      const genFn: (target: string, opts: { amount: number }) => string =
+        (generatePayload as any).default ?? generatePayload
+      const payload = genFn(promptpayPhone, { amount: total })
+      QRCode.toString(payload, { type: 'svg', width: 280, margin: 2 } as any)
+        .then((svg: string) => {
+          setQrDataUrl('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg))
+        })
+        .catch(() => {})
+    } catch { }
   }, [payMethod, total, promptpayPhone])
 
   const suggestedItems = menuItems.slice(0, 3).filter(m => !items.find(i => i.id === m.id))
