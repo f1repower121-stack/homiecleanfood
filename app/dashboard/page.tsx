@@ -162,6 +162,7 @@ export default function DashboardPage() {
       full_name: (p as any)?.full_name ?? u.user_metadata?.full_name ?? null,
       points: pts,
       tier,
+      referral_code: (p as any)?.referral_code ?? null,
     })
 
     const daily = (p as any)?.daily_calorie_goal ?? 2000
