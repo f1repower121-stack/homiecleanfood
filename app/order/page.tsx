@@ -120,11 +120,11 @@ export default function OrderPage() {
       const genFn: (target: string, opts: { amount: number }) => string =
         (generatePayload as any).default ?? generatePayload
       const payload = genFn(promptpayPhone, { amount: total })
-      QRCode.toString(payload, { type: 'svg', width: 280, margin: 2 } as any)
-        .then((svg: string) => {
-          setQrDataUrl('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg))
-        })
-        .catch(() => {})
+      ;(QRCode.toString as (text: string, opts: object) => Promise<string>)(
+        payload, { type: 'svg', width: 280, margin: 2 }
+      ).then(svg => {
+        setQrDataUrl('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg))
+      }).catch(() => {})
     } catch { }
   }, [payMethod, total, promptpayPhone])
 
