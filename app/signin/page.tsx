@@ -170,8 +170,7 @@ function SignInForm() {
               <p className="text-xs font-semibold text-homie-green mb-2">✨ Benefits of creating an account:</p>
               <ul className="text-xs text-homie-gray space-y-1">
                 <li>⭐ Earn loyalty points with every order</li>
-                <li>🎁 Redeem points for free meals</li>
-                <li>📋 View your full order history</li>
+<li>📋 View your full order history</li>
                 <li>🚀 Faster checkout every time</li>
                 <li>🤝 Refer friends &amp; earn 50 pts when they order</li>
               </ul>

@@ -128,7 +128,7 @@ export default function AdminPage() {
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
     const { data } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
-    setOrders((data||[]).filter((o:any) => o.status !== 'redeemed'))
+    setOrders(data||[])
     setLoadingOrders(false)
   }, [])
 
@@ -154,7 +154,6 @@ export default function AdminPage() {
       const { data: orderData } = await supabase
         .from('orders')
         .select('user_id, total')
-        .neq('status', 'redeemed')
 
       const spendMap: Record<string, number> = {}
       ;(orderData||[]).forEach((o: any) => {

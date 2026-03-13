@@ -3,9 +3,6 @@
 // Removed rewards - now only points for discount
 
 export const DEFAULT_LOYALTY = {
-  min_redeem_points: 100,
-  points_to_baht: 1,
-  max_redeem_pct: 30,
   points_per_baht: 0.1,
   multiplier_homie: 1.0,
   multiplier_clean_eater: 1.5,

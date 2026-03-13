@@ -104,15 +104,6 @@ const TIERS = [
   { name: 'Protein King', minPoints: 500, color: 'bg-green-100 text-green-700', emoji: '💪', perks: ['2x points multiplier', 'Free meal every 10 orders', 'Priority delivery', 'Exclusive monthly box'] },
 ]
 
-const REWARDS = [
-  { name: 'Free Drink', points: 100, emoji: '🥤', desc: 'Any drink from our menu' },
-  { name: '฿50 Discount', points: 150, emoji: '💰', desc: 'Off your next order' },
-  { name: 'Free Lean Meal', points: 300, emoji: '🍱', desc: 'Any chicken lean meal' },
-  { name: 'Free Bulk Meal', points: 400, emoji: '💪', desc: 'Any meal, any protein' },
-  { name: '฿200 Credit', points: 500, emoji: '🎁', desc: 'Credit added to account' },
-  { name: 'VIP Box', points: 1000, emoji: '👑', desc: '5-meal weekly box, free delivery' },
-]
-
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -129,8 +120,6 @@ export default function DashboardPage() {
   const [exName, setExName] = useState('Walking')
   const [exDuration, setExDuration] = useState('')
   const [tab, setTab] = useState<'overview' | 'tracker' | 'exercise' | 'recommendations' | 'loyalty' | 'referrals'>('overview')
-  const [redeemMsg, setRedeemMsg] = useState<string | null>(null)
-  const [redeemLoading, setRedeemLoading] = useState(false)
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
 
   const today = new Date().toISOString().split('T')[0]
@@ -225,37 +214,6 @@ export default function DashboardPage() {
     const newConsumed = todayCalories + cal
     const { error } = await supabase.from('calorie_logs').upsert({ user_id: user.id, log_date: today, calories_consumed: newConsumed, calories_burned: burnedCalories }, { onConflict: 'user_id,log_date' })
     if (!error) { setTodayCalories(newConsumed); fetchData() }
-  }
-
-  const handleRedeem = async (reward: typeof REWARDS[0]) => {
-    if (!user || !profile) return
-    if (profile.points < reward.points) {
-      setRedeemMsg(`❌ Not enough points. You need ${reward.points - profile.points} more points.`)
-      setTimeout(() => setRedeemMsg(null), 3000)
-      return
-    }
-    setRedeemLoading(true)
-    try {
-      // Deduct points
-      await supabase.rpc('add_points', { user_id: user.id, points_to_add: -reward.points })
-      // Log redemption in orders as a note
-      await supabase.from('orders').insert({
-        user_id: user.id,
-        items: [],
-        total: 0,
-        status: 'redeemed',
-        notes: `Redeemed: ${reward.name} (${reward.points} pts)`,
-        customer_name: profile.full_name || '',
-        payment_method: 'points',
-      })
-      setRedeemMsg(`✅ ${reward.emoji} "${reward.name}" redeemed! We'll apply it to your next order.`)
-      fetchData()
-    } catch {
-      setRedeemMsg('❌ Something went wrong. Please try again.')
-    } finally {
-      setRedeemLoading(false)
-      setTimeout(() => setRedeemMsg(null), 5000)
-    }
   }
 
   const handleLogout = async () => {
@@ -386,7 +344,7 @@ export default function DashboardPage() {
             <Card className="md:col-span-2">
               <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
               <CardContent>
-                {orders.filter(o => o.status !== 'redeemed').length === 0 ? (
+                {orders.length === 0 ? (
                   <p className="text-homie-gray text-sm">No orders yet. <Link href="/menu" className="text-homie-lime hover:underline">Order now</Link></p>
                 ) : (
                   <Table>
@@ -399,7 +357,7 @@ export default function DashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {orders.filter(o => o.status !== 'redeemed').slice(0, 5).map(o => {
+                      {orders.slice(0, 5).map(o => {
                         const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
                         const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
                         return (
@@ -526,13 +484,6 @@ export default function DashboardPage() {
         {tab === 'loyalty' && (
           <div className="space-y-6">
 
-            {/* Redeem message */}
-            {redeemMsg && (
-              <div className={`p-4 rounded-xl text-sm font-medium ${redeemMsg.startsWith('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                {redeemMsg}
-              </div>
-            )}
-
             {/* Points card */}
             <div className="bg-homie-green text-white rounded-3xl p-8 relative overflow-hidden">
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #7CB518 0%, transparent 60%)' }} />
@@ -569,10 +520,10 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { icon: '🛒', label: 'Every Order', value: '1 pt / ฿10' },
-                    { icon: '👤', label: 'First Order', value: '+50 pts' },
-                    { icon: '🎂', label: 'Birthday', value: '+50 pts' },
-                    { icon: '📣', label: 'Refer a Friend', value: '+100 pts' },
+                    { icon: '🛒', label: 'Every Order', value: `${Math.round(loyaltyConfig.points_per_baht * 10)} pt / ฿10` },
+                    { icon: '👤', label: 'First Order', value: `+${(loyaltyConfig as any).first_order_bonus ?? 50} pts` },
+                    { icon: '🎂', label: 'Birthday', value: `+${(loyaltyConfig as any).birthday_bonus ?? 50} pts` },
+                    { icon: '📣', label: 'Refer a Friend', value: `+${(loyaltyConfig as any).referral_bonus ?? 50} pts` },
                   ].map(e => (
                     <div key={e.label} className="text-center p-4 bg-homie-cream rounded-xl">
                       <div className="text-2xl mb-1">{e.icon}</div>
@@ -610,51 +561,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Redeem rewards */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Redeem Rewards</CardTitle>
-                <p className="text-sm text-homie-gray mt-1">You have <span className="font-bold text-yellow-500">{userPoints} pts</span> to spend</p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {REWARDS.map(r => (
-                    <div key={r.name} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${userPoints >= r.points ? 'border-gray-100 bg-white' : 'border-gray-50 bg-gray-50 opacity-60'}`}>
-                      <div className="text-3xl">{r.emoji}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm text-homie-dark">{r.name}</div>
-                        <div className="text-xs text-homie-gray">{r.desc}</div>
-                        <div className="text-xs font-bold text-homie-lime mt-1">{r.points} pts</div>
-                      </div>
-                      <button
-                        onClick={() => handleRedeem(r)}
-                        disabled={userPoints < r.points || redeemLoading}
-                        className="px-3 py-2 rounded-xl text-xs font-bold transition-colors bg-homie-lime text-white hover:bg-homie-green disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
-                      >
-                        {redeemLoading ? '...' : 'Redeem'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Redemption history */}
-            {orders.filter(o => o.status === 'redeemed').length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Redemption History</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {orders.filter(o => o.status === 'redeemed').map(o => (
-                      <div key={o.id} className="flex justify-between items-center text-sm p-3 bg-homie-cream rounded-xl">
-                        <span className="text-homie-dark">{o.notes?.replace('Redeemed: ', '') || 'Reward redeemed'}</span>
-                        <span className="text-homie-gray text-xs">{new Date(o.created_at).toLocaleDateString('en-GB')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
 

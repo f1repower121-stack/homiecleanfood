@@ -160,7 +160,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 text-center text-white">
           <div className="text-5xl mb-4">⭐</div>
           <h2 className="font-display text-3xl font-bold mb-3">Join Our Loyalty Program</h2>
-          <p className="text-orange-100 text-lg mb-8">Earn points with every order. Redeem for free meals and exclusive discounts!</p>
+          <p className="text-orange-100 text-lg mb-8">Earn points with every order and unlock exclusive member benefits!</p>
           <Link href="/loyalty" className="bg-white text-homie-orange font-bold px-8 py-4 rounded-full hover:shadow-xl transition-all hover:scale-105">
             Learn More 🎁
           </Link>
