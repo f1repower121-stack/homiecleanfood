@@ -74,7 +74,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-homie-dark mb-1">Referral Program</h2>
-        <p className="text-sm text-homie-gray">Share your link — earn <span className="font-semibold text-homie-green">100 points</span> when a friend makes their first order!</p>
+        <p className="text-sm text-homie-gray">Share your link — earn <span className="font-semibold text-homie-green">50 points</span> when a friend makes their first order!</p>
       </div>
 
       {/* Your referral link */}
@@ -113,7 +113,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
           <div className="text-xs text-homie-gray mt-1">Pending</div>
         </div>
         <div className="bg-white rounded-2xl border p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">{completedCount * 100}</div>
+          <div className="text-2xl font-bold text-purple-600">{completedCount * 50}</div>
           <div className="text-xs text-homie-gray mt-1">Points Earned</div>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
           </div>
           <div className="flex items-start gap-3">
             <span className="w-6 h-6 rounded-full bg-homie-green text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-            <span>When they place their <strong>first order</strong>, you automatically receive <strong>100 points</strong></span>
+            <span>When they place their <strong>first order</strong>, you automatically receive <strong>50 points</strong></span>
           </div>
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
                     ? 'bg-green-100 text-green-700'
                     : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {r.status === 'completed' ? '+100 pts earned' : 'Pending first order'}
+                  {r.status === 'completed' ? '+50 pts earned' : 'Pending first order'}
                 </span>
               </div>
             ))

@@ -173,7 +173,7 @@ function SignInForm() {
                 <li>🎁 Redeem points for free meals</li>
                 <li>📋 View your full order history</li>
                 <li>🚀 Faster checkout every time</li>
-                <li>🤝 Refer friends &amp; earn 100 pts when they order</li>
+                <li>🤝 Refer friends &amp; earn 50 pts when they order</li>
               </ul>
             </div>
           )}
