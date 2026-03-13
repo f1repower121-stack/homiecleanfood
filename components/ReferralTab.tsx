@@ -27,7 +27,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
 
       const { data } = await supabase
         .from('referrals')
-        .select(`*, referred_user:profiles!referred_user_id(full_name)`)
+        .select('*, referred_user:profiles!referrals_referred_user_id_fkey(full_name)')
         .eq('referrer_id', user.id)
         .order('created_at', { ascending: false })
 
