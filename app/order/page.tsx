@@ -11,7 +11,7 @@ import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loya
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
 
-const PROMPTPAY_PHONE = '0959505111' // Homie Clean Food PromptPay number
+const PROMPTPAY_PHONE_DEFAULT = '0959505111'
 
 export default function OrderPage() {
   const { items, removeItem, updateQty, total, clearCart } = useCart()
@@ -31,6 +31,7 @@ export default function OrderPage() {
   const [userLoaded, setUserLoaded] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [qrPaid, setQrPaid] = useState(false)
+  const [promptpayPhone, setPromptpayPhone] = useState(PROMPTPAY_PHONE_DEFAULT)
 
   // Loyalty state
   const [user, setUser] = useState<any>(null)
@@ -99,13 +100,25 @@ export default function OrderPage() {
     setForm(prev => ({ ...prev, deliveryDate: dateStr, deliveryTime: '12:00' }))
   }, [])
 
-  // Generate PromptPay QR when method is selected
+  // Load PromptPay number from DB
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await supabase.from('loyalty_config').select('promptpay_number').eq('id','singleton').single()
+        const phone = (data as any)?.promptpay_number
+        if (phone) setPromptpayPhone(phone)
+      } catch { }
+    }
+    load()
+  }, [])
+
+  // Generate PromptPay QR when method or total changes
   useEffect(() => {
     if (payMethod !== 'promptpay' || !total) return
-    const payload = generatePayload(PROMPTPAY_PHONE, { amount: total })
+    const payload = generatePayload(promptpayPhone, { amount: total })
     QRCode.toDataURL(payload, { width: 280, margin: 2, color: { dark: '#1a1a1a', light: '#ffffff' } })
       .then(url => setQrDataUrl(url))
-  }, [payMethod, total])
+  }, [payMethod, total, promptpayPhone])
 
   const suggestedItems = menuItems.slice(0, 3).filter(m => !items.find(i => i.id === m.id))
 
@@ -404,7 +417,7 @@ export default function OrderPage() {
                       <div className="bg-homie-green text-white px-5 py-2 rounded-full font-bold text-lg">
                         ฿{total.toLocaleString()}
                       </div>
-                      <p className="text-xs text-homie-gray">PromptPay: {PROMPTPAY_PHONE} · Homie Clean Food</p>
+                      <p className="text-xs text-homie-gray">PromptPay: {promptpayPhone} · Homie Clean Food</p>
                       <label className="flex items-center gap-2 cursor-pointer mt-1">
                         <input type="checkbox" checked={qrPaid} onChange={e => setQrPaid(e.target.checked)}
                           className="w-4 h-4 accent-homie-lime" />

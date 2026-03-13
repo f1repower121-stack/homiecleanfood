@@ -1,8 +1,10 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import AdminLoyaltyTab from '@/components/admin/LoyaltyTab'
 import NotificationBell from '@/components/admin/NotificationBell'
+import generatePayload from 'promptpay-qr'
+import QRCode from 'qrcode'
 
 const ADMIN_PASSWORD = 'homie2024'
 
@@ -97,6 +99,12 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [role, setRole] = useState<'admin'|'kitchen'>('admin')
 
+  // PromptPay settings state
+  const [ppPhone, setPpPhone] = useState('0959505111')
+  const [ppQrUrl, setPpQrUrl] = useState('')
+  const [ppSaving, setPpSaving] = useState(false)
+  const [ppSaved, setPpSaved] = useState(false)
+
   // Orders state
   const [orders, setOrders] = useState<Order[]>([])
   const [orderFilter, setOrderFilter] = useState('all')
@@ -172,6 +180,25 @@ export default function AdminPage() {
     }
     setCustLoading(false)
   }, [])
+
+  // Load PromptPay phone from DB + generate QR
+  useEffect(() => {
+    if (!authed) return
+    supabase.from('loyalty_config').select('promptpay_number').eq('id','singleton').single()
+      .then(({ data }) => {
+        const phone = (data as any)?.promptpay_number || '0959505111'
+        setPpPhone(phone)
+        const payload = generatePayload(phone, { amount: 0 })
+        QRCode.toDataURL(payload, { width: 200, margin: 2 }).then(setPpQrUrl)
+      })
+  }, [authed])
+
+  // Regenerate QR when phone changes
+  useEffect(() => {
+    if (!ppPhone) return
+    const payload = generatePayload(ppPhone, { amount: 0 })
+    QRCode.toDataURL(payload, { width: 200, margin: 2 }).then(setPpQrUrl)
+  }, [ppPhone])
 
   useEffect(() => {
     if (!authed) return
@@ -818,6 +845,45 @@ export default function AdminPage() {
                     <span className="text-xs text-green-600 font-medium">Active</span>
                   </div>
                 </div>
+
+                {/* PromptPay / Bank Settings */}
+                <div className={`${card} border-2 border-green-200 rounded-2xl p-4`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🇹🇭</span>
+                    <h3 className="font-semibold text-sm">PromptPay / Bank Account</h3>
+                  </div>
+                  <div className="flex flex-col items-center gap-4">
+                    {ppQrUrl && (
+                      <div className="text-center">
+                        <img src={ppQrUrl} alt="PromptPay QR" className="w-40 h-40 mx-auto rounded-xl border border-gray-200 mb-2" />
+                        <p className={`text-xs ${muted}`}>QR preview (no amount — for display)</p>
+                      </div>
+                    )}
+                    <div className="w-full space-y-2">
+                      <label className={`text-xs font-medium ${muted}`}>PromptPay Phone / National ID</label>
+                      <input
+                        type="text"
+                        value={ppPhone}
+                        onChange={e => { setPpPhone(e.target.value); setPpSaved(false) }}
+                        placeholder="e.g. 0959505111"
+                        className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-500 ${dm ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-200'}`}
+                      />
+                      <p className={`text-xs ${muted}`}>Customers will scan a QR with the exact order amount at checkout.</p>
+                      <button
+                        onClick={async () => {
+                          setPpSaving(true)
+                          await supabase.from('loyalty_config').update({ promptpay_number: ppPhone } as any).eq('id','singleton')
+                          setPpSaving(false)
+                          setPpSaved(true)
+                        }}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors"
+                      >
+                        {ppSaving ? 'Saving...' : ppSaved ? '✓ Saved!' : 'Save PromptPay Number'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
