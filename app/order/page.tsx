@@ -160,20 +160,20 @@ export default function OrderPage() {
   if (step === 'success') {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-8xl mb-6">🎉</div>
+        <div className="text-center max-w-md w-full">
+          <div className="w-24 h-24 bg-homie-lime rounded-full flex items-center justify-center text-5xl mx-auto mb-6 shadow-xl shadow-lime-200">🎉</div>
           <h1 className="font-display text-3xl font-bold text-homie-green mb-3">Order Placed!</h1>
-          {orderId && <p className="text-sm text-homie-gray mb-2">Order ID: <span className="font-bold text-homie-green">#{orderId}</span></p>}
+          {orderId && <p className="text-sm text-homie-gray mb-3">Order ID: <span className="font-bold text-homie-green">#{orderId}</span></p>}
           {pointsEarned > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
-              <p className="text-yellow-700 font-semibold">⭐ You earned {pointsEarned} loyalty points!</p>
+            <div className="bg-lime-50 border border-lime-200 rounded-2xl p-4 mb-4">
+              <p className="text-homie-green font-semibold text-lg">⭐ +{pointsEarned} loyalty points earned!</p>
             </div>
           )}
           <p className="text-homie-gray mb-2">Thank you for ordering from Homie Clean Food.</p>
           <p className="text-homie-gray mb-8">We'll confirm via WhatsApp shortly. Your fresh meal will be ready by 17:00.</p>
-          <div className="bg-homie-cream rounded-2xl p-4 mb-6 text-sm text-homie-gray">
-            📞 Questions? Call us: <a href="tel:0959505111" className="text-homie-green font-semibold">+66 95 950 5111</a><br />
-            💬 Line: <a href="https://line.me/R/ti/p/%40homiecleanfood" className="text-homie-green font-semibold">@homiecleanfood</a>
+          <div className="card p-4 mb-6 text-sm text-homie-gray text-left">
+            <p>📞 Questions? Call us: <a href="tel:0959505111" className="text-homie-green font-semibold">+66 95 950 5111</a></p>
+            <p className="mt-1">💬 Line: <a href="https://line.me/R/ti/p/%40homiecleanfood" className="text-homie-green font-semibold">@homiecleanfood</a></p>
           </div>
           <Link href="/" className="btn-primary inline-block">Back to Home</Link>
         </div>
@@ -222,7 +222,7 @@ export default function OrderPage() {
                     return (
                       <div key={item.id + item.portion} className="card p-4 flex items-center gap-3 md:gap-4">
                         {/* FIX: real photo */}
-                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden flex-shrink-0 relative bg-homie-cream">
+                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden flex-shrink-0 relative bg-gray-50">
                           {menuItem?.image ? (
                             <Image
                               src={menuItem.image}
@@ -241,9 +241,9 @@ export default function OrderPage() {
                           <p className="text-xs text-homie-gray">฿{item.price} each</p>
                         </div>
                         <div className="flex items-center gap-1.5 md:gap-2">
-                          <button onClick={() => updateQty(item.id, item.portion, item.quantity - 1)} className="w-7 h-7 rounded-full bg-homie-cream hover:bg-homie-lime hover:text-white flex items-center justify-center transition-colors"><Minus size={12} /></button>
+                          <button onClick={() => updateQty(item.id, item.portion, item.quantity - 1)} className="w-7 h-7 rounded-full bg-gray-50 hover:bg-homie-lime hover:text-white flex items-center justify-center transition-colors"><Minus size={12} /></button>
                           <span className="w-6 text-center font-semibold text-sm">{item.quantity}</span>
-                          <button onClick={() => updateQty(item.id, item.portion, item.quantity + 1)} className="w-7 h-7 rounded-full bg-homie-cream hover:bg-homie-lime hover:text-white flex items-center justify-center transition-colors"><Plus size={12} /></button>
+                          <button onClick={() => updateQty(item.id, item.portion, item.quantity + 1)} className="w-7 h-7 rounded-full bg-gray-50 hover:bg-homie-lime hover:text-white flex items-center justify-center transition-colors"><Plus size={12} /></button>
                         </div>
                         <div className="text-right min-w-14">
                           <p className="font-bold text-homie-green text-sm">฿{item.price * item.quantity}</p>
@@ -277,13 +277,13 @@ export default function OrderPage() {
                     <label className="block text-sm font-medium text-homie-dark mb-1">Full Name *</label>
                     <input type="text" placeholder="Your name" value={form.name}
                       onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-homie-dark mb-1">Phone Number *</label>
                     <input type="tel" placeholder="+66 XX XXX XXXX" value={form.phone}
                       onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
                   </div>
                 </div>
 
@@ -291,7 +291,7 @@ export default function OrderPage() {
                   <label className="block text-sm font-medium text-homie-dark mb-1">Delivery Address *</label>
                   <input type="text" placeholder="Full address, building, floor, room" value={form.address}
                     onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
                 </div>
 
                 {/* FIX: Delivery date & time */}
@@ -303,7 +303,7 @@ export default function OrderPage() {
                       value={form.deliveryDate}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={e => setForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime"
                     />
                   </div>
                   <div>
@@ -311,7 +311,7 @@ export default function OrderPage() {
                     <select
                       value={form.deliveryTime}
                       onChange={e => setForm(prev => ({ ...prev, deliveryTime: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime bg-white"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime bg-white"
                     >
                       <option value="09:00">9:00 AM</option>
                       <option value="10:00">10:00 AM</option>
@@ -330,7 +330,7 @@ export default function OrderPage() {
                   <label className="block text-sm font-medium text-homie-dark mb-1">Special Notes (optional)</label>
                   <input type="text" placeholder="Allergies, delivery instructions..." value={form.note}
                     onChange={e => setForm(prev => ({ ...prev, note: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
@@ -352,7 +352,7 @@ export default function OrderPage() {
               <h2 className="font-display text-2xl font-bold text-homie-green mb-6">Payment Method</h2>
 
               {/* Delivery summary */}
-              <div className="bg-homie-cream rounded-xl p-4 mb-6 text-sm text-homie-gray">
+              <div className="card p-4 mb-6 text-sm text-homie-gray">
                 <p>📦 Delivering to: <span className="text-homie-dark font-medium">{form.address}</span></p>
                 <p className="mt-1">📅 {form.deliveryDate} at {form.deliveryTime}</p>
               </div>
@@ -416,7 +416,7 @@ export default function OrderPage() {
                 </div>
               </>
             )}
-            <div className="mt-4 text-xs text-homie-gray bg-homie-cream rounded-lg p-3">
+            <div className="mt-4 text-xs text-homie-gray bg-lime-50 rounded-xl p-3 border border-lime-100">
               🕐 Order by 5 PM for same-day delivery<br />
               📞 Questions: +66 95 950 5111
             </div>

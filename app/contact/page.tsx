@@ -13,8 +13,8 @@ export default function ContactPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="text-center mb-12">
-        <h1 className="font-display text-4xl font-bold text-homie-green mb-2">Contact Us</h1>
-        <p className="text-homie-gray">We'd love to hear from you. Reach out any time!</p>
+        <h1 className="font-display text-4xl md:text-5xl font-bold text-homie-green mb-3">Contact Us</h1>
+        <p className="text-homie-gray text-lg">We'd love to hear from you. Reach out any time!</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-10">
@@ -29,7 +29,7 @@ export default function ContactPage() {
               { icon: '💬', title: 'Line ID', content: '@homiecleanfood', link: 'https://line.me/R/ti/p/%40homiecleanfood' },
               { icon: '🕐', title: 'Hours', content: 'Daily 08:00 – 17:00\nOrder by 5 PM for same-day', link: null },
             ].map(c => (
-              <div key={c.title} className="flex gap-4 p-4 rounded-xl bg-homie-cream hover:bg-white transition-colors">
+              <div key={c.title} className="flex gap-4 p-4 rounded-2xl card hover:shadow-md transition-shadow">
                 <div className="text-2xl">{c.icon}</div>
                 <div>
                   <div className="font-semibold text-sm text-homie-dark">{c.title}</div>

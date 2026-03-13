@@ -223,7 +223,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-homie-cream">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-homie-gray">Loading...</p>
       </div>
     )
@@ -261,7 +261,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-homie-cream">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                   { label: 'Remaining', value: remaining, color: 'text-homie-lime' },
                   { label: 'Daily Goal', value: dailyGoal, color: 'text-homie-green' },
                 ].map(s => (
-                  <div key={s.label} className="text-center p-4 bg-homie-cream rounded-xl">
+                  <div key={s.label} className="text-center p-4 bg-gray-50 rounded-xl">
                     <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
                     <p className="text-xs text-homie-gray">{s.label}</p>
                   </div>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                   {recommendations.map(meal => (
-                    <div key={meal.id} className="flex justify-between items-center p-4 bg-homie-cream rounded-xl">
+                    <div key={meal.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
                       <div>
                         <p className="font-semibold text-homie-dark">{meal.name}</p>
                         <p className="text-sm text-homie-gray">Lean: {meal.leanCalories} kcal · Bulk: {meal.bulkCalories} kcal</p>
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                     { icon: '🎂', label: 'Birthday', value: `+${(loyaltyConfig as any).birthday_bonus ?? 50} pts` },
                     { icon: '📣', label: 'Refer a Friend', value: `+${(loyaltyConfig as any).referral_bonus ?? 50} pts` },
                   ].map(e => (
-                    <div key={e.label} className="text-center p-4 bg-homie-cream rounded-xl">
+                    <div key={e.label} className="text-center p-4 bg-gray-50 rounded-xl">
                       <div className="text-2xl mb-1">{e.icon}</div>
                       <div className="font-bold text-homie-lime text-sm">{e.value}</div>
                       <div className="text-xs text-homie-gray mt-0.5">{e.label}</div>

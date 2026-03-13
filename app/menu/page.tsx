@@ -28,11 +28,11 @@ export default function MenuPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl font-bold text-homie-green mb-2">Full Menu</h1>
-      <p className="text-homie-gray mb-6">Click any meal to view details and add to cart</p>
+      <h1 className="font-display text-3xl md:text-4xl font-bold text-homie-green mb-2">Full Menu</h1>
+      <p className="text-homie-gray mb-6">Tap any meal to view details and add to cart</p>
 
       {/* Category Filter */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
         {[
           { key: 'all', label: '🍽️ All' },
           { key: 'chicken', label: '🍗 Chicken' },
@@ -42,10 +42,10 @@ export default function MenuPage() {
           <button
             key={cat.key}
             onClick={() => setActiveCategory(cat.key as any)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all min-h-[44px] ${
               activeCategory === cat.key
-                ? 'bg-homie-green text-white'
-                : 'bg-homie-cream text-homie-gray hover:bg-homie-lime hover:text-white'
+                ? 'bg-homie-green text-white shadow-sm'
+                : 'bg-gray-100 text-homie-gray hover:bg-gray-200'
             }`}
           >
             {cat.label}
@@ -53,14 +53,14 @@ export default function MenuPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
         {filtered.map(item => (
           <button
             key={item.id}
             onClick={() => { setSelectedItem(item); setPortion('lean') }}
             className="card overflow-hidden group text-left w-full"
           >
-            <div className="relative aspect-square bg-homie-cream overflow-hidden">
+            <div className="relative aspect-square bg-gray-100 overflow-hidden">
               <Image
                 src={item.image}
                 alt={item.name}
@@ -70,18 +70,18 @@ export default function MenuPage() {
               />
             </div>
             <div className="p-4">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                item.category === 'beef' ? 'bg-red-100 text-red-600' :
-                item.category === 'fish' ? 'bg-blue-100 text-blue-600' :
-                'bg-green-100 text-green-600'
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                item.category === 'beef' ? 'bg-red-50 text-red-600' :
+                item.category === 'fish' ? 'bg-blue-50 text-blue-600' :
+                'bg-lime-50 text-homie-lime'
               }`}>
                 {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
               </span>
               <h3 className="font-semibold text-sm mt-2 leading-tight text-homie-dark">{item.name}</h3>
-              <p className="text-xs text-homie-gray mt-1 line-clamp-2">{item.description}</p>
+              <p className="text-xs text-homie-gray mt-1 line-clamp-2 leading-relaxed">{item.description}</p>
               <div className="mt-3 flex items-center justify-between">
-                <span className="font-bold text-homie-green">฿{item.leanPrice} - ฿{item.bulkPrice}</span>
-                <span className="text-xs bg-homie-lime text-white px-3 py-1.5 rounded-full">Add +</span>
+                <span className="font-bold text-homie-green text-sm">฿{item.leanPrice}+</span>
+                <span className="text-xs bg-homie-lime text-white px-3 py-2 rounded-full font-medium min-h-[32px] flex items-center">Add +</span>
               </div>
             </div>
           </button>

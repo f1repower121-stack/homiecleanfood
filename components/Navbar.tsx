@@ -3,12 +3,11 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCart } from './CartProvider'
 import { supabase } from '@/lib/supabase/client'
-import { ShoppingBag, Menu, X, User } from 'lucide-react'
+import { ShoppingBag, User, Home, UtensilsCrossed, Star, Phone } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 export default function Navbar() {
   const { count } = useCart()
-  const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<{ full_name: string | null; points: number } | null>(null)
@@ -39,98 +38,128 @@ export default function Navbar() {
   const firstName = displayName ? displayName.split(' ')[0] : null
   const points = profile?.points ?? 0
 
-  const links: { href: string; label: string }[] = [
+  const desktopLinks = [
     { href: '/', label: 'Home' },
     { href: '/menu', label: 'Menu' },
-    { href: '/order', label: 'Order Now' },
-    ...(user ? [{ href: '/dashboard', label: 'Dashboard' }] : []),
     { href: '/loyalty', label: 'Loyalty' },
     { href: '/contact', label: 'Contact' },
   ]
 
+  const mobileNavItems = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/menu', label: 'Menu', icon: UtensilsCrossed },
+    { href: '/order', label: 'Order', icon: ShoppingBag },
+    { href: '/loyalty', label: 'Loyalty', icon: Star },
+    { href: user ? '/dashboard' : '/signin', label: user ? 'Account' : 'Sign In', icon: User },
+  ]
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-homie-lime rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">H</span>
-          </div>
-          <span className="font-display font-bold text-homie-green text-lg leading-tight">
-            Homie<br />
-            <span className="text-xs font-body font-normal text-homie-gray -mt-1 block">Clean Food</span>
-          </span>
-        </Link>
-
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6">
-          {links.map(l => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`text-sm font-medium transition-colors hover:text-homie-lime ${
-                pathname === l.href ? 'text-homie-lime' : 'text-homie-dark'
-              } ${l.label === 'Order Now' ? 'bg-homie-lime text-white px-4 py-2 rounded-full hover:bg-homie-green hover:text-white' : ''}`}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </div>
-
-        {/* Right actions */}
-        <div className="flex items-center gap-3">
-          {user ? (
-            <Link href="/dashboard" className="hidden md:flex items-center gap-2 text-sm text-homie-gray hover:text-homie-green transition-colors">
-              <User size={16} />
-              <span>{firstName}</span>
-              <span className="text-homie-lime font-semibold">{points} pts</span>
-            </Link>
-          ) : (
-            <Link href="/signin" className="hidden md:flex items-center gap-1 text-sm text-homie-gray hover:text-homie-green transition-colors">
-              <User size={16} />
-              <span>Sign In</span>
-            </Link>
-          )}
-          <Link href="/order" className="relative">
-            <ShoppingBag size={22} className="text-homie-green" />
-            {count > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-homie-orange text-white text-xs rounded-full flex items-center justify-center font-bold">
-                {count}
-              </span>
-            )}
+    <>
+      {/* Desktop/Top Navbar */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="w-9 h-9 bg-homie-lime rounded-xl flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-base">H</span>
+            </div>
+            <div className="leading-none">
+              <span className="font-display font-bold text-homie-green text-lg block">Homie</span>
+              <span className="text-[11px] font-medium text-homie-gray tracking-wide">Clean Food</span>
+            </div>
           </Link>
-          <button className="md:hidden" onClick={() => setOpen(!open)}>
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </div>
 
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 flex flex-col gap-3 animate-fadeIn">
-          {links.map(l => (
+          {/* Desktop Links */}
+          <div className="hidden md:flex items-center gap-1">
+            {desktopLinks.map(l => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  pathname === l.href
+                    ? 'text-homie-lime bg-lime-50'
+                    : 'text-homie-dark hover:text-homie-lime hover:bg-gray-50'
+                }`}
+              >
+                {l.label}
+              </Link>
+            ))}
             <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className={`text-sm font-medium py-2 border-b border-gray-50 ${
-                pathname === l.href ? 'text-homie-lime' : 'text-homie-dark'
-              }`}
+              href="/order"
+              className="ml-2 bg-homie-lime text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-homie-green transition-all shadow-sm hover:shadow-md"
             >
-              {l.label}
+              Order Now
             </Link>
-          ))}
-          {user ? (
-            <Link href="/dashboard" onClick={() => setOpen(false)} className="text-sm text-homie-gray flex items-center gap-2 py-2">
-              <User size={16} /> {firstName} · {points} pts
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-3">
+            {user ? (
+              <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-full px-3 py-1.5 transition-colors">
+                <div className="w-6 h-6 bg-homie-lime rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">{firstName?.[0]?.toUpperCase() ?? 'U'}</span>
+                </div>
+                <span className="text-sm font-medium text-homie-dark">{firstName}</span>
+                <span className="text-xs font-semibold text-homie-lime">{points} pts</span>
+              </Link>
+            ) : (
+              <Link href="/signin" className="hidden md:flex items-center gap-1.5 text-sm font-medium text-homie-gray hover:text-homie-green transition-colors">
+                <User size={16} />
+                <span>Sign In</span>
+              </Link>
+            )}
+            <Link href="/order" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <ShoppingBag size={20} className="text-homie-green" />
+              {count > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none">
+                  {count}
+                </span>
+              )}
             </Link>
-          ) : (
-            <Link href="/signin" onClick={() => setOpen(false)} className="text-sm text-homie-gray flex items-center gap-2 py-2">
-              <User size={16} /> Sign In / Register
-            </Link>
-          )}
+          </div>
         </div>
-      )}
-    </nav>
+      </nav>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <div className="flex items-stretch h-16">
+          {mobileNavItems.map(item => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            const isOrder = item.href === '/order'
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
+                  isOrder
+                    ? 'text-white'
+                    : isActive
+                    ? 'text-homie-lime'
+                    : 'text-gray-400 hover:text-homie-green'
+                }`}
+              >
+                {isOrder ? (
+                  <div className="absolute -top-4 w-14 h-14 bg-homie-lime rounded-full flex flex-col items-center justify-center shadow-lg shadow-lime-200">
+                    <Icon size={20} className="text-white" />
+                    {count > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                    <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                  </>
+                )}
+                {isOrder && <span className="text-[10px] font-semibold text-homie-lime mt-7 leading-none">Order</span>}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+    </>
   )
 }

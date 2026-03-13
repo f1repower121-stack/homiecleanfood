@@ -54,23 +54,23 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16 bg-homie-cream">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-lg p-8">
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-homie-green rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-16 h-16 bg-homie-lime rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-lime-200">
               <span className="text-white font-display font-bold text-2xl">H</span>
             </div>
             <h1 className="font-display text-2xl font-bold text-homie-green">Homie Clean Food</h1>
-            <p className="text-homie-gray text-sm mt-1">
+            <p className="text-homie-gray text-sm mt-1.5">
               {mode === 'signin' ? 'Welcome back! Sign in to your account.' : 'Create your account to start earning loyalty points.'}
             </p>
           </div>
 
           {/* Toggle */}
-          <div className="flex bg-homie-cream rounded-xl p-1 mb-6">
+          <div className="flex bg-gray-50 rounded-xl p-1 mb-6">
             {(['signin', 'register'] as const).map(m => (
               <button
                 key={m}
@@ -166,11 +166,11 @@ function SignInForm() {
 
           {/* Benefits for new users */}
           {mode === 'register' && (
-            <div className="mt-6 bg-homie-cream rounded-xl p-4">
+            <div className="mt-6 bg-lime-50 rounded-2xl p-4 border border-lime-100">
               <p className="text-xs font-semibold text-homie-green mb-2">✨ Benefits of creating an account:</p>
-              <ul className="text-xs text-homie-gray space-y-1">
+              <ul className="text-xs text-homie-gray space-y-1.5">
                 <li>⭐ Earn loyalty points with every order</li>
-<li>📋 View your full order history</li>
+                <li>📋 View your full order history</li>
                 <li>🚀 Faster checkout every time</li>
                 <li>🤝 Refer friends &amp; earn 50 pts when they order</li>
               </ul>
@@ -190,7 +190,7 @@ function SignInForm() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-homie-cream">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-homie-gray">Loading...</p>
       </div>
     }>

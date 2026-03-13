@@ -6,7 +6,7 @@ export default function Footer() {
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(SITE_URL)}`
 
   return (
-    <footer className="bg-homie-green text-white mt-16">
+    <footer className="bg-homie-green text-white mt-0">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand */}
         <div className="md:col-span-2">

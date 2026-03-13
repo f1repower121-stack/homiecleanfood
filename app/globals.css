@@ -19,7 +19,7 @@
 
 body {
   font-family: 'DM Sans', sans-serif;
-  background: var(--cream);
+  background: #ffffff;
   color: var(--dark);
 }
 
@@ -88,11 +88,26 @@ html {
 }
 
 .card {
-  @apply bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200;
+  @apply bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+.section-alt {
+  @apply bg-gray-50;
+}
+
+.badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
 }
 
 /* Nav active state */
 .nav-active {
   color: var(--lime);
   font-weight: 600;
+}
+
+/* Mobile bottom nav padding */
+@media (max-width: 767px) {
+  main {
+    padding-bottom: 80px;
+  }
 }
