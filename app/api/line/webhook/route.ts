@@ -40,12 +40,16 @@ export async function POST(request: NextRequest) {
 
     // Handle each event
     for (const event of events) {
-      console.log(`Event type: ${event.type}`);
+      console.log(`📬 Event type: ${event.type}`);
 
-      // For now, just acknowledge the webhook
-      // In the future, you can handle incoming messages from Line here
+      // Capture User ID when receiving messages
       if (event.type === 'message' && event.message.type === 'text') {
-        console.log(`Message from ${event.source.userId}: ${event.message.text}`);
+        const userId = event.source.userId;
+        const messageText = event.message.text;
+
+        console.log(`🔑 USER ID CAPTURED: ${userId}`);
+        console.log(`💬 Message: "${messageText}"`);
+        console.log(`✅ Use this User ID in LINE_USER_ID environment variable: ${userId}`);
       }
     }
 
