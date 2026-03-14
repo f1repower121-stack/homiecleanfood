@@ -37,8 +37,18 @@ function SignInForm() {
           options: { data: { full_name: name, ref_code: refInput.trim().toUpperCase() || undefined } }
         })
         if (error) throw error
-        if (signUpData.session) {
+        if (signUpData.session && signUpData.user) {
           // Email confirmation disabled — session returned immediately
+          // Create profile record in database
+          console.log('📝 Creating profile for new user:', signUpData.user.id)
+          await fetch('/api/auth/create-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: signUpData.user.id,
+              fullName: name
+            })
+          })
           setMessage({ type: 'success', text: '🎉 Account created! Redirecting...' })
           await new Promise(resolve => setTimeout(resolve, 500))
           window.location.href = redirect
