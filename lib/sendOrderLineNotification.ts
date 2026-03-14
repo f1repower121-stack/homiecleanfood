@@ -17,18 +17,23 @@ export interface OrderNotificationData {
  */
 export async function sendOrderLineNotification(order: OrderNotificationData) {
   try {
-    console.log('🔍 Initializing Line client...');
-    console.log('Channel Access Token exists:', !!process.env.LINE_CHANNEL_ACCESS_TOKEN);
-    console.log('User ID:', process.env.LINE_USER_ID);
+    console.log('🔍 [LINE] Initializing Line client...');
+    console.log('🔍 [LINE] Environment Check:');
+    console.log('  - NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('  - LINE_CHANNEL_ACCESS_TOKEN:', !!process.env.LINE_CHANNEL_ACCESS_TOKEN);
+    console.log('  - LINE_CHANNEL_SECRET:', !!process.env.LINE_CHANNEL_SECRET);
+    console.log('  - LINE_USER_ID:', process.env.LINE_USER_ID ? 'Present (length: ' + process.env.LINE_USER_ID.length + ')' : 'Missing');
+
+    if (!process.env.LINE_CHANNEL_ACCESS_TOKEN || !process.env.LINE_USER_ID) {
+      console.warn('⚠️ [LINE] Missing LINE credentials - skipping notification');
+      return;
+    }
 
     const lineClient = getLineClient();
-    console.log('✅ Line client initialized successfully');
+    console.log('✅ [LINE] Line client initialized successfully');
 
-    // Format delivery date and time
-    const [year, month, day] = order.delivery_date.split('-');
-    const dateStr = `${day}/${month}/${year}`;
-
-    console.log('📤 Sending Line notification for order:', order.id);
+    console.log('📤 [LINE] Sending notification for order:', order.id);
+    console.log('📤 [LINE] Order items:', JSON.stringify(order.items, null, 2));
 
     // Send rich flex message with order details
     await lineClient.sendOrderNotification({
@@ -41,12 +46,12 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
       orderTime: order.created_at || new Date().toISOString()
     });
 
-    console.log(`✅ Line notification sent for order ${order.id}`);
+    console.log(`✅ [LINE] Line notification sent successfully for order ${order.id}`);
   } catch (error) {
-    console.error('❌ Failed to send Line notification:', error);
+    console.error('❌ [LINE] Failed to send Line notification:', error);
     if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error('  - Message:', error.message);
+      console.error('  - Stack:', error.stack);
     }
     // Don't throw - we don't want to fail the order if Line notification fails
   }

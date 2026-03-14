@@ -140,49 +140,84 @@ export class LineClient {
     deliveryAddress: string;
     orderTime: string;
   }): LineFlexMessage {
-    const itemsContent = orderData.items.map((item, index) => ({
-      type: 'box',
-      layout: 'vertical',
-      margin: index === 0 ? 'none' : 'md',
-      paddingAll: 'md',
-      backgroundColor: '#f8f9fa',
-      cornerRadius: 'md',
-      contents: [
-        {
-          type: 'box',
-          layout: 'baseline',
-          spacing: 'md',
-          contents: [
-            {
-              type: 'text',
-              text: `${item.quantity}×`,
-              weight: 'bold',
-              color: '#1DB446',
-              size: 'sm',
-              flex: 0
-            },
-            {
-              type: 'text',
-              text: item.name,
-              weight: 'bold',
-              color: '#1a1a1a',
-              flex: 0,
-              wrap: true,
-              size: 'md'
-            },
-            {
-              type: 'text',
-              text: `฿${(item.price * item.quantity).toFixed(2)}`,
-              size: 'lg',
-              weight: 'bold',
-              color: '#1DB446',
-              align: 'end',
-              flex: 0
-            }
-          ]
-        }
-      ]
-    }));
+    // Validate items array with detailed logging
+    const itemsArray = Array.isArray(orderData.items) ? orderData.items : [];
+    console.log(`📋 [LINE] Processing ${itemsArray.length} items for order ${orderData.orderId}`);
+
+    if (itemsArray.length === 0) {
+      console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
+    }
+
+    const itemsContent = itemsArray.map((item, index) => {
+      // Safely handle item properties
+      const quantity = Number(item?.quantity) || 1;
+      const price = Number(item?.price) || 0;
+      const name = String(item?.name || 'Unknown Item');
+
+      return {
+        type: 'box',
+        layout: 'vertical',
+        margin: index === 0 ? 'none' : 'md',
+        paddingAll: 'md',
+        backgroundColor: '#f8f9fa',
+        cornerRadius: 'md',
+        contents: [
+          {
+            type: 'box',
+            layout: 'baseline',
+            spacing: 'md',
+            contents: [
+              {
+                type: 'text',
+                text: `${quantity}×`,
+                weight: 'bold',
+                color: '#1DB446',
+                size: 'sm',
+                flex: 0
+              },
+              {
+                type: 'text',
+                text: name,
+                weight: 'bold',
+                color: '#1a1a1a',
+                flex: 0,
+                wrap: true,
+                size: 'md'
+              },
+              {
+                type: 'text',
+                text: `฿${(price * quantity).toFixed(2)}`,
+                size: 'lg',
+                weight: 'bold',
+                color: '#1DB446',
+                align: 'end',
+                flex: 0
+              }
+            ]
+          }
+        ]
+      }
+    });
+
+    // If no items were processed, add a placeholder
+    if (itemsContent.length === 0) {
+      (itemsContent as any).push({
+        type: 'box',
+        layout: 'vertical',
+        paddingAll: 'md',
+        backgroundColor: '#f8f9fa',
+        cornerRadius: 'md',
+        contents: [
+          {
+            type: 'text',
+            text: 'No items - Check order details',
+            color: '#999999',
+            size: 'sm',
+            align: 'center'
+          }
+        ]
+      });
+    }
 
     return {
       type: 'flex',
