@@ -164,35 +164,45 @@ export default function OrderPage() {
           const ext = slipFile.name.split('.').pop() || 'jpg'
           const path = `${data.id}.${ext}`
 
-          // Upload file to storage
+          console.log('Starting payment slip upload:', { fileName: slipFile.name, size: slipFile.size, path })
+
+          // Upload file to storage - read file as Blob first to ensure proper format
+          const fileBlob = new Blob([slipFile], { type: slipFile.type || 'image/jpeg' })
+
           const { data: uploadData, error: uploadErr } = await supabase.storage
             .from('payment-slips')
-            .upload(path, slipFile, { upsert: true })
+            .upload(path, fileBlob, { upsert: true, contentType: slipFile.type || 'image/jpeg' })
 
           if (uploadErr) {
-            console.error('Upload error:', uploadErr)
-            throw uploadErr
+            console.error('❌ Upload failed:', uploadErr)
+            throw new Error(`Upload failed: ${uploadErr.message}`)
           }
 
-          console.log('File uploaded successfully:', uploadData)
+          if (!uploadData) {
+            throw new Error('Upload returned no data')
+          }
 
-          // Get public URL and update database
-          const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
-          console.log('Public URL:', urlData.publicUrl)
+          console.log('✅ File uploaded successfully:', uploadData)
 
+          // IMPORTANT: The public URL needs to be constructed correctly for Supabase
+          const publicUrl = `https://efvbudblbtayfszxgxhq.supabase.co/storage/v1/object/public/payment-slips/${path}`
+          console.log('Public URL:', publicUrl)
+
+          // Update database with the payment slip URL
           const { error: updateErr } = await supabase
             .from('orders')
-            .update({ payment_slip_url: urlData.publicUrl })
+            .update({ payment_slip_url: publicUrl })
             .eq('id', data.id)
 
           if (updateErr) {
-            console.error('Update database error:', updateErr)
-            throw updateErr
+            console.error('❌ Database update failed:', updateErr)
+            throw new Error(`Database update failed: ${updateErr.message}`)
           }
 
-          console.log('Payment slip URL saved to database')
-        } catch (err) {
-          console.error('Payment slip error:', err)
+          console.log('✅ Payment slip URL saved to database successfully')
+          alert('✅ Payment slip uploaded successfully!')
+        } catch (err: any) {
+          console.error('❌ Payment slip error:', err)
           alert('Failed to upload payment slip: ' + (err?.message || 'Unknown error'))
         }
         setSlipUploading(false)
