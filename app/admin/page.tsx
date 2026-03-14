@@ -484,6 +484,7 @@ export default function AdminPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="font-semibold text-sm">{order.customer_name||'Guest'}</span>
+                            {order.reference_id && <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">#{order.reference_id}</span>}
                             <Badge s={order.status}/>
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${methodColor}`}>{methodLabel}</span>
                             {order.payment_confirmed ? (

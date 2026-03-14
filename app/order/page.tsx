@@ -137,9 +137,11 @@ export default function OrderPage() {
     setLoading(true)
     try {
       const { data: { user: u } } = await supabase.auth.getUser()
+      const referenceId = 'HCF' + Date.now().toString().slice(-5)
 
       const { data, error } = await supabase.from('orders').insert({
         user_id: u?.id || null,
+        reference_id: referenceId,
         items: items,
         total: total,
         payment_method: payMethod,
@@ -153,6 +155,7 @@ export default function OrderPage() {
       }).select().single()
 
       if (error) throw error
+      setOrderId(referenceId)
 
       // Upload payment slip if provided
       if (slipFile && data?.id) {
