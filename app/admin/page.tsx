@@ -5,6 +5,7 @@ import AdminLoyaltyTab from '@/components/admin/LoyaltyTab'
 import NotificationBell from '@/components/admin/NotificationBell'
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
+import { requestNotificationPermission, sendOrderNotification } from '@/lib/pushNotifications'
 
 const ADMIN_PASSWORD = 'homie2024'
 
@@ -137,12 +138,31 @@ export default function AdminPage() {
   // Analytics
   const [period, setPeriod] = useState('7')
 
+  // Push Notifications
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [lastOrderId, setLastOrderId] = useState('')
+
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
     const { data } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
+
+    // Send notification for new order
+    if (data && data.length > 0 && notificationsEnabled) {
+      const latestOrder = data[0]
+      if (latestOrder.id !== lastOrderId) {
+        setLastOrderId(latestOrder.id)
+        sendOrderNotification({
+          customerName: latestOrder.customer_name || 'Customer',
+          total: latestOrder.total || 0,
+          items: latestOrder.items || [],
+          referenceId: latestOrder.reference_id,
+        })
+      }
+    }
+
     setOrders(data||[])
     setLoadingOrders(false)
-  }, [])
+  }, [notificationsEnabled, lastOrderId])
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -210,6 +230,14 @@ export default function AdminPage() {
     const t = setInterval(fetchOrders, 30000)
     return () => clearInterval(t)
   }, [authed, fetchOrders, fetchMenu, fetchCustomers])
+
+  // Request notification permission when admin logs in
+  useEffect(() => {
+    if (!authed) return
+    requestNotificationPermission().then(granted => {
+      setNotificationsEnabled(granted)
+    })
+  }, [authed])
 
   const updateStatus = async (order: Order, newStatus: string) => {
     await supabase.from('orders').update({status:newStatus}).eq('id',order.id)
@@ -381,10 +409,14 @@ export default function AdminPage() {
   const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'border-gray-200'}`
 
   return (
-    <div className={`min-h-screen ${bg} ${text} flex`}>
+    <div className={`min-h-screen ${bg} ${text} flex flex-col md:flex-row`}>
+
+      {/* Mobile Overlay for Sidebar */}
+      {sidebarOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setSidebarOpen(false)} />}
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className={`${sidebarBg} border-r flex flex-col transition-all duration-300 ${sidebarOpen?'w-56':'w-16'} shrink-0 sticky top-0 h-screen overflow-hidden z-20`}>
+      <aside className={`${sidebarBg} border-r flex flex-col transition-all duration-300 fixed md:sticky md:w-56 top-0 h-screen z-30 overflow-hidden
+        ${sidebarOpen ? 'w-56 left-0' : 'w-16 -left-full md:left-0 md:w-16'}`}>
         <div className="flex items-center gap-3 px-4 py-5 border-b border-inherit">
           <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-700 rounded-lg flex items-center justify-center shrink-0 text-sm">🥗</div>
           {sidebarOpen && <span className="font-bold text-sm text-green-700 truncate">Homie Admin</span>}
@@ -413,8 +445,8 @@ export default function AdminPage() {
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className={`${card} border-b sticky top-0 z-10 flex items-center gap-3 px-4 py-3`}>
+      <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
+        <header className={`${card} border-b sticky top-0 z-10 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3`}>
           <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`${muted} p-1.5 rounded-lg hover:bg-gray-100`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
