@@ -144,54 +144,67 @@ export default function AdminPage() {
 
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
-    const { data } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
 
-    // Send notification for new order
-    if (data && data.length > 0 && notificationsEnabled) {
-      const latestOrder = data[0]
-      if (latestOrder.id !== lastOrderId) {
-        setLastOrderId(latestOrder.id)
+      if (error) {
+        console.error('❌ Error fetching orders:', error)
+        setOrders([])
+        setLoadingOrders(false)
+        return
+      }
 
-        // Show local notification
-        sendOrderNotification({
-          customerName: latestOrder.customer_name || 'Customer',
-          total: latestOrder.total || 0,
-          items: latestOrder.items || [],
-          referenceId: latestOrder.reference_id,
-        })
+      // Send notification for new order
+      if (data && data.length > 0 && notificationsEnabled) {
+        const latestOrder = data[0]
+        if (latestOrder.id !== lastOrderId) {
+          setLastOrderId(latestOrder.id)
 
-        // Trigger server-side Web Push to all subscribed devices
-        try {
-          const itemNames = (latestOrder.items || [])
-            .slice(0, 2)
-            .map((i: any) => i.name)
-            .join(', ')
-          const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
-
-          const response = await fetch('/api/send-push-notification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: `🎉 New Order from ${latestOrder.customer_name || 'Customer'}`,
-              body: `${itemNames}${itemsSuffix} - ฿${latestOrder.total || 0}`,
-              data: {
-                orderId: latestOrder.id,
-                referenceId: latestOrder.reference_id,
-              },
-            }),
+          // Show local notification
+          sendOrderNotification({
+            customerName: latestOrder.customer_name || 'Customer',
+            total: latestOrder.total || 0,
+            items: latestOrder.items || [],
+            referenceId: latestOrder.reference_id,
           })
 
-          if (response.ok) {
-            const result = await response.json()
-            console.log(`✅ Web Push sent to ${result.sent}/${result.total} subscribers`)
+          // Trigger server-side Web Push to all subscribed devices
+          try {
+            const itemNames = (latestOrder.items || [])
+              .slice(0, 2)
+              .map((i: any) => i.name)
+              .join(', ')
+            const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
+
+            const response = await fetch('/api/send-push-notification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: `🎉 New Order from ${latestOrder.customer_name || 'Customer'}`,
+                body: `${itemNames}${itemsSuffix} - ฿${latestOrder.total || 0}`,
+                data: {
+                  orderId: latestOrder.id,
+                  referenceId: latestOrder.reference_id,
+                },
+              }),
+            })
+
+            if (response.ok) {
+              const result = await response.json()
+              console.log(`✅ Web Push sent to ${result.sent}/${result.total} subscribers`)
+            }
+          } catch (err: any) {
+            console.error('❌ Failed to send Web Push:', err)
           }
-        } catch (err: any) {
-          console.error('❌ Failed to send Web Push:', err)
         }
       }
-    }
 
-    setOrders(data||[])
+      setOrders(data||[])
+      console.log(`✅ Loaded ${data?.length || 0} orders`)
+    } catch (err: any) {
+      console.error('❌ Unexpected error in fetchOrders:', err)
+      setOrders([])
+    }
     setLoadingOrders(false)
   }, [notificationsEnabled, lastOrderId])
 
