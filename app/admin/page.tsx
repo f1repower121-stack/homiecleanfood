@@ -97,6 +97,7 @@ export default function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
   const [tab, setTab] = useState('orders')
+  const [payFilter, setPayFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [role, setRole] = useState<'admin'|'kitchen'>('admin')
 
@@ -550,7 +551,6 @@ export default function AdminPage() {
 
           {/* ═══ PAYMENTS ══════════════════════════════════════════════════ */}
           {tab==='payments' && (() => {
-            const [payFilter, setPayFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
             const filtered = orders.filter(o => payFilter === 'all' || o.payment_method === payFilter)
             const totalPromptPay = orders.filter(o=>o.payment_method==='promptpay').reduce((s,o)=>s+o.total,0)
             const totalCOD = orders.filter(o=>o.payment_method==='cod').reduce((s,o)=>s+o.total,0)
