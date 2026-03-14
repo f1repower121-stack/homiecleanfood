@@ -148,18 +148,17 @@ export class LineClient {
       console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
     }
 
-    // Create simple item display - first 3 items max for mobile
-    const displayItems = itemsArray.slice(0, 3);
-    const itemsText = displayItems
+    // Create simple item display - show ALL items
+    const itemsText = itemsArray
       .map(item => {
         const qty = Number(item?.quantity) || 1;
         const name = String(item?.name || 'Item');
-        return `${qty}× ${name}`;
+        const price = Number(item?.price) || 0;
+        return `${qty}× ${name}  ฿${(price * qty).toLocaleString('th-TH')}`;
       })
       .join('\n');
 
-    const remainingCount = itemsArray.length - 3;
-    const itemsDisplay = itemsText + (remainingCount > 0 ? `\n➕ ${remainingCount} more` : '');
+    const itemsDisplay = itemsText;
 
     // Format time for better readability
     const orderDate = new Date(orderData.orderTime);
@@ -233,12 +232,13 @@ export class LineClient {
               margin: 'xs',
             },
 
-            // Delivery Address
+            // Delivery Address - Full address, clearly visible
             {
               type: 'text',
-              text: `📍 ${orderData.deliveryAddress.substring(0, 50)}`,
-              size: 'sm',
-              color: '#666666',
+              text: `📍 ${orderData.deliveryAddress}`,
+              size: 'md',
+              color: '#1a1a1a',
+              weight: 'bold',
               wrap: true,
               margin: 'md',
             },
@@ -316,7 +316,7 @@ export class LineClient {
               action: {
                 type: 'uri',
                 label: '📋 View Order Details',
-                uri: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app'}/admin?orderid=${orderData.orderId}`,
+                uri: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app'}/dashboard`,
               },
               color: '#1DB446',
             },
