@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Line Messaging API webhook support enabled
 const nextConfig = {
   reactStrictMode: true,
 
