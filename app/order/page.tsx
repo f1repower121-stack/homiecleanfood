@@ -160,12 +160,18 @@ export default function OrderPage() {
         try {
           const ext = slipFile.name.split('.').pop() || 'jpg'
           const path = `${data.id}.${ext}`
+          console.log('🔵 Uploading slip:', { orderId: data.id, path })
           const { error: upErr } = await supabase.storage
             .from('payment-slips')
             .upload(path, slipFile, { upsert: true })
+          console.log('📤 Upload error:', upErr)
           if (!upErr) {
             const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
-            await supabase.from('orders').update({ payment_slip_url: urlData.publicUrl } as any).eq('id', data.id)
+            console.log('🔗 URL Data:', urlData)
+            const { error: updateErr } = await supabase.from('orders').update({ payment_slip_url: urlData.publicUrl } as any).eq('id', data.id)
+            console.log('💾 Update error:', updateErr, '| Order ID:', data.id)
+            if (updateErr) console.error('❌ Failed:', updateErr)
+            else console.log('✅ Saved to DB')
           }
         } catch { }
         setSlipUploading(false)
