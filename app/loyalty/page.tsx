@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
-import { DEFAULT_LOYALTY } from '@/lib/loyalty'
+import { DEFAULT_LOYALTY, getTierFromPoints } from '@/lib/loyalty'
+import { useRouter } from 'next/navigation'
 
 const tiers = [
   { name: 'Homie', minPoints: 0, color: 'bg-gray-100 text-gray-600', borderColor: 'border-gray-200', emoji: '🌱', perks: ['1 point per ฿100 spent', 'Birthday bonus 50 pts', 'Member-only deals'] },
@@ -11,12 +12,41 @@ const tiers = [
 ]
 
 export default function LoyaltyPage() {
+  const router = useRouter()
   const [config, setConfig] = useState<typeof DEFAULT_LOYALTY & Record<string, any>>(DEFAULT_LOYALTY as any)
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<{ full_name: string | null; points: number; tier?: string } | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('loyalty_config').select('*').eq('id', 'singleton').single().then(({ data }) => {
-      if (data) setConfig({ ...DEFAULT_LOYALTY, ...data })
-    })
+    const loadData = async () => {
+      // Check for authenticated user
+      const { data: { session } } = await supabase.auth.getSession()
+      const u = session?.user
+      setUser(u)
+
+      // Fetch loyalty config
+      const { data: configData } = await supabase.from('loyalty_config').select('*').eq('id', 'singleton').single()
+      if (configData) setConfig({ ...DEFAULT_LOYALTY, ...configData })
+
+      // If user is authenticated, fetch their profile
+      if (u) {
+        const { data: profileData } = await supabase.from('profiles').select('full_name, points, tier').eq('id', u.id).single()
+        if (profileData) {
+          const pts = profileData.points ?? 0
+          const userTier = profileData.tier || getTierFromPoints(pts, config)
+          setProfile({
+            full_name: profileData.full_name ?? u.user_metadata?.full_name ?? null,
+            points: pts,
+            tier: userTier,
+          })
+        }
+      }
+
+      setLoading(false)
+    }
+
+    loadData()
   }, [])
 
   const ptsPerBaht100 = Math.round((config as any).points_per_baht * 100)
@@ -24,14 +54,94 @@ export default function LoyaltyPage() {
   const birthdayBonus = (config as any).birthday_bonus ?? 50
   const referralBonus = (config as any).referral_bonus ?? 50
 
+  // Calculate tier progress
+  const currentTier = profile ? [...tiers].reverse().find(t => profile.points >= t.minPoints) || tiers[0] : null
+  const nextTier = profile ? tiers.find(t => t.minPoints > profile.points) : null
+  const tierProgress = profile && nextTier
+    ? ((profile.points - currentTier!.minPoints) / (nextTier.minPoints - currentTier!.minPoints)) * 100
+    : profile ? 100 : 0
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-homie-gray">Loading...</p>
+      </div>
+    )
+  }
+
   return (
     <div>
-      {/* Hero */}
-      <div className="bg-homie-green py-14 px-4 text-center text-white">
-        <div className="text-5xl mb-4">⭐</div>
-        <h1 className="font-display text-4xl md:text-5xl font-bold mb-3">Loyalty Program</h1>
-        <p className="text-green-200 text-lg max-w-md mx-auto">Earn points with every order and unlock exclusive member benefits!</p>
-      </div>
+      {/* Hero - Personalized if user is logged in */}
+      {user && profile ? (
+        <div className="bg-gradient-to-r from-homie-green to-homie-lime py-12 px-4 text-white">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">Your Loyalty Status</h1>
+            <p className="text-green-100 mb-8">Keep earning and unlock the next tier!</p>
+
+            {/* Points and Tier Card */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {/* Current Points */}
+                <div className="text-center">
+                  <div className="text-sm text-green-100 mb-1 font-medium">Total Points</div>
+                  <div className="text-4xl md:text-5xl font-black">{profile.points}</div>
+                </div>
+
+                {/* Current Tier */}
+                {currentTier && (
+                  <div className="text-center">
+                    <div className="text-sm text-green-100 mb-1 font-medium">Current Tier</div>
+                    <div className="text-3xl mb-1">{currentTier.emoji}</div>
+                    <div className="font-bold text-lg">{currentTier.name}</div>
+                  </div>
+                )}
+
+                {/* Next Tier */}
+                {nextTier && (
+                  <div className="text-center md:col-span-1">
+                    <div className="text-sm text-green-100 mb-1 font-medium">Next Tier</div>
+                    <div className="text-3xl mb-1">{nextTier.emoji}</div>
+                    <div className="font-bold text-sm">{nextTier.minPoints - profile.points} pts away</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tier Progress Bar */}
+              {nextTier && (
+                <div className="mt-6 pt-6 border-t border-white/20">
+                  <div className="flex justify-between items-center mb-2 text-sm">
+                    <span>{currentTier?.name}</span>
+                    <span>{Math.round(tierProgress)}%</span>
+                  </div>
+                  <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${tierProgress}%` }} />
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-xs text-green-100">
+                    <span>{currentTier?.minPoints} pts</span>
+                    <span>{nextTier.minPoints} pts</span>
+                  </div>
+                </div>
+              )}
+              {!nextTier && (
+                <div className="mt-6 pt-6 border-t border-white/20 text-center">
+                  <p className="font-semibold">🎉 You've reached the highest tier!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-homie-green py-14 px-4 text-center text-white">
+          <div className="text-5xl mb-4">⭐</div>
+          <h1 className="font-display text-4xl md:text-5xl font-bold mb-3">Loyalty Program</h1>
+          <p className="text-green-200 text-lg max-w-md mx-auto">Earn points with every order and unlock exclusive member benefits!</p>
+          <div className="mt-6">
+            <Link href="/signin" className="inline-block bg-homie-lime text-white font-bold px-8 py-3 rounded-full hover:bg-lime-500 transition-colors">
+              Sign In to View Your Points
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto px-4 py-10">
 

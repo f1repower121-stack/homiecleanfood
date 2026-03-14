@@ -36,8 +36,8 @@ export default function MenuPage() {
         {/* Meal Type Tabs */}
         <div className="flex gap-3 mb-10">
           {[
-            { key: 'high-protein', label: '💪 High Protein Meals', emoji: '💪' },
-            { key: 'slim', label: '✨ Slim Meals', emoji: '✨' },
+            { key: 'high-protein', label: '💪 High Protein Meals', short: 'High Protein', emoji: '💪' },
+            { key: 'slim', label: '✨ Slim Meals', short: 'Slim', emoji: '✨' },
           ].map(type => (
             <button
               key={type.key}
@@ -50,7 +50,7 @@ export default function MenuPage() {
             >
               <span className="text-xl">{type.emoji}</span>
               <span className="hidden sm:inline">{type.label.split(' ').slice(1).join(' ')}</span>
-              <span className="sm:hidden">{type.label.split(' ')[0]}</span>
+              <span className="sm:hidden text-sm">{type.short}</span>
             </button>
           ))}
         </div>
