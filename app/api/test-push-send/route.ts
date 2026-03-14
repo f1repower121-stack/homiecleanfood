@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
         const pushSubscription = {
           endpoint: subscription.endpoint,
           keys: {
-            auth: '',
-            p256dh: '',
+            auth: subscription.auth_key,
+            p256dh: subscription.p256dh_key,
           },
         }
 
