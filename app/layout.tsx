@@ -3,7 +3,6 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CartProvider from '@/components/CartProvider'
-import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -35,7 +34,6 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
-          <PWAInstallPrompt />
         </CartProvider>
       </body>
     </html>

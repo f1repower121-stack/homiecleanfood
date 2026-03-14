@@ -3,6 +3,7 @@
   "short_name": "Homie",
   "description": "Macro-balanced, freshly crafted clean meals delivered in Bangkok. Chicken, beef & fish with Lean or Bulk portions.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F5F0E8",
   "theme_color": "#7CB518",
