@@ -265,6 +265,19 @@ export default function AdminPage() {
     }
   }, [authed])
 
+  // Load role from localStorage on mount (persistent role selection)
+  useEffect(() => {
+    const storedRole = localStorage.getItem('adminRole') as 'admin' | 'kitchen' | null
+    if (storedRole === 'admin' || storedRole === 'kitchen') {
+      setRole(storedRole)
+    }
+  }, [])
+
+  // Save role to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('adminRole', role)
+  }, [role])
+
   // Regenerate QR when phone changes
   useEffect(() => {
     if (!ppPhone) return
@@ -470,6 +483,7 @@ export default function AdminPage() {
       {key:'menu', icon:'🍱', label:'Menu / Meals'},
       {key:'customers', icon:'👥', label:'Customers'},
       {key:'loyalty', icon:'⭐', label:'Loyalty Points'},
+      {key:'referrals', icon:'🎁', label:'Referral System'},
       {key:'analytics', icon:'📊', label:'Analytics'},
       {key:'settings', icon:'⚙️', label:'Settings'},
     ] : []),
@@ -876,6 +890,52 @@ export default function AdminPage() {
 
                     {tab==='loyalty' && (
             <AdminLoyaltyTab darkMode={dm} />
+          )}
+
+          {/* ═══ REFERRAL SYSTEM ════════════════════════════════════════════ */}
+          {tab==='referrals' && (
+            <div>
+              <div className="mb-5">
+                <h2 className="text-xl font-bold">🎁 Referral System</h2>
+                <p className={`text-sm ${muted}`}>Manage customer referrals and rewards</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className={`${card} border rounded-2xl p-5`}>
+                  <p className={`text-sm ${muted} mb-1`}>Total Referrals</p>
+                  <p className="text-3xl font-bold text-green-600">0</p>
+                  <p className={`text-xs ${muted} mt-1`}>Pending activation</p>
+                </div>
+                <div className={`${card} border rounded-2xl p-5`}>
+                  <p className={`text-sm ${muted} mb-1`}>Active Referrals</p>
+                  <p className="text-3xl font-bold text-emerald-600">0</p>
+                  <p className={`text-xs ${muted} mt-1`}>Successfully referred customers</p>
+                </div>
+                <div className={`${card} border rounded-2xl p-5`}>
+                  <p className={`text-sm ${muted} mb-1`}>Total Rewards Given</p>
+                  <p className="text-3xl font-bold text-orange-600">฿0</p>
+                  <p className={`text-xs ${muted} mt-1`}>Referral bonuses</p>
+                </div>
+              </div>
+
+              <div className={`${card} border rounded-2xl p-6`}>
+                <h3 className="font-bold mb-4">📋 Referral Codes</h3>
+                <div className={`${dm?'bg-gray-800':'bg-gray-50'} rounded-xl p-4 text-center`}>
+                  <p className={`text-sm ${muted} mb-3`}>No active referral codes</p>
+                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">
+                    ➕ Create Referral Code
+                  </button>
+                </div>
+              </div>
+
+              <div className={`${card} border rounded-2xl p-6 mt-4`}>
+                <h3 className="font-bold mb-4">📊 Recent Referrals</h3>
+                <div className={`text-center py-12 ${muted}`}>
+                  <p className="text-4xl mb-2">🎯</p>
+                  <p>No referrals yet</p>
+                  <p className="text-xs mt-2">Referrals will appear here once customers start using your referral codes</p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ═══ ANALYTICS ════════════════════════════════════════════════ */}
