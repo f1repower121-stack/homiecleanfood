@@ -14,6 +14,7 @@ interface LineFlexMessage {
     type: 'bubble';
     body: any;
     footer?: any;
+    styles?: any;
   };
 }
 
