@@ -10,9 +10,9 @@ export default function MenuPage() {
   const { addItem } = useCart()
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [portion, setPortion] = useState<'lean' | 'bulk'>('lean')
-  const [activeCategory, setActiveCategory] = useState<'all' | 'chicken' | 'beef' | 'fish'>('all')
+  const [activeMealType, setActiveMealType] = useState<'high-protein' | 'slim'>('high-protein')
 
-  const filtered = activeCategory === 'all' ? menuItems : menuItems.filter(i => i.category === activeCategory)
+  const filtered = menuItems.filter(i => i.mealType === activeMealType)
 
   const handleAddToCart = (item: MenuItem, p: 'lean' | 'bulk') => {
     addItem({
@@ -27,34 +27,52 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl md:text-4xl font-bold text-homie-green mb-2">Full Menu</h1>
-      <p className="text-homie-gray mb-6">Tap any meal to view details and add to cart</p>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        <h1 className="font-display text-3xl md:text-4xl font-bold text-homie-green mb-2">Our Menu</h1>
+        <p className="text-homie-gray mb-8 md:mb-10">Choose your perfect meal and add to cart</p>
 
-      {/* Category Filter */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-        {[
-          { key: 'all', label: '🍽️ All' },
-          { key: 'chicken', label: '🍗 Chicken' },
-          { key: 'beef', label: '🥩 Beef' },
-          { key: 'fish', label: '🐟 Fish' },
-        ].map(cat => (
-          <button
-            key={cat.key}
-            onClick={() => setActiveCategory(cat.key as any)}
-            className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all min-h-[44px] ${
-              activeCategory === cat.key
-                ? 'bg-homie-green text-white shadow-sm'
-                : 'bg-gray-100 text-homie-gray hover:bg-gray-200'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+        {/* Meal Type Tabs */}
+        <div className="flex gap-3 mb-10">
+          {[
+            { key: 'high-protein', label: '💪 High Protein Meals', emoji: '💪' },
+            { key: 'slim', label: '✨ Slim Meals', emoji: '✨' },
+          ].map(type => (
+            <button
+              key={type.key}
+              onClick={() => setActiveMealType(type.key as any)}
+              className={`flex-1 px-4 py-3.5 md:px-6 md:py-4 rounded-2xl text-base md:text-lg font-bold transition-all duration-300 transform hover:scale-105 min-h-[48px] flex items-center justify-center gap-2 ${
+                activeMealType === type.key
+                  ? 'bg-gradient-to-r from-homie-lime to-homie-green text-white shadow-lg scale-105'
+                  : 'bg-gray-50 text-gray-600 border-2 border-gray-200 hover:border-homie-green/30'
+              }`}
+            >
+              <span className="text-xl">{type.emoji}</span>
+              <span className="hidden sm:inline">{type.label.split(' ').slice(1).join(' ')}</span>
+              <span className="sm:hidden">{type.label.split(' ')[0]}</span>
+            </button>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-        {filtered.map(item => (
+        {/* Empty State for Slim Meals */}
+        {activeMealType === 'slim' && filtered.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">✨</div>
+            <h2 className="text-2xl font-bold text-homie-green mb-2">Coming Soon</h2>
+            <p className="text-homie-gray mb-6">We're preparing delicious slim meals for you!</p>
+            <button
+              onClick={() => setActiveMealType('high-protein')}
+              className="px-6 py-3 bg-homie-green text-white font-semibold rounded-full hover:bg-homie-lime transition-colors"
+            >
+              Browse High Protein Meals
+            </button>
+          </div>
+        )}
+
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 animate-in fade-in duration-300">
+          {filtered.map(item => (
           <button
             key={item.id}
             onClick={() => { setSelectedItem(item); setPortion('lean') }}
@@ -85,8 +103,9 @@ export default function MenuPage() {
               </div>
             </div>
           </button>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Detail Modal */}
       {selectedItem && (() => {
@@ -218,6 +237,7 @@ export default function MenuPage() {
           </div>
         )
       })()}
+      </div>
     </div>
   )
 }
