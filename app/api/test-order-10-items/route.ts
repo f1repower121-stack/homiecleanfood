@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 import { sendOrderLineNotification } from '@/lib/sendOrderLineNotification'
+
+// Use admin client to bypass RLS
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+)
 
 /**
  * Test endpoint: Create an order with 10 different menu items
@@ -39,8 +45,8 @@ export async function POST(request: NextRequest) {
     })
     console.log(`💰 [TEST] Total: ฿${totalPrice}`)
 
-    // Create order in database
-    const { data: orderData, error: orderError } = await supabase
+    // Create order in database using admin client to bypass RLS
+    const { data: orderData, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
         reference_id: 'TEST' + Date.now().toString().slice(-5),
