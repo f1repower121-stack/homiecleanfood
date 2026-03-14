@@ -1,5 +1,3 @@
-import axios, { AxiosInstance } from 'axios';
-
 interface LineMessage {
   type: string;
   text?: string;
@@ -19,9 +17,9 @@ interface LineFlexMessage {
 }
 
 export class LineClient {
-  private client: AxiosInstance;
   private channelAccessToken: string;
   private userId: string;
+  private baseUrl = 'https://api.line.me/v2/bot';
 
   constructor() {
     this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
@@ -30,14 +28,41 @@ export class LineClient {
     if (!this.channelAccessToken || !this.userId) {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN and LINE_USER_ID are required');
     }
+  }
 
-    this.client = axios.create({
-      baseURL: 'https://api.line.me/v2/bot',
+  /**
+   * Make HTTP request using native fetch instead of axios
+   */
+  private async request(method: string, endpoint: string, body?: any): Promise<any> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    console.log(`📡 LINE API: ${method} ${endpoint}`);
+    console.log(`📡 Authorization: Bearer ${this.channelAccessToken.substring(0, 20)}...`);
+
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.channelAccessToken}`
-      }
+        'Authorization': `Bearer ${this.channelAccessToken.trim()}`
+      },
+      body: body ? JSON.stringify(body) : undefined
     });
+
+    const responseText = await response.text();
+    let responseData;
+
+    try {
+      responseData = responseText ? JSON.parse(responseText) : {};
+    } catch (e) {
+      responseData = { rawResponse: responseText };
+    }
+
+    if (!response.ok) {
+      console.error(`❌ LINE API Error: ${response.status}`, responseData);
+      throw new Error(`Line API error: ${response.status} - ${JSON.stringify(responseData)}`);
+    }
+
+    return responseData;
   }
 
   /**
@@ -45,7 +70,7 @@ export class LineClient {
    */
   async sendTextMessage(text: string): Promise<void> {
     try {
-      await this.client.post('/message/push', {
+      await this.request('POST', '/message/push', {
         to: this.userId,
         messages: [
           {
@@ -75,7 +100,7 @@ export class LineClient {
     try {
       const flexMessage = this.createOrderFlexMessage(orderData);
 
-      await this.client.post('/message/push', {
+      await this.request('POST', '/message/push', {
         to: this.userId,
         messages: [flexMessage]
       });
