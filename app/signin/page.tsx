@@ -25,38 +25,63 @@ function SignInForm() {
 
     try {
       if (mode === 'signin') {
+        console.log('🔑 Attempting sign in for:', email.substring(0, 3) + '***')
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         if (!data.session) throw new Error('No session returned')
+
+        console.log('✅ Sign in successful, user ID:', data.user?.id)
         setMessage({ type: 'success', text: 'Welcome back! Redirecting...' })
         await new Promise(resolve => setTimeout(resolve, 500))
         window.location.href = redirect
       } else {
+        console.log('👤 Attempting sign up for:', email.substring(0, 3) + '***')
         const { data: signUpData, error } = await supabase.auth.signUp({
           email, password,
           options: { data: { full_name: name, ref_code: refInput.trim().toUpperCase() || undefined } }
         })
         if (error) throw error
+
+        console.log('📧 Sign up successful, user ID:', signUpData.user?.id)
+
         if (signUpData.session && signUpData.user) {
           // Email confirmation disabled — session returned immediately
           // Create profile record in database
           console.log('📝 Creating profile for new user:', signUpData.user.id)
-          await fetch('/api/auth/create-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: signUpData.user.id,
-              fullName: name
+          try {
+            const profileRes = await fetch('/api/auth/create-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: signUpData.user.id,
+                fullName: name
+              })
             })
-          })
+
+            if (!profileRes.ok) {
+              const errorData = await profileRes.json()
+              console.error('❌ Profile creation failed:', errorData)
+              throw new Error(errorData.error || 'Profile creation failed')
+            }
+
+            const profileData = await profileRes.json()
+            console.log('✅ Profile created successfully:', profileData)
+          } catch (profileErr: any) {
+            console.error('❌ Error creating profile:', profileErr.message)
+            // Still redirect even if profile creation fails - user auth is successful
+            console.warn('⚠️ Continuing despite profile creation error')
+          }
+
           setMessage({ type: 'success', text: '🎉 Account created! Redirecting...' })
           await new Promise(resolve => setTimeout(resolve, 500))
           window.location.href = redirect
         } else {
+          console.log('📧 Email confirmation required for new user')
           setMessage({ type: 'success', text: '🎉 Account created! Check your email to confirm.' })
         }
       }
     } catch (err: any) {
+      console.error('❌ Authentication error:', err.message)
       setMessage({ type: 'error', text: err.message || 'Something went wrong. Please try again.' })
     } finally {
       setLoading(false)
