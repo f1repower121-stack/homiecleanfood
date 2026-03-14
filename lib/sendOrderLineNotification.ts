@@ -40,7 +40,7 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
 
     // Send rich flex message with order details
     await lineClient.sendOrderNotification({
-      orderId: order.id.slice(0, 8).toUpperCase(),
+      orderId: order.id, // Use full order ID for order details page link
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       items: order.items,

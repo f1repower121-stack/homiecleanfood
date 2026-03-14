@@ -146,6 +146,8 @@ export class LineClient {
   }): LineFlexMessage {
     // Validate items array with detailed logging
     const itemsArray = Array.isArray(orderData.items) ? orderData.items : [];
+    // Create a short display ID from the full order ID
+    const displayOrderId = orderData.orderId.slice(0, 8).toUpperCase();
     console.log(`📋 [LINE] Processing ${itemsArray.length} items for order ${orderData.orderId}`);
 
     if (itemsArray.length === 0) {
@@ -175,7 +177,7 @@ export class LineClient {
 
     return {
       type: 'flex',
-      altText: `🎉 Order #${orderData.orderId} - ฿${orderData.totalPrice.toFixed(2)}`,
+      altText: `🎉 Order #${displayOrderId} - ฿${orderData.totalPrice.toFixed(2)}`,
       contents: {
         type: 'bubble',
         body: {
@@ -198,7 +200,7 @@ export class LineClient {
                 },
                 {
                   type: 'text',
-                  text: `#${orderData.orderId}`,
+                  text: `#${displayOrderId}`,
                   weight: 'bold',
                   size: 'lg',
                   color: '#333333',
