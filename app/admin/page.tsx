@@ -101,7 +101,6 @@ export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false)
   const [tab, setTab] = useState('orders')
   const [payFilter, setPayFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
   const [role, setRole] = useState<'admin'|'kitchen'>('admin')
 
   // PromptPay settings state
@@ -247,6 +246,23 @@ export default function AdminPage() {
         const payload = generatePayload(phone, { amount: 0 })
         QRCode.toDataURL(payload, { width: 200, margin: 2 }).then(setPpQrUrl)
       })
+  }, [authed])
+
+  // Load authenticated state from localStorage on mount (persistent session)
+  useEffect(() => {
+    const storedAuth = localStorage.getItem('adminAuthed')
+    if (storedAuth === 'true') {
+      setAuthed(true)
+    }
+  }, [])
+
+  // Save authenticated state to localStorage
+  useEffect(() => {
+    if (authed) {
+      localStorage.setItem('adminAuthed', 'true')
+    } else {
+      localStorage.removeItem('adminAuthed')
+    }
   }, [authed])
 
   // Regenerate QR when phone changes
@@ -405,9 +421,6 @@ export default function AdminPage() {
 
   const filteredOrders = orders
     .filter(o => orderFilter==='all' || o.status===orderFilter)
-    .filter(o => !searchQuery ||
-      o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customer_phone?.includes(searchQuery))
 
   // ─── Login Screen ─────────────────────────────────────────────────────────
   if (!authed) return (
@@ -501,7 +514,7 @@ export default function AdminPage() {
           </button>
           <button onClick={()=>setAuthed(false)} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all">
             <span>🚪</span>
-            {sidebarOpen && <span>Logout</span>}
+            {sidebarOpen && <span>Checkout</span>}
           </button>
         </div>
       </aside>
@@ -512,11 +525,7 @@ export default function AdminPage() {
           <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`${muted} p-1.5 rounded-lg hover:bg-gray-100`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
-          <div className="flex-1 max-w-sm relative">
-            <svg className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${muted}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input placeholder="Search orders, customers..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
-              className={`w-full pl-9 pr-4 py-2 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'bg-gray-50 border-gray-200'}`}/>
-          </div>
+          <div className="flex-1" />
           <div className="flex items-center gap-2 ml-auto">
             <div className={`hidden sm:flex items-center gap-2 text-xs ${muted} ${dm?'bg-gray-800':'bg-gray-100'} rounded-xl px-3 py-1.5`}>
               <span className="text-green-600 font-semibold">Today</span>
