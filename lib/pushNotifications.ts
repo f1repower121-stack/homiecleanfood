@@ -46,7 +46,6 @@ export function sendOrderNotification(orderData: {
     body: `${itemNames}${orderData.items.length > 2 ? '...' : ''} - ฿${orderData.total}`,
     tag: 'new-order',
     requireInteraction: true,
-    actions: [{ action: 'open', title: 'View Order' }],
   }
 
   sendNotification(title, options)
