@@ -3,13 +3,24 @@
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const crypto = require('crypto');
 
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Generate UUID v4
+function generateUUID() {
+  return crypto.randomUUID();
+}
 
-const supabase = createClient(supabaseUrl, anonKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!serviceRoleKey) {
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY not found in .env.local');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, serviceRoleKey);
 
 async function importContacts() {
   try {
@@ -22,8 +33,9 @@ async function importContacts() {
     const validContacts = contacts.filter(c => c.full_name && c.phone);
     console.log(`Importing ${validContacts.length} valid contacts...\n`);
     
-    // Prepare data WITHOUT id field - just the profile fields
+    // Prepare data WITH id field (UUID) for each contact
     const profileData = validContacts.map(c => ({
+      id: generateUUID(),
       full_name: c.full_name,
       phone: c.phone,
       address: c.address || null,

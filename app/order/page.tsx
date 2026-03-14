@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useCart } from '@/components/CartProvider'
 import { supabase } from '@/lib/supabase/client'
 import { sendOrderPushNotification } from '@/lib/sendOrderPushNotification'
+import { sendOrderLineNotification } from '@/lib/sendOrderLineNotification'
 import Link from 'next/link'
 import Image from 'next/image'
 import { menuItems, type MenuItem } from '@/lib/menuData'
@@ -193,6 +194,19 @@ export default function OrderPage() {
         total: total,
         items: items,
         payment_method: payMethod,
+      })
+
+      // Send Line notification to admin
+      await sendOrderLineNotification({
+        id: data?.id || '',
+        customer_name: form.name,
+        customer_phone: form.phone,
+        items: items,
+        total: total,
+        delivery_address: form.address,
+        delivery_date: form.deliveryDate,
+        delivery_time: form.deliveryTime,
+        created_at: data?.created_at
       })
 
       // Add earned points — uses admin loyalty_config
