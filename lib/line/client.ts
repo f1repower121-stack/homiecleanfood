@@ -210,6 +210,7 @@ export class LineClient {
               margin: 'md',
               height: '2px',
               backgroundColor: '#dddddd',
+              contents: [],
             },
 
             // Customer Name - Large
