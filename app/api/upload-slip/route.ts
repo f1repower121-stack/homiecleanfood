@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Upload] Processing file: ${file.name} for order: ${orderId}`)
 
-    // Create Supabase client for server-side operations
+    // Create Supabase client
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -52,31 +52,24 @@ export async function POST(request: NextRequest) {
     // Get public URL
     const publicUrl = `https://efvbudblbtayfszxgxhq.supabase.co/storage/v1/object/public/payment-slips/${path}`
 
-    // Update order with payment slip URL - use direct API call to avoid auth issues
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`,
+    // Update order with payment slip URL using RPC function (bypasses RLS)
+    const { data: rpcData, error: rpcErr } = await supabase.rpc(
+      'update_payment_slip_url',
       {
-        method: 'PATCH',
-        headers: {
-          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({ payment_slip_url: publicUrl }),
+        order_id: orderId,
+        slip_url: publicUrl,
       }
     )
 
-    if (!response.ok) {
-      const errData = await response.text()
-      console.error('[Upload] Database update error:', errData)
+    if (rpcErr) {
+      console.error('[Upload] RPC error:', rpcErr)
       return NextResponse.json(
-        { error: `Failed to save URL: ${errData}` },
+        { error: `Failed to save URL: ${rpcErr.message}` },
         { status: 500 }
       )
     }
 
-    console.log('[Upload] Successfully saved payment slip URL:', publicUrl)
+    console.log('[Upload] Successfully saved payment slip URL:', publicUrl, rpcData)
 
     return NextResponse.json({
       success: true,
