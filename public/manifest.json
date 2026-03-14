@@ -6,6 +6,27 @@
   "display": "standalone",
   "background_color": "#F5F0E8",
   "theme_color": "#7CB518",
+  "shortcuts": [
+    {
+      "name": "Admin Dashboard",
+      "short_name": "Admin",
+      "description": "Access admin dashboard for orders and payments",
+      "url": "/admin",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "form_factor": "wide"
+    }
+  ],
   "orientation": "portrait-primary",
   "icons": [
     {
