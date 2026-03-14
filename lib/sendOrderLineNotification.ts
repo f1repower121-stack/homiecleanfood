@@ -12,6 +12,7 @@ export interface OrderNotificationData {
   delivery_date: string;
   delivery_time: string;
   created_at?: string;
+  payment_slip_url?: string;
 }
 
 /**
@@ -45,7 +46,8 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
       items: order.items,
       totalPrice: order.total,
       deliveryAddress: order.delivery_address,
-      orderTime: order.created_at || new Date().toISOString()
+      orderTime: order.created_at || new Date().toISOString(),
+      paymentSlipUrl: order.payment_slip_url,
     });
 
     console.log(`✅ [LINE] Line notification sent successfully for order ${order.id}`);

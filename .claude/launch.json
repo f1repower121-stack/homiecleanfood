@@ -1,11 +1,21 @@
 {
-  "version": "0.0.1",
+  "version": "0.2.0",
   "configurations": [
     {
-      "name": "Next.js Dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "name": "Claude",
+      "type": "claude",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/index.js",
+      "args": ["--port", "3000"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }

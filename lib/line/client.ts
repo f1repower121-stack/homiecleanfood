@@ -20,9 +20,11 @@ export class LineClient {
   private channelAccessToken: string;
   private adminUserIds: string[];
   private baseUrl = 'https://api.line.me/v2/bot';
+  private siteUrl: string;
 
   constructor() {
     this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+    this.siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app';
 
     // Support multiple admin User IDs (comma-separated)
     const userIdString = process.env.LINE_USER_ID || '';
@@ -106,6 +108,7 @@ export class LineClient {
     totalPrice: number;
     deliveryAddress: string;
     orderTime: string;
+    paymentSlipUrl?: string;
   }): Promise<void> {
     try {
       const flexMessage = this.createOrderFlexMessage(orderData);
@@ -139,6 +142,7 @@ export class LineClient {
     totalPrice: number;
     deliveryAddress: string;
     orderTime: string;
+    paymentSlipUrl?: string;
   }): LineFlexMessage {
     // Validate items array with detailed logging
     const itemsArray = Array.isArray(orderData.items) ? orderData.items : [];
@@ -266,6 +270,27 @@ export class LineClient {
               ],
             },
 
+            ...(orderData.paymentSlipUrl ? [
+              // Payment Slip Image
+              {
+                type: 'image',
+                url: orderData.paymentSlipUrl,
+                size: 'full',
+                aspectRatio: '4:5',
+                aspectMode: 'cover',
+                margin: 'md',
+              },
+              // Payment Slip Label
+              {
+                type: 'text',
+                text: '📸 Payment Slip',
+                size: 'xs',
+                color: '#999999',
+                margin: 'xs',
+                align: 'center',
+              },
+            ] : []),
+
             // Total Amount - Prominent Box
             {
               type: 'box',
@@ -316,7 +341,7 @@ export class LineClient {
               action: {
                 type: 'uri',
                 label: '📋 View Order Details',
-                uri: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app'}/dashboard`,
+                uri: `${this.siteUrl}/order-details/${orderData.orderId}`,
               },
               color: '#1DB446',
             },
