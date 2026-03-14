@@ -3,6 +3,7 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import CartProvider from '@/components/CartProvider'
+import PushNotificationSetup from '@/components/PushNotificationSetup'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PushNotificationSetup />
         <CartProvider>
           <Navbar />
           <main className="min-h-screen">
