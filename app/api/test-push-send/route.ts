@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     let sent = 0
     let failed = 0
+    const errors: any[] = []
 
     for (const subscription of subscriptions) {
       try {
@@ -79,7 +80,12 @@ export async function POST(request: NextRequest) {
         sent++
       } catch (err: any) {
         failed++
-        console.error(`Failed to send to ${subscription.endpoint}:`, err.message)
+        console.error(`Failed to send to ${subscription.endpoint}:`, err)
+        errors.push({
+          endpoint: subscription.endpoint?.substring(0, 50) + '...',
+          error: err.message,
+          statusCode: err.statusCode,
+        })
       }
     }
 
@@ -90,6 +96,7 @@ export async function POST(request: NextRequest) {
         sent,
         failed,
         total: subscriptions.length,
+        errors: errors.length > 0 ? errors : undefined,
       },
       { status: 200 }
     )
