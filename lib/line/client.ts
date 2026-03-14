@@ -85,7 +85,7 @@ export class LineClient {
   }
 
   /**
-   * Create a flex message for order notification
+   * Create a modern, visually stunning flex message for order notification
    */
   private createOrderFlexMessage(orderData: {
     orderId: string;
@@ -100,17 +100,20 @@ export class LineClient {
       type: 'box',
       layout: 'vertical',
       margin: index === 0 ? 'none' : 'md',
-      spacing: 'sm',
+      paddingAll: 'md',
+      backgroundColor: '#f8f9fa',
+      cornerRadius: 'md',
       contents: [
         {
           type: 'box',
           layout: 'baseline',
-          spacing: 'sm',
+          spacing: 'md',
           contents: [
             {
               type: 'text',
-              text: `${item.quantity}x`,
-              color: '#aaaaaa',
+              text: `${item.quantity}×`,
+              weight: 'bold',
+              color: '#1DB446',
               size: 'sm',
               flex: 0
             },
@@ -118,16 +121,19 @@ export class LineClient {
               type: 'text',
               text: item.name,
               weight: 'bold',
-              color: '#666666',
+              color: '#1a1a1a',
               flex: 0,
-              wrap: true
+              wrap: true,
+              size: 'md'
             },
             {
               type: 'text',
               text: `฿${(item.price * item.quantity).toFixed(2)}`,
-              size: 'sm',
-              color: '#999999',
-              align: 'end'
+              size: 'lg',
+              weight: 'bold',
+              color: '#1DB446',
+              align: 'end',
+              flex: 0
             }
           ]
         }
@@ -136,172 +142,209 @@ export class LineClient {
 
     return {
       type: 'flex',
-      altText: `New Order #${orderData.orderId}`,
+      altText: `🎉 New Order #${orderData.orderId} - ฿${orderData.totalPrice.toFixed(2)}`,
       contents: {
         type: 'bubble',
+        styles: {
+          body: {
+            backgroundColor: '#ffffff'
+          }
+        },
         body: {
           type: 'box',
           layout: 'vertical',
-          spacing: 'md',
+          spacing: 'lg',
           contents: [
+            // Header with gradient effect
             {
               type: 'box',
               layout: 'vertical',
               spacing: 'sm',
+              paddingAll: 'lg',
+              backgroundColor: '#1DB446',
+              cornerRadius: 'lg',
               contents: [
                 {
                   type: 'text',
-                  text: '🎯 NEW ORDER',
+                  text: '🎉 NEW ORDER',
+                  weight: 'bold',
+                  color: '#ffffff',
+                  size: 'xxl',
+                  align: 'center'
+                },
+                {
+                  type: 'text',
+                  text: `#${orderData.orderId}`,
+                  weight: 'bold',
+                  color: '#e8f5e9',
+                  size: 'lg',
+                  align: 'center'
+                }
+              ]
+            },
+            // Customer Details Card
+            {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              paddingAll: 'lg',
+              backgroundColor: '#f0f9f6',
+              cornerRadius: 'lg',
+              contents: [
+                {
+                  type: 'text',
+                  text: '📋 Customer Details',
                   weight: 'bold',
                   color: '#1DB446',
-                  size: 'xl'
+                  size: 'sm'
                 },
                 {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'sm',
+                  margin: 'md',
+                  contents: [
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      spacing: 'md',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: '👤',
+                          size: 'sm',
+                          flex: 0
+                        },
+                        {
+                          type: 'text',
+                          text: orderData.customerName,
+                          wrap: true,
+                          color: '#1a1a1a',
+                          size: 'md',
+                          weight: 'bold',
+                          flex: 5
+                        }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      spacing: 'md',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: '📱',
+                          size: 'sm',
+                          flex: 0
+                        },
+                        {
+                          type: 'text',
+                          text: orderData.customerPhone,
+                          wrap: true,
+                          color: '#1DB446',
+                          size: 'md',
+                          weight: 'bold',
+                          flex: 5
+                        }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      spacing: 'md',
+                      contents: [
+                        {
+                          type: 'text',
+                          text: '📍',
+                          size: 'sm',
+                          flex: 0
+                        },
+                        {
+                          type: 'text',
+                          text: orderData.deliveryAddress.substring(0, 45),
+                          wrap: true,
+                          color: '#333333',
+                          size: 'xs',
+                          flex: 5
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            // Items Card
+            {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              paddingAll: 'lg',
+              backgroundColor: '#fafafa',
+              cornerRadius: 'lg',
+              contents: [
+                {
                   type: 'text',
-                  text: `Order #${orderData.orderId}`,
+                  text: '🍽️ Order Items',
                   weight: 'bold',
-                  color: '#666666',
-                  size: 'lg',
-                  margin: 'md'
+                  color: '#1DB446',
+                  size: 'sm'
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  spacing: 'md',
+                  margin: 'md',
+                  contents: itemsContent
                 }
               ]
             },
-            {
-              type: 'separator',
-              margin: 'md'
-            },
+            // Total Amount Card
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'md',
               spacing: 'sm',
-              contents: [
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: '👤 Customer:',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: orderData.customerName,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 4
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: '📱 Phone:',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: orderData.customerPhone,
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 4
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: '📍 Address:',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: orderData.deliveryAddress.substring(0, 40),
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 4
-                    }
-                  ]
-                },
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: '🕐 Time:',
-                      color: '#aaaaaa',
-                      size: 'sm',
-                      flex: 1
-                    },
-                    {
-                      type: 'text',
-                      text: new Date(orderData.orderTime).toLocaleString('th-TH'),
-                      wrap: true,
-                      color: '#666666',
-                      size: 'sm',
-                      flex: 4
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              type: 'separator',
-              margin: 'md'
-            },
-            {
-              type: 'box',
-              layout: 'vertical',
-              margin: 'md',
-              spacing: 'sm',
-              contents: itemsContent
-            },
-            {
-              type: 'separator',
-              margin: 'md'
-            },
-            {
-              type: 'box',
-              layout: 'horizontal',
-              margin: 'md',
-              spacing: 'sm',
+              paddingAll: 'lg',
+              backgroundColor: '#1DB446',
+              cornerRadius: 'lg',
               contents: [
                 {
                   type: 'text',
-                  text: 'Total:',
+                  text: 'Total Amount',
+                  color: '#ffffff',
                   size: 'sm',
-                  color: '#aaaaaa',
-                  flex: 1
+                  align: 'center'
                 },
                 {
                   type: 'text',
                   text: `฿${orderData.totalPrice.toFixed(2)}`,
-                  size: 'lg',
-                  color: '#1DB446',
+                  size: 'xxl',
                   weight: 'bold',
-                  align: 'end',
-                  flex: 1
+                  color: '#ffffff',
+                  align: 'center'
+                }
+              ]
+            },
+            // Order Time
+            {
+              type: 'box',
+              layout: 'baseline',
+              spacing: 'md',
+              paddingAll: 'md',
+              backgroundColor: '#f5f5f5',
+              cornerRadius: 'md',
+              contents: [
+                {
+                  type: 'text',
+                  text: '🕐',
+                  size: 'sm',
+                  flex: 0
+                },
+                {
+                  type: 'text',
+                  text: new Date(orderData.orderTime).toLocaleString('th-TH'),
+                  color: '#666666',
+                  size: 'xs',
+                  flex: 5
                 }
               ]
             }
