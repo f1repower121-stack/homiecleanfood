@@ -32,6 +32,9 @@ export default function OrderPage() {
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [qrPaid, setQrPaid] = useState(false)
   const [promptpayPhone, setPromptpayPhone] = useState(PROMPTPAY_PHONE_DEFAULT)
+  const [slipFile, setSlipFile] = useState<File | null>(null)
+  const [slipPreview, setSlipPreview] = useState<string>('')
+  const [slipUploading, setSlipUploading] = useState(false)
 
   // Loyalty state
   const [user, setUser] = useState<any>(null)
@@ -150,6 +153,23 @@ export default function OrderPage() {
       }).select().single()
 
       if (error) throw error
+
+      // Upload payment slip if provided
+      if (slipFile && data?.id) {
+        setSlipUploading(true)
+        try {
+          const ext = slipFile.name.split('.').pop() || 'jpg'
+          const path = `${data.id}.${ext}`
+          const { error: upErr } = await supabase.storage
+            .from('payment-slips')
+            .upload(path, slipFile, { upsert: true })
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
+            await supabase.from('orders').update({ payment_slip_url: urlData.publicUrl } as any).eq('id', data.id)
+          }
+        } catch { }
+        setSlipUploading(false)
+      }
 
       await sendOrderPushNotification({
         id: data?.id,
@@ -431,6 +451,33 @@ export default function OrderPage() {
                           className="w-4 h-4 accent-homie-lime" />
                         <span className="text-sm font-medium text-homie-dark">I have transferred the payment</span>
                       </label>
+
+                      {/* Slip upload */}
+                      {qrPaid && (
+                        <div className="mt-3 w-full">
+                          <p className="text-xs font-medium text-homie-dark mb-1.5">📎 Upload transfer slip <span className="text-homie-gray">(optional but recommended)</span></p>
+                          {slipPreview ? (
+                            <div className="relative inline-block">
+                              <img src={slipPreview} alt="Transfer slip" className="w-32 h-32 object-cover rounded-xl border border-gray-200" />
+                              <button
+                                onClick={() => { setSlipFile(null); setSlipPreview('') }}
+                                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center gap-2 cursor-pointer w-full border-2 border-dashed border-gray-200 hover:border-homie-lime rounded-xl px-4 py-3 transition-colors">
+                              <span className="text-xl">📷</span>
+                              <span className="text-sm text-homie-gray">Tap to attach screenshot or photo</span>
+                              <input type="file" accept="image/*" className="hidden"
+                                onChange={e => {
+                                  const f = e.target.files?.[0]
+                                  if (!f) return
+                                  setSlipFile(f)
+                                  setSlipPreview(URL.createObjectURL(f))
+                                }} />
+                            </label>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="w-52 h-52 mx-auto bg-gray-50 rounded-xl flex items-center justify-center">
@@ -447,9 +494,9 @@ export default function OrderPage() {
 
               <div className="flex gap-3">
                 <button onClick={() => setStep('details')} className="flex-1 border-2 border-gray-200 text-homie-gray font-semibold py-3 rounded-xl hover:border-homie-green hover:text-homie-green transition-colors">← Back</button>
-                <button onClick={handleSubmit} disabled={loading || (payMethod === 'promptpay' && !qrPaid)}
+                <button onClick={handleSubmit} disabled={loading || slipUploading || (payMethod === 'promptpay' && !qrPaid)}
                   className="flex-1 bg-homie-green text-white font-bold py-3 rounded-xl hover:bg-homie-lime transition-colors disabled:opacity-60">
-                  {loading ? 'Placing Order...' : payMethod === 'promptpay' ? `Confirm Payment ฿${total}` : `Confirm Order ฿${total}`}
+                  {slipUploading ? 'Uploading slip...' : loading ? 'Placing Order...' : payMethod === 'promptpay' ? `Confirm Payment ฿${total}` : `Confirm Order ฿${total}`}
                 </button>
               </div>
             </div>

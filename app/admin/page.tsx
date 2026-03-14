@@ -14,6 +14,7 @@ type Order = {
   delivery_address: string; items: any[]; total: number
   status: string; payment_method: string; notes: string; created_at: string
   payment_confirmed?: boolean
+  payment_slip_url?: string
 }
 type MenuItem = {
   id: string; name: string; category: string; lean_price: number
@@ -645,18 +646,41 @@ export default function AdminPage() {
                           </div>
                         </div>
                         {(isPromptPay || isCard) && (
-                          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
-                            {!o.payment_confirmed ? (
-                              <button onClick={() => confirmPayment(o.id, true)}
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors">
-                                ✓ Confirm Payment Received
-                              </button>
-                            ) : (
-                              <button onClick={() => confirmPayment(o.id, false)}
-                                className={`flex-1 border text-sm font-medium py-2 rounded-xl transition-colors border-gray-200 ${muted} hover:border-red-300 hover:text-red-500`}>
-                                ↩ Undo Confirmation
-                              </button>
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            {/* Slip preview */}
+                            {o.payment_slip_url && (
+                              <div className="flex items-center gap-3 mb-3">
+                                <img
+                                  src={o.payment_slip_url}
+                                  alt="Payment slip"
+                                  className="w-16 h-16 object-cover rounded-xl border border-gray-200 cursor-pointer"
+                                  onClick={() => window.open(o.payment_slip_url, '_blank')}
+                                />
+                                <div>
+                                  <p className="text-xs font-semibold text-green-700 mb-0.5">📎 Transfer slip uploaded</p>
+                                  <a href={o.payment_slip_url} target="_blank" rel="noreferrer"
+                                    className="text-xs text-blue-600 underline hover:text-blue-800">
+                                    View full size ↗
+                                  </a>
+                                </div>
+                              </div>
                             )}
+                            {!o.payment_slip_url && (isPromptPay) && (
+                              <p className={`text-xs ${muted} mb-2`}>⚠️ No slip uploaded by customer</p>
+                            )}
+                            <div className="flex items-center gap-2">
+                              {!o.payment_confirmed ? (
+                                <button onClick={() => confirmPayment(o.id, true)}
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors">
+                                  ✓ Confirm Payment Received
+                                </button>
+                              ) : (
+                                <button onClick={() => confirmPayment(o.id, false)}
+                                  className={`flex-1 border text-sm font-medium py-2 rounded-xl transition-colors border-gray-200 ${muted} hover:border-red-300 hover:text-red-500`}>
+                                  ↩ Undo Confirmation
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -670,7 +694,17 @@ export default function AdminPage() {
                   <p className={muted}>Run this once in your Supabase SQL Editor to enable payment confirmation:</p>
                   <pre className={`mt-2 p-2 rounded-lg text-xs font-mono ${dm ? 'bg-gray-700' : 'bg-gray-100'} overflow-x-auto`}>
 {`ALTER TABLE public.orders
-  ADD COLUMN IF NOT EXISTS payment_confirmed boolean DEFAULT false;`}
+  ADD COLUMN IF NOT EXISTS payment_confirmed boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS payment_slip_url text;
+
+-- Create storage bucket for slips (run once)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('payment-slips', 'payment-slips', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow anyone to upload slips
+CREATE POLICY "Upload slips" ON storage.objects
+  FOR INSERT TO public WITH CHECK (bucket_id = 'payment-slips');`}
                   </pre>
                 </div>
               </div>
