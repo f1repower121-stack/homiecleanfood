@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Get all subscriptions
     const { data: subscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')
-      .select('id, endpoint')
+      .select('id, endpoint, auth_key, p256dh_key')
 
     if (fetchError) {
       return NextResponse.json(
