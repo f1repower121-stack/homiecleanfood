@@ -1,3 +1,5 @@
+'use server';
+
 import { getLineClient } from '@/lib/line/client';
 
 export interface OrderNotificationData {
