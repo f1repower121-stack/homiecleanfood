@@ -17,11 +17,18 @@ export interface OrderNotificationData {
  */
 export async function sendOrderLineNotification(order: OrderNotificationData) {
   try {
+    console.log('🔍 Initializing Line client...');
+    console.log('Channel Access Token exists:', !!process.env.LINE_CHANNEL_ACCESS_TOKEN);
+    console.log('User ID:', process.env.LINE_USER_ID);
+
     const lineClient = getLineClient();
+    console.log('✅ Line client initialized successfully');
 
     // Format delivery date and time
     const [year, month, day] = order.delivery_date.split('-');
     const dateStr = `${day}/${month}/${year}`;
+
+    console.log('📤 Sending Line notification for order:', order.id);
 
     // Send rich flex message with order details
     await lineClient.sendOrderNotification({
@@ -37,6 +44,10 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
     console.log(`✅ Line notification sent for order ${order.id}`);
   } catch (error) {
     console.error('❌ Failed to send Line notification:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     // Don't throw - we don't want to fail the order if Line notification fails
   }
 }
