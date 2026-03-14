@@ -208,7 +208,7 @@ export class LineClient {
               type: 'box',
               layout: 'vertical',
               margin: 'md',
-              height: '1px',
+              height: '2px',
               backgroundColor: '#dddddd',
             },
 
@@ -250,7 +250,7 @@ export class LineClient {
               paddingAll: 'md',
               backgroundColor: '#f9f9f9',
               borderColor: '#e0e0e0',
-              borderWidth: 'sm',
+              borderWidth: '1px',
               cornerRadius: 'md',
               contents: [
                 {
