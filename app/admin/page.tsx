@@ -22,7 +22,7 @@ type MenuItem = {
   id: string; name: string; category: string; lean_price: number
   bulk_price: number; description: string; image_url: string
   calories_lean: number; protein_lean: number; carb_lean: number
-  fat_lean: number; available: boolean
+  fat_lean: number; available: boolean; meal_type?: string
 }
 type Customer = {
   id: string; full_name: string; email: string; phone: string
@@ -739,7 +739,7 @@ export default function AdminPage() {
                   <h2 className="text-xl font-bold">Menu / Meals</h2>
                   <p className={`text-sm ${muted}`}>{menuItems.length} items</p>
                 </div>
-                <button onClick={()=>{setIsNew(true);setEditItem({available:true,category:'chicken'})}}
+                <button onClick={()=>{setIsNew(true);setEditItem({available:true,category:'chicken',meal_type:'high-protein'})}}
                   className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
                   + Add Meal
                 </button>
@@ -758,6 +758,13 @@ export default function AdminPage() {
                         <option value="chicken">🍗 Chicken</option>
                         <option value="beef">🥩 Beef</option>
                         <option value="fish">🐟 Fish</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`text-xs font-medium ${muted} block mb-1`}>Meal Type</label>
+                      <select value={editItem.meal_type||'high-protein'} onChange={e=>setEditItem({...editItem,meal_type:e.target.value})} className={inputCls}>
+                        <option value="high-protein">💪 High Protein</option>
+                        <option value="slim">✨ Slim</option>
                       </select>
                     </div>
                     <div>
@@ -818,8 +825,11 @@ export default function AdminPage() {
                         </div>
                     }
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm">{item.name}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-lg ${item.meal_type==='slim'?'bg-amber-100 text-amber-600':'bg-green-100 text-green-600'}`}>
+                          {item.meal_type==='slim'?'✨ Slim':'💪 High Protein'}
+                        </span>
                         {!item.available && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-lg">Hidden</span>}
                       </div>
                       <p className={`text-xs ${muted} mt-0.5`}>{item.category} · Lean ฿{item.lean_price} / Bulk ฿{item.bulk_price}</p>
