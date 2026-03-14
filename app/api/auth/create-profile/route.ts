@@ -15,11 +15,21 @@ export async function POST(request: NextRequest) {
 
     console.log(`📝 [PROFILE] Creating profile for user ${userId}`)
 
+    // Verify environment variables are set
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      const missing = []
+      if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
+      if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
+      const errorMsg = `Missing environment variables: ${missing.join(', ')}`
+      console.error(`❌ [PROFILE] ${errorMsg}`)
+      return NextResponse.json({ error: errorMsg }, { status: 500 })
+    }
+
     // Create admin client at request time (not build time)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    )
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
 
     // Create profile record
     const { data, error } = await supabase
