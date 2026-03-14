@@ -31,14 +31,15 @@ export async function GET(request: NextRequest) {
 
     // Check 3: Database connection
     try {
-      const { data: testData, error: testError } = await supabase
+      const { data: testData, error: testError, count } = await supabase
         .from('push_subscriptions')
-        .select('count(*)', { count: 'exact' })
+        .select('*', { count: 'exact' })
 
       result.checks.database = {
         connected: !testError,
         error: testError?.message || null,
         query: 'push_subscriptions table accessible',
+        totalRows: count,
       }
     } catch (err: any) {
       result.checks.database = {
