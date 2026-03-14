@@ -166,14 +166,17 @@ export class LineClient {
 
     const itemsDisplay = itemsText;
 
-    // Format time for better readability
+    // Format time for better readability - English with Indochina Time (ICT)
     const orderDate = new Date(orderData.orderTime);
-    const timeStr = orderDate.toLocaleString('th-TH', {
+    const timeStr = orderDate.toLocaleString('en-US', {
+      year: 'numeric',
       month: 'short',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-    });
+      second: '2-digit',
+      timeZone: 'Asia/Bangkok',
+    }) + ' ICT';
 
     return {
       type: 'flex',
@@ -327,25 +330,6 @@ export class LineClient {
               color: '#999999',
               margin: 'md',
               align: 'center',
-            },
-          ],
-        },
-        // Action Button
-        footer: {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'button',
-              style: 'primary',
-              height: 'sm',
-              action: {
-                type: 'uri',
-                label: '📋 View Order Details',
-                uri: `${this.siteUrl}/order-details/${orderData.orderId}`,
-              },
-              color: '#1DB446',
             },
           ],
         },
