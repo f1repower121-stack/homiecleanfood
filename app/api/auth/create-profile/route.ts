@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Admin client to bypass RLS
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-)
-
 /**
  * Create profile record for new user after signup
  * This is called from the client after successful signup
@@ -20,6 +14,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`📝 [PROFILE] Creating profile for user ${userId}`)
+
+    // Create admin client at request time (not build time)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    )
 
     // Create profile record
     const { data, error } = await supabase
