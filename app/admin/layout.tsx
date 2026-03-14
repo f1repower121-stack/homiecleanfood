@@ -20,5 +20,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <div style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
+      {children}
+    </div>
+  )
 }

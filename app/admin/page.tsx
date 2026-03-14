@@ -424,7 +424,7 @@ export default function AdminPage() {
 
   // ─── Login Screen ─────────────────────────────────────────────────────────
   if (!authed) return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a2e0f] via-[#2d5016] to-[#1a2e0f] flex items-center justify-center p-4">
+    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className="bg-gradient-to-br from-[#1a2e0f] via-[#2d5016] to-[#1a2e0f] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
