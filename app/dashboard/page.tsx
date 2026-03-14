@@ -5,6 +5,7 @@ import { menuItems, type MenuItem } from '@/lib/menuData'
 import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useCart } from '@/components/CartProvider'
 import ReferralTab from '@/components/ReferralTab'
 import {
   Card,
@@ -106,6 +107,7 @@ const TIERS = [
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { addItem } = useCart()
   const [user, setUser] = useState<any>(null)
   const [dailyGoal, setDailyGoal] = useState(2000)
   const [weeklyGoal, setWeeklyGoal] = useState(14000)
@@ -121,6 +123,8 @@ export default function DashboardPage() {
   const [exDuration, setExDuration] = useState('')
   const [tab, setTab] = useState<'overview' | 'tracker' | 'exercise' | 'recommendations' | 'loyalty' | 'referrals'>('overview')
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [reorderItems, setReorderItems] = useState<{ [key: string]: number }>({})
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -219,6 +223,26 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.replace('/signin')
+  }
+
+  const handleReorder = () => {
+    if (!selectedOrder) return
+    // Add items to cart with selected quantities
+    selectedOrder.items.forEach(item => {
+      const qty = reorderItems[item.id] ?? item.quantity
+      if (qty > 0) {
+        addItem({
+          id: item.id,
+          name: item.name,
+          portion: (item.portion as 'lean' | 'bulk') || 'lean',
+          price: item.price,
+          quantity: qty,
+        })
+      }
+    })
+    setSelectedOrder(null)
+    setReorderItems({})
+    router.push('/menu')
   }
 
   if (loading) {
@@ -354,6 +378,7 @@ export default function DashboardPage() {
                         <TableHead>Total</TableHead>
                         <TableHead>Calories</TableHead>
                         <TableHead>Points</TableHead>
+                        <TableHead>Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -361,11 +386,22 @@ export default function DashboardPage() {
                         const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
                         const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
                         return (
-                          <TableRow key={o.id}>
+                          <TableRow key={o.id} className="hover:bg-gray-50 cursor-pointer">
                             <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
                             <TableCell>฿{o.total}</TableCell>
                             <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
                             <TableCell className="text-yellow-500 font-medium">+{pts} ⭐</TableCell>
+                            <TableCell>
+                              <button
+                                onClick={() => {
+                                  setSelectedOrder(o)
+                                  setReorderItems(Object.fromEntries(o.items.map((item: any) => [item.id, item.quantity])))
+                                }}
+                                className="text-homie-lime hover:text-homie-green font-semibold text-sm"
+                              >
+                                Reorder
+                              </button>
+                            </TableCell>
                           </TableRow>
                         )
                       })}
@@ -569,6 +605,89 @@ export default function DashboardPage() {
           <ReferralTab profile={profile} user={user} />
         )}
       </div>
+
+      {/* REORDER MODAL */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 bg-black/50">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-lg max-h-[90vh] md:max-h-[90vh] flex flex-col p-6 space-y-4 overflow-y-auto">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <h2 className="font-display text-2xl font-bold text-homie-green">Reorder</h2>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="text-xl font-bold text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Order Date */}
+            <p className="text-sm text-homie-gray">
+              Order from {new Date(selectedOrder.created_at).toLocaleDateString('en-GB')} • ฿{selectedOrder.total}
+            </p>
+
+            {/* Items with Quantity Editor */}
+            <div className="space-y-3">
+              {selectedOrder.items.map((item: any, idx) => (
+                <div key={`${item.id}-${idx}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div className="flex-1">
+                    <p className="font-semibold text-homie-dark">{item.name}</p>
+                    <p className="text-xs text-homie-gray">฿{item.price} • {item.portion || 'lean'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setReorderItems(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] ?? 1) - 1) }))}
+                      className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-homie-green font-bold hover:bg-gray-50"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      value={reorderItems[item.id] ?? item.quantity}
+                      onChange={e => setReorderItems(prev => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))}
+                      className="w-12 text-center border border-gray-200 rounded-lg font-bold"
+                      min="0"
+                    />
+                    <button
+                      onClick={() => setReorderItems(prev => ({ ...prev, [item.id]: (prev[item.id] ?? 1) + 1 }))}
+                      className="w-8 h-8 rounded-lg bg-homie-lime text-white font-bold hover:bg-lime-500"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Price Preview */}
+            <div className="p-4 bg-homie-green/10 rounded-xl">
+              <p className="text-sm text-homie-gray mb-1">Estimated Total</p>
+              <p className="text-2xl font-bold text-homie-green">
+                ฿{(Object.entries(reorderItems).reduce((sum, [itemId, qty]) => {
+                  const item = selectedOrder.items.find((i: any) => i.id === itemId)
+                  return sum + (item?.price ?? 0) * qty
+                }, 0)).toFixed(2)}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="flex-1 px-4 py-3 rounded-xl font-semibold text-homie-green border-2 border-homie-green hover:bg-green-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReorder}
+                className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-homie-lime hover:bg-lime-500 transition-colors"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
