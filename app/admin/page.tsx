@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import AdminLoyaltyTab from '@/components/admin/LoyaltyTab'
 import NotificationBell from '@/components/admin/NotificationBell'
@@ -114,7 +113,6 @@ export default function AdminPage() {
   const [orderFilter, setOrderFilter] = useState('all')
   const [expanded, setExpanded] = useState<string|null>(null)
   const [loadingOrders, setLoadingOrders] = useState(false)
-  const [selectedSlipUrl, setSelectedSlipUrl] = useState<string|null>(null)
 
   // Menu state
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
@@ -365,7 +363,6 @@ export default function AdminPage() {
   const navItems = [
     {key:'orders', icon:'📦', label:'Orders & Payments', badge: pendingCount + unconfirmedPayments || undefined},
     ...(role==='admin' ? [
-      {key:'payments', icon:'💳', label:'Payment Confirmation', badge: unconfirmedPayments || undefined},
       {key:'menu', icon:'🍱', label:'Menu / Meals'},
       {key:'customers', icon:'👥', label:'Customers'},
       {key:'loyalty', icon:'⭐', label:'Loyalty Points'},
@@ -612,139 +609,6 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* ═══ PAYMENT CONFIRMATION ══════════════════════════════════════ */}
-          {tab==='payments' && (
-            <div>
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h2 className="text-2xl font-bold">💳 Payment Confirmation</h2>
-                  <p className={`text-sm ${muted}`}>{unconfirmedPayments} pending · Review and confirm payment slips</p>
-                </div>
-              </div>
-
-              {/* Fullscreen Slip Viewer Modal */}
-              {selectedSlipUrl && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedSlipUrl(null)}>
-                  <div className="bg-white rounded-2xl max-w-2xl max-h-[90vh] overflow-auto">
-                    <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-                      <h3 className="font-semibold">Payment Slip Preview</h3>
-                      <button onClick={() => setSelectedSlipUrl(null)} className="text-gray-400 hover:text-gray-600">
-                        <X size={24} />
-                      </button>
-                    </div>
-                    <img src={selectedSlipUrl} alt="Payment slip" className="w-full h-auto" />
-                  </div>
-                </div>
-              )}
-
-              {unconfirmedPayments === 0 ? (
-                <div className={`${card} border rounded-2xl p-12 text-center`}>
-                  <p className="text-4xl mb-3">✅</p>
-                  <p className="text-lg font-semibold text-green-600">All payments confirmed!</p>
-                  <p className={`text-sm ${muted} mt-1`}>No pending payment confirmations</p>
-                </div>
-              ) : (
-                <div>
-                  {/* Filter Tabs */}
-                  <div className="flex gap-2 mb-4 overflow-x-auto pb-1 flex-wrap">
-                    {['all','promptpay','card'].map(method=>{
-                      const methodOrders = orders.filter(o => (method==='all'||(method==='promptpay'?o.payment_method==='promptpay':o.payment_method==='card')) && !o.payment_confirmed)
-                      return (
-                        <button key={method} onClick={()=>setPayFilter(method as any)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border
-                            ${payFilter===method?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-200 hover:border-green-300'}`}>
-                          {method==='all'?`All (${unconfirmedPayments})`:method==='promptpay'?`🇹🇭 PromptPay (${methodOrders.length})`:method==='card'?`💳 Card (${methodOrders.length})`:''}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Payment Slips Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {orders
-                      .filter(o => (payFilter==='all'||(payFilter==='promptpay'?o.payment_method==='promptpay':o.payment_method==='card')) && !o.payment_confirmed)
-                      .map(order => (
-                        <div key={order.id} className={`${card} border-2 rounded-2xl overflow-hidden hover:shadow-lg transition-all ${order.payment_slip_url ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50'}`}>
-                          {/* Slip Preview */}
-                          <div className="relative bg-gray-100 aspect-square overflow-hidden">
-                            {order.payment_slip_url ? (
-                              <>
-                                <img
-                                  src={order.payment_slip_url}
-                                  alt="Payment slip"
-                                  className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => setSelectedSlipUrl(order.payment_slip_url || null)}
-                                />
-                                <button
-                                  onClick={() => setSelectedSlipUrl(order.payment_slip_url || null)}
-                                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-2 transition-all"
-                                  title="View full size"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6v12h12v-6m6-6H6m6-6v6m6 6v6"/>
-                                  </svg>
-                                </button>
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center flex-col">
-                                <p className="text-2xl mb-2">📄</p>
-                                <p className={`text-xs font-medium ${muted}`}>No slip uploaded</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Order Details */}
-                          <div className="p-3.5">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-semibold text-sm text-gray-900">{order.customer_name || 'Guest'}</p>
-                                <p className={`text-xs ${muted} mt-0.5`}>{order.customer_phone}</p>
-                              </div>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${order.payment_method === 'promptpay' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
-                                {order.payment_method === 'promptpay' ? '🇹🇭 PromptPay' : '💳 Card'}
-                              </span>
-                            </div>
-
-                            {/* Amount & Date */}
-                            <div className="border-t border-gray-200 pt-2 mb-3">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className={`text-xs font-medium ${muted}`}>Amount</span>
-                                <span className="font-bold text-green-600 text-sm">฿{fmt(order.total)}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className={`text-xs font-medium ${muted}`}>Date</span>
-                                <span className={`text-xs ${muted}`}>{new Date(order.created_at).toLocaleDateString('th-TH', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
-                              </div>
-                            </div>
-
-                            {/* Order ID */}
-                            <div className={`text-xs ${muted} bg-gray-100 rounded-lg px-2 py-1 mb-3 font-mono truncate`}>
-                              #{order.id?.slice(0, 8)}
-                            </div>
-
-                            {/* Action Button */}
-                            <button
-                              onClick={() => confirmPayment(order.id, true)}
-                              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-all shadow-sm"
-                            >
-                              ✓ Confirm Payment
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {orders.filter(o => (payFilter==='all'||(payFilter==='promptpay'?o.payment_method==='promptpay':o.payment_method==='card')) && !o.payment_confirmed).length === 0 && (
-                    <div className={`text-center py-12 ${muted}`}>
-                      <p className="text-2xl mb-2">✅</p>
-                      <p>No {payFilter === 'all' ? 'pending' : payFilter === 'promptpay' ? 'PromptPay' : 'Card'} payments</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
