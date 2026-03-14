@@ -40,16 +40,21 @@ export async function POST(request: NextRequest) {
 
     // Handle each event
     for (const event of events) {
-      console.log(`📬 Event type: ${event.type}`);
+      console.log(`Event type: ${event.type}, Source: ${JSON.stringify(event.source)}`);
 
-      // Capture User ID when receiving messages
-      if (event.type === 'message' && event.message.type === 'text') {
+      // Capture User ID from ANY message type
+      if (event.source && event.source.userId) {
         const userId = event.source.userId;
-        const messageText = event.message.text;
+        console.log(`\n🔑🔑🔑 USER ID CAPTURED 🔑🔑🔑`);
+        console.log(`User ID: ${userId}`);
+        console.log(`Event Type: ${event.type}`);
 
-        console.log(`🔑 USER ID CAPTURED: ${userId}`);
-        console.log(`💬 Message: "${messageText}"`);
-        console.log(`✅ Use this User ID in LINE_USER_ID environment variable: ${userId}`);
+        if (event.message) {
+          console.log(`Message: ${JSON.stringify(event.message)}`);
+        }
+
+        console.log(`⭐ COPY THIS USER ID TO VERCEL ENVIRONMENT VARIABLE: ${userId}`);
+        console.log(`🔑🔑🔑 END USER ID CAPTURE 🔑🔑🔑\n`);
       }
     }
 
