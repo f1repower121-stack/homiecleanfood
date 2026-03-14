@@ -154,17 +154,23 @@ export class LineClient {
       console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
     }
 
-    // Create simple item display - show ALL items
+    // Create detailed item display with portions - show ALL items
     const itemsText = itemsArray
-      .map(item => {
+      .map((item, idx) => {
         const qty = Number(item?.quantity) || 1;
         const name = String(item?.name || 'Item');
         const price = Number(item?.price) || 0;
-        return `${qty}× ${name}  ฿${(price * qty).toLocaleString('th-TH')}`;
+        const itemTotal = (price * qty).toLocaleString('th-TH');
+        // Extract portion type from name (Bulk/Lean/Regular)
+        const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
+        const portion = portionMatch ? portionMatch[1] : '';
+        const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
+
+        return `${idx + 1}. ${qty}× ${baseName}\n   ${portion ? `[${portion}] ` : ''}฿${itemTotal}`;
       })
       .join('\n');
 
-    const itemsDisplay = itemsText;
+    const itemsDisplay = `Total Items: ${itemsArray.length}\n\n${itemsText}`;
 
     // Format time for better readability - English with Indochina Time (ICT)
     const orderDate = new Date(orderData.orderTime);
@@ -252,25 +258,27 @@ export class LineClient {
               margin: 'md',
             },
 
-            // Items List
+            // Items List with improved styling
             {
               type: 'box',
               layout: 'vertical',
               margin: 'md',
               paddingAll: 'md',
-              backgroundColor: '#f9f9f9',
-              borderColor: '#e0e0e0',
+              paddingStart: 'lg',
+              backgroundColor: '#fafbfc',
+              borderColor: '#1DB446',
               borderWidth: '1px',
               cornerRadius: 'md',
               contents: [
                 {
                   type: 'text',
                   text: itemsDisplay,
-                  size: 'md',
-                  color: '#1a1a1a',
-                  weight: 'bold',
+                  size: 'sm',
+                  color: '#333333',
+                  weight: 'regular',
                   wrap: true,
                   align: 'start',
+                  lineHeight: '1.8',
                 },
               ],
             },
