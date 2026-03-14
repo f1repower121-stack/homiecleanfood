@@ -13,6 +13,7 @@ type Order = {
   id: string; customer_name: string; customer_phone: string
   delivery_address: string; items: any[]; total: number
   status: string; payment_method: string; notes: string; created_at: string
+  payment_confirmed?: boolean
 }
 type MenuItem = {
   id: string; name: string; category: string; lean_price: number
@@ -219,6 +220,11 @@ export default function AdminPage() {
     }
   }
 
+  const confirmPayment = async (orderId: string, confirmed: boolean) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_confirmed: confirmed } : o))
+    await supabase.from('orders').update({ payment_confirmed: confirmed } as any).eq('id', orderId)
+  }
+
   const saveMenuItem = async () => {
     if (!editItem?.name) return
     setMenuSaving(true)
@@ -348,9 +354,14 @@ export default function AdminPage() {
   )
 
   // ─── Nav Items ────────────────────────────────────────────────────────────
+  const unconfirmedPayments = orders.filter(o =>
+    (o.payment_method === 'promptpay' || o.payment_method === 'card') && !o.payment_confirmed
+  ).length
+
   const navItems = [
     {key:'orders', icon:'📦', label:'Orders', badge:pendingCount},
     ...(role==='admin' ? [
+      {key:'payments', icon:'💳', label:'Payments', badge: unconfirmedPayments || undefined},
       {key:'menu', icon:'🍱', label:'Menu / Meals'},
       {key:'customers', icon:'👥', label:'Customers'},
       {key:'loyalty', icon:'⭐', label:'Loyalty Points'},
@@ -536,6 +547,135 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* ═══ PAYMENTS ══════════════════════════════════════════════════ */}
+          {tab==='payments' && (() => {
+            const [payFilter, setPayFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
+            const filtered = orders.filter(o => payFilter === 'all' || o.payment_method === payFilter)
+            const totalPromptPay = orders.filter(o=>o.payment_method==='promptpay').reduce((s,o)=>s+o.total,0)
+            const totalCOD = orders.filter(o=>o.payment_method==='cod').reduce((s,o)=>s+o.total,0)
+            const totalCard = orders.filter(o=>o.payment_method==='card').reduce((s,o)=>s+o.total,0)
+            const confirmedPP = orders.filter(o=>o.payment_method==='promptpay'&&o.payment_confirmed).length
+            const pendingPP = orders.filter(o=>o.payment_method==='promptpay'&&!o.payment_confirmed).length
+            return (
+              <div>
+                <div className="mb-5">
+                  <h2 className="text-xl font-bold">Payments</h2>
+                  <p className={`text-sm ${muted}`}>Track payment methods and confirm transfers received</p>
+                </div>
+
+                {/* Summary cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  <div className={`${card} border rounded-2xl p-4`}>
+                    <p className={`text-xs ${muted} mb-1`}>🇹🇭 PromptPay</p>
+                    <p className="text-xl font-bold text-homie-green">฿{totalPromptPay.toLocaleString()}</p>
+                    <p className={`text-xs ${muted} mt-1`}>{confirmedPP} confirmed · {pendingPP} pending</p>
+                  </div>
+                  <div className={`${card} border rounded-2xl p-4`}>
+                    <p className={`text-xs ${muted} mb-1`}>💵 Cash on Delivery</p>
+                    <p className="text-xl font-bold text-blue-600">฿{totalCOD.toLocaleString()}</p>
+                    <p className={`text-xs ${muted} mt-1`}>{orders.filter(o=>o.payment_method==='cod').length} orders</p>
+                  </div>
+                  <div className={`${card} border rounded-2xl p-4`}>
+                    <p className={`text-xs ${muted} mb-1`}>💳 Card</p>
+                    <p className="text-xl font-bold text-purple-600">฿{totalCard.toLocaleString()}</p>
+                    <p className={`text-xs ${muted} mt-1`}>{orders.filter(o=>o.payment_method==='card').length} orders</p>
+                  </div>
+                  <div className={`${card} border rounded-2xl p-4 bg-green-50`}>
+                    <p className={`text-xs ${muted} mb-1`}>📥 Unconfirmed</p>
+                    <p className="text-xl font-bold text-amber-600">{unconfirmedPayments}</p>
+                    <p className={`text-xs ${muted} mt-1`}>need confirmation</p>
+                  </div>
+                </div>
+
+                {/* Filter pills */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  {([
+                    {key:'all', label:'All Orders'},
+                    {key:'promptpay', label:'🇹🇭 PromptPay'},
+                    {key:'cod', label:'💵 COD'},
+                    {key:'card', label:'💳 Card'},
+                  ] as const).map(f => (
+                    <button key={f.key} onClick={() => setPayFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${payFilter===f.key ? 'bg-green-600 text-white border-green-600' : `border-gray-200 ${muted} hover:border-green-300`}`}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Order payment list */}
+                <div className="space-y-3">
+                  {filtered.length === 0 && (
+                    <div className={`${card} border rounded-2xl p-8 text-center`}>
+                      <p className={`text-sm ${muted}`}>No orders found</p>
+                    </div>
+                  )}
+                  {filtered.map(o => {
+                    const isPromptPay = o.payment_method === 'promptpay'
+                    const isCard = o.payment_method === 'card'
+                    const needsConfirm = (isPromptPay || isCard) && !o.payment_confirmed
+                    const methodLabel = o.payment_method === 'promptpay' ? '🇹🇭 PromptPay' : o.payment_method === 'cod' ? '💵 Cash on Delivery' : '💳 Card'
+                    const methodColor = o.payment_method === 'promptpay' ? 'bg-green-100 text-green-700' : o.payment_method === 'cod' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                    return (
+                      <div key={o.id} className={`${card} border-2 rounded-2xl p-4 transition-all ${needsConfirm ? 'border-amber-200' : 'border-transparent'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-sm">{o.customer_name || 'Guest'}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${methodColor}`}>{methodLabel}</span>
+                              {o.payment_confirmed ? (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">✓ Payment Confirmed</span>
+                              ) : (isPromptPay || isCard) ? (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">⏳ Awaiting Confirmation</span>
+                              ) : (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500">Collect on Delivery</span>
+                              )}
+                            </div>
+                            <p className={`text-xs ${muted}`}>
+                              #{o.id.slice(0,8).toUpperCase()} · {new Date(o.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+                              {o.customer_phone && ` · ${o.customer_phone}`}
+                            </p>
+                            {o.items?.length > 0 && (
+                              <p className={`text-xs ${muted} mt-1 truncate`}>{o.items.map((i:any)=>i.name).join(', ')}</p>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-bold text-lg text-homie-green">฿{o.total?.toLocaleString()}</p>
+                            <p className={`text-xs ${muted} capitalize`}>{STATUS_LABEL[o.status] || o.status}</p>
+                          </div>
+                        </div>
+                        {(isPromptPay || isCard) && (
+                          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                            {!o.payment_confirmed ? (
+                              <button onClick={() => confirmPayment(o.id, true)}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors">
+                                ✓ Confirm Payment Received
+                              </button>
+                            ) : (
+                              <button onClick={() => confirmPayment(o.id, false)}
+                                className={`flex-1 border text-sm font-medium py-2 rounded-xl transition-colors border-gray-200 ${muted} hover:border-red-300 hover:text-red-500`}>
+                                ↩ Undo Confirmation
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* SQL note */}
+                <div className={`mt-6 ${card} border border-amber-200 rounded-2xl p-4 text-xs`}>
+                  <p className="font-semibold text-amber-700 mb-1">⚠️ First-time setup</p>
+                  <p className={muted}>Run this once in your Supabase SQL Editor to enable payment confirmation:</p>
+                  <pre className={`mt-2 p-2 rounded-lg text-xs font-mono ${dm ? 'bg-gray-700' : 'bg-gray-100'} overflow-x-auto`}>
+{`ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS payment_confirmed boolean DEFAULT false;`}
+                  </pre>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* ═══ MENU ═════════════════════════════════════════════════════ */}
           {tab==='menu' && (
