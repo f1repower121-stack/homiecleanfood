@@ -167,13 +167,20 @@ export default function OrderPage() {
           console.log('📤 Upload error:', upErr)
           if (!upErr) {
             const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
-            console.log('🔗 URL Data:', urlData)
-            const { error: updateErr } = await supabase.from('orders').update({ payment_slip_url: urlData.publicUrl } as any).eq('id', data.id)
-            console.log('💾 Update error:', updateErr, '| Order ID:', data.id)
-            if (updateErr) console.error('❌ Failed:', updateErr)
-            else console.log('✅ Saved to DB')
+            console.log('🔗 Public URL:', urlData?.publicUrl)
+            const { data: updateData, error: updateErr } = await supabase
+              .from('orders')
+              .update({ payment_slip_url: urlData?.publicUrl })
+              .eq('id', data.id)
+              .select()
+            console.log('💾 Update:', { error: updateErr, rows: updateData?.length })
+            if (updateErr) console.error('❌ DB Error:', updateErr)
+            else if (!updateData?.length) console.error('❌ No rows updated')
+            else console.log('✅ Slip saved:', urlData?.publicUrl)
           }
-        } catch { }
+        } catch (err) {
+          console.error('⚠️ Exception:', err)
+        }
         setSlipUploading(false)
       }
 
