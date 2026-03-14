@@ -33,8 +33,18 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Failed to store push subscription:', error)
+
+      // Handle duplicate endpoint (already subscribed)
+      if (error.message?.includes('duplicate key') || error.code === '23505') {
+        console.log('ℹ️ Subscription endpoint already exists (already subscribed)')
+        return NextResponse.json(
+          { success: true, message: 'Already subscribed' },
+          { status: 200 }
+        )
+      }
+
       return NextResponse.json(
-        { error: 'Failed to store subscription' },
+        { error: `Failed to store subscription: ${error.message || error.details}` },
         { status: 500 }
       )
     }
