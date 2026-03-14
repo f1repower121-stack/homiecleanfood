@@ -160,26 +160,15 @@ export default function OrderPage() {
         try {
           const ext = slipFile.name.split('.').pop() || 'jpg'
           const path = `${data.id}.${ext}`
-          console.log('🔵 Uploading slip:', { orderId: data.id, path })
-          const { error: upErr } = await supabase.storage
-            .from('payment-slips')
-            .upload(path, slipFile, { upsert: true })
-          console.log('📤 Upload error:', upErr)
-          if (!upErr) {
-            const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
-            console.log('🔗 Public URL:', urlData?.publicUrl)
-            const { data: updateData, error: updateErr } = await supabase
-              .from('orders')
-              .update({ payment_slip_url: urlData?.publicUrl })
-              .eq('id', data.id)
-              .select()
-            console.log('💾 Update:', { error: updateErr, rows: updateData?.length })
-            if (updateErr) console.error('❌ DB Error:', updateErr)
-            else if (!updateData?.length) console.error('❌ No rows updated')
-            else console.log('✅ Slip saved:', urlData?.publicUrl)
-          }
+
+          // Upload file to storage
+          await supabase.storage.from('payment-slips').upload(path, slipFile, { upsert: true })
+
+          // Get public URL and update database
+          const { data: urlData } = supabase.storage.from('payment-slips').getPublicUrl(path)
+          await supabase.from('orders').update({ payment_slip_url: urlData.publicUrl }).eq('id', data.id)
         } catch (err) {
-          console.error('⚠️ Exception:', err)
+          console.error('Payment slip error:', err)
         }
         setSlipUploading(false)
       }
