@@ -18,16 +18,24 @@ interface LineFlexMessage {
 
 export class LineClient {
   private channelAccessToken: string;
-  private userId: string;
+  private adminUserIds: string[];
   private baseUrl = 'https://api.line.me/v2/bot';
 
   constructor() {
     this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-    this.userId = process.env.LINE_USER_ID || '';
 
-    if (!this.channelAccessToken || !this.userId) {
+    // Support multiple admin User IDs (comma-separated)
+    const userIdString = process.env.LINE_USER_ID || '';
+    this.adminUserIds = userIdString
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id.length > 0);
+
+    if (!this.channelAccessToken || this.adminUserIds.length === 0) {
       throw new Error('LINE_CHANNEL_ACCESS_TOKEN and LINE_USER_ID are required');
     }
+
+    console.log(`📞 Line Admin Users: ${this.adminUserIds.length} admin(s) configured`);
   }
 
   /**
@@ -66,27 +74,29 @@ export class LineClient {
   }
 
   /**
-   * Send a text message to the admin user
+   * Send a text message to all admin users
    */
   async sendTextMessage(text: string): Promise<void> {
-    try {
-      await this.request('POST', '/message/push', {
-        to: this.userId,
+    const sendPromises = this.adminUserIds.map(userId =>
+      this.request('POST', '/message/push', {
+        to: userId,
         messages: [
           {
             type: 'text',
             text: text
           }
         ]
-      });
-    } catch (error) {
-      console.error('Error sending Line text message:', error);
-      throw error;
-    }
+      }).catch(error => {
+        console.error(`Error sending to admin ${userId}:`, error);
+        throw error;
+      })
+    );
+
+    await Promise.all(sendPromises);
   }
 
   /**
-   * Send an order notification with flex message
+   * Send an order notification with flex message to all admin users
    */
   async sendOrderNotification(orderData: {
     orderId: string;
@@ -100,10 +110,18 @@ export class LineClient {
     try {
       const flexMessage = this.createOrderFlexMessage(orderData);
 
-      await this.request('POST', '/message/push', {
-        to: this.userId,
-        messages: [flexMessage]
-      });
+      const sendPromises = this.adminUserIds.map(userId =>
+        this.request('POST', '/message/push', {
+          to: userId,
+          messages: [flexMessage]
+        }).catch(error => {
+          console.error(`Error sending order to admin ${userId}:`, error);
+          throw error;
+        })
+      );
+
+      await Promise.all(sendPromises);
+      console.log(`✅ Order notification sent to ${this.adminUserIds.length} admin(s)`);
     } catch (error) {
       console.error('Error sending Line order notification:', error);
       throw error;
