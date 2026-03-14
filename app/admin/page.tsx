@@ -224,7 +224,14 @@ export default function AdminPage() {
         .select('id, full_name, points, tier, created_at')
         .order('points', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error fetching profiles:', error)
+        setCustomers([])
+        setCustLoading(false)
+        return
+      }
+
+      console.log(`✅ Loaded ${data?.length || 0} profiles`)
 
       // Also get order totals per user
       const { data: orderData } = await supabase
@@ -242,8 +249,9 @@ export default function AdminPage() {
         total_spent: spendMap[p.id] || 0,
       }))
       setCustomers(enriched)
+      console.log(`✅ Enriched ${enriched.length} customers with order data`)
     } catch (e) {
-      console.error('fetchCustomers error:', e)
+      console.error('❌ Unexpected error in fetchCustomers:', e)
       setCustomers([])
     }
     setCustLoading(false)
