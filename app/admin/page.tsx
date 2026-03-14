@@ -15,6 +15,7 @@ type Order = {
   status: string; payment_method: string; notes: string; created_at: string
   payment_confirmed?: boolean
   payment_slip_url?: string
+  reference_id?: string
 }
 type MenuItem = {
   id: string; name: string; category: string; lean_price: number
