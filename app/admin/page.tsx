@@ -484,7 +484,7 @@ export default function AdminPage() {
   const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'border-gray-200'}`
 
   return (
-    <div className={`min-h-screen ${bg} ${text} flex flex-col md:flex-row`}>
+    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className={`${bg} ${text} flex flex-col md:flex-row`}>
 
       {/* Mobile Overlay for Sidebar */}
       {sidebarOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setSidebarOpen(false)} />}
