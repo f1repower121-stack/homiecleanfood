@@ -51,35 +51,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Featured Meals in Hero */}
-            <div className="grid grid-cols-2 gap-3">
-              {featured.map(item => (
-                <Link key={item.id} href="/menu" className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all block">
-                  <div className="relative aspect-square overflow-hidden bg-gray-100">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 768px) 45vw, 200px"
-                    />
-                  </div>
-                  <div className="p-3">
-                    <p className="text-homie-dark font-semibold text-sm leading-tight line-clamp-1">{item.name}</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-homie-green font-bold text-sm">฿{item.leanPrice}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        item.category === 'beef' ? 'bg-red-50 text-red-600' :
-                        item.category === 'fish' ? 'bg-blue-50 text-blue-600' :
-                        'bg-lime-50 text-homie-lime'
-                      }`}>
-                        {item.category}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {/* TODO: Featured Meals in Hero — add new content here */}
 
             {/* Social proof bar */}
             <div className="mt-6 flex items-center gap-4 flex-wrap">
