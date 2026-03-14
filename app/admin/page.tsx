@@ -215,35 +215,31 @@ export default function AdminPage() {
     } catch { setMenuItems([]) }
   }, [])
 
-  // ✅ FIXED: fetch from 'profiles' joined with auth users
+  // ✅ FIXED: fetch from API endpoint that bypasses RLS
   const fetchCustomers = useCallback(async () => {
     setCustLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, points, tier, created_at')
-        .order('points', { ascending: false })
+      // Use API endpoint to bypass RLS and get ALL customers
+      const response = await fetch('/api/admin/customers')
 
-      if (error) {
-        console.error('❌ Error fetching profiles:', error)
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('❌ Error fetching customers from API:', error)
         setCustomers([])
         setCustLoading(false)
         return
       }
 
-      console.log(`✅ Loaded ${data?.length || 0} profiles`)
+      const { customers: profiles, orders: orderData } = await response.json()
+      console.log(`✅ Loaded ${profiles?.length || 0} profiles from API`)
 
-      // Also get order totals per user
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('user_id, total')
-
+      // Calculate spend per user
       const spendMap: Record<string, number> = {}
       ;(orderData||[]).forEach((o: any) => {
         if (o.user_id) spendMap[o.user_id] = (spendMap[o.user_id] || 0) + (o.total || 0)
       })
 
-      const enriched = (data||[]).map((p: any) => ({
+      const enriched = (profiles||[]).map((p: any) => ({
         ...p,
         tier: p.tier || getTierFromPoints(p.points || 0),
         total_spent: spendMap[p.id] || 0,
