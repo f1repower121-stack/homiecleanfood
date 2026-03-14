@@ -148,250 +148,138 @@ export class LineClient {
       console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
     }
 
-    const itemsContent = itemsArray.map((item, index) => {
-      // Safely handle item properties
-      const quantity = Number(item?.quantity) || 1;
-      const price = Number(item?.price) || 0;
-      const name = String(item?.name || 'Unknown Item');
+    // Create simple item display - first 3 items max for mobile
+    const displayItems = itemsArray.slice(0, 3);
+    const itemsText = displayItems
+      .map(item => {
+        const qty = Number(item?.quantity) || 1;
+        const name = String(item?.name || 'Item');
+        return `${qty}× ${name}`;
+      })
+      .join('\n');
 
-      return {
-        type: 'box',
-        layout: 'vertical',
-        margin: index === 0 ? 'none' : 'md',
-        paddingAll: 'md',
-        backgroundColor: '#f8f9fa',
-        cornerRadius: 'md',
-        contents: [
-          {
-            type: 'box',
-            layout: 'baseline',
-            spacing: 'md',
-            contents: [
-              {
-                type: 'text',
-                text: `${quantity}×`,
-                weight: 'bold',
-                color: '#1DB446',
-                size: 'sm',
-                flex: 0
-              },
-              {
-                type: 'text',
-                text: name,
-                weight: 'bold',
-                color: '#1a1a1a',
-                flex: 0,
-                wrap: true,
-                size: 'md'
-              },
-              {
-                type: 'text',
-                text: `฿${(price * quantity).toFixed(2)}`,
-                size: 'lg',
-                weight: 'bold',
-                color: '#1DB446',
-                align: 'end',
-                flex: 0
-              }
-            ]
-          }
-        ]
-      }
+    const remainingCount = itemsArray.length - 3;
+    const itemsDisplay = itemsText + (remainingCount > 0 ? `\n➕ ${remainingCount} more` : '');
+
+    // Format time for better readability
+    const orderDate = new Date(orderData.orderTime);
+    const timeStr = orderDate.toLocaleString('th-TH', {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
-
-    // If no items were processed, add a placeholder
-    if (itemsContent.length === 0) {
-      (itemsContent as any).push({
-        type: 'box',
-        layout: 'vertical',
-        paddingAll: 'md',
-        backgroundColor: '#f8f9fa',
-        cornerRadius: 'md',
-        contents: [
-          {
-            type: 'text',
-            text: 'No items - Check order details',
-            color: '#999999',
-            size: 'sm',
-            align: 'center'
-          }
-        ]
-      });
-    }
 
     return {
       type: 'flex',
-      altText: `🎉 New Order #${orderData.orderId} - ฿${orderData.totalPrice.toFixed(2)}`,
+      altText: `🎉 Order #${orderData.orderId} - ฿${orderData.totalPrice.toFixed(2)}`,
       contents: {
         type: 'bubble',
-        styles: {
-          body: {
-            backgroundColor: '#ffffff'
-          }
-        },
         body: {
           type: 'box',
           layout: 'vertical',
-          spacing: 'lg',
+          spacing: 'sm',
           contents: [
-            // Header with gradient effect
+            // Order Header
             {
               type: 'box',
               layout: 'vertical',
-              spacing: 'sm',
-              paddingAll: 'lg',
-              backgroundColor: '#1DB446',
-              cornerRadius: 'lg',
+              spacing: 'xs',
               contents: [
                 {
                   type: 'text',
                   text: '🎉 NEW ORDER',
                   weight: 'bold',
-                  color: '#ffffff',
-                  size: 'xxl',
-                  align: 'center'
+                  size: 'xl',
+                  color: '#1DB446',
                 },
                 {
                   type: 'text',
                   text: `#${orderData.orderId}`,
                   weight: 'bold',
-                  color: '#e8f5e9',
                   size: 'lg',
-                  align: 'center'
-                }
-              ]
+                  color: '#333333',
+                },
+              ],
             },
-            // Customer Details Card
+
+            // Separator
             {
               type: 'box',
               layout: 'vertical',
-              spacing: 'md',
-              paddingAll: 'lg',
-              backgroundColor: '#f0f9f6',
-              cornerRadius: 'lg',
+              margin: 'md',
+              height: '1px',
+              backgroundColor: '#dddddd',
+            },
+
+            // Customer Name - Large
+            {
+              type: 'text',
+              text: `👤 ${orderData.customerName}`,
+              weight: 'bold',
+              size: 'lg',
+              color: '#1a1a1a',
+              wrap: true,
+            },
+
+            // Phone - Prominent
+            {
+              type: 'text',
+              text: `📱 ${orderData.customerPhone}`,
+              weight: 'bold',
+              size: 'md',
+              color: '#1DB446',
+              margin: 'xs',
+            },
+
+            // Delivery Address
+            {
+              type: 'text',
+              text: `📍 ${orderData.deliveryAddress.substring(0, 50)}`,
+              size: 'sm',
+              color: '#666666',
+              wrap: true,
+              margin: 'md',
+            },
+
+            // Items List
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'md',
+              paddingAll: 'md',
+              backgroundColor: '#f9f9f9',
+              borderColor: '#e0e0e0',
+              borderWidth: 'sm',
+              cornerRadius: 'md',
               contents: [
                 {
                   type: 'text',
-                  text: '📋 Customer Details',
+                  text: itemsDisplay,
+                  size: 'md',
+                  color: '#1a1a1a',
                   weight: 'bold',
-                  color: '#1DB446',
-                  size: 'sm'
+                  wrap: true,
+                  align: 'start',
                 },
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  spacing: 'sm',
-                  margin: 'md',
-                  contents: [
-                    {
-                      type: 'box',
-                      layout: 'baseline',
-                      spacing: 'md',
-                      contents: [
-                        {
-                          type: 'text',
-                          text: '👤',
-                          size: 'sm',
-                          flex: 0
-                        },
-                        {
-                          type: 'text',
-                          text: orderData.customerName,
-                          wrap: true,
-                          color: '#1a1a1a',
-                          size: 'md',
-                          weight: 'bold',
-                          flex: 5
-                        }
-                      ]
-                    },
-                    {
-                      type: 'box',
-                      layout: 'baseline',
-                      spacing: 'md',
-                      contents: [
-                        {
-                          type: 'text',
-                          text: '📱',
-                          size: 'sm',
-                          flex: 0
-                        },
-                        {
-                          type: 'text',
-                          text: orderData.customerPhone,
-                          wrap: true,
-                          color: '#1DB446',
-                          size: 'md',
-                          weight: 'bold',
-                          flex: 5
-                        }
-                      ]
-                    },
-                    {
-                      type: 'box',
-                      layout: 'baseline',
-                      spacing: 'md',
-                      contents: [
-                        {
-                          type: 'text',
-                          text: '📍',
-                          size: 'sm',
-                          flex: 0
-                        },
-                        {
-                          type: 'text',
-                          text: orderData.deliveryAddress.substring(0, 45),
-                          wrap: true,
-                          color: '#333333',
-                          size: 'xs',
-                          flex: 5
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
+              ],
             },
-            // Items Card
+
+            // Total Amount - Prominent Box
             {
               type: 'box',
               layout: 'vertical',
-              spacing: 'md',
-              paddingAll: 'lg',
-              backgroundColor: '#fafafa',
-              cornerRadius: 'lg',
-              contents: [
-                {
-                  type: 'text',
-                  text: '🍽️ Order Items',
-                  weight: 'bold',
-                  color: '#1DB446',
-                  size: 'sm'
-                },
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  spacing: 'md',
-                  margin: 'md',
-                  contents: itemsContent
-                }
-              ]
-            },
-            // Total Amount Card
-            {
-              type: 'box',
-              layout: 'vertical',
-              spacing: 'sm',
+              margin: 'md',
               paddingAll: 'lg',
               backgroundColor: '#1DB446',
-              cornerRadius: 'lg',
+              cornerRadius: 'md',
               contents: [
                 {
                   type: 'text',
-                  text: 'Total Amount',
-                  color: '#ffffff',
+                  text: 'Total',
                   size: 'sm',
-                  align: 'center'
+                  color: '#ffffff',
+                  weight: 'bold',
                 },
                 {
                   type: 'text',
@@ -399,37 +287,41 @@ export class LineClient {
                   size: 'xxl',
                   weight: 'bold',
                   color: '#ffffff',
-                  align: 'center'
-                }
-              ]
-            },
-            // Order Time
-            {
-              type: 'box',
-              layout: 'baseline',
-              spacing: 'md',
-              paddingAll: 'md',
-              backgroundColor: '#f5f5f5',
-              cornerRadius: 'md',
-              contents: [
-                {
-                  type: 'text',
-                  text: '🕐',
-                  size: 'sm',
-                  flex: 0
                 },
-                {
-                  type: 'text',
-                  text: new Date(orderData.orderTime).toLocaleString('th-TH'),
-                  color: '#666666',
-                  size: 'xs',
-                  flex: 5
-                }
-              ]
-            }
-          ]
-        }
-      }
+              ],
+            },
+
+            // Time
+            {
+              type: 'text',
+              text: `🕐 ${timeStr}`,
+              size: 'xs',
+              color: '#999999',
+              margin: 'md',
+              align: 'center',
+            },
+          ],
+        },
+        // Action Button
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'uri',
+                label: '📋 View Order Details',
+                uri: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://homiecleanfood.vercel.app'}/admin?orderid=${orderData.orderId}`,
+              },
+              color: '#1DB446',
+            },
+          ],
+        },
+      },
     };
   }
 }
