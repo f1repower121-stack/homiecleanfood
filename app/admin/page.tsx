@@ -141,6 +141,7 @@ export default function AdminPage() {
   // Push Notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [lastOrderId, setLastOrderId] = useState('')
+  const [keepSessionAlive, setKeepSessionAlive] = useState(true)
 
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
@@ -227,15 +228,26 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authed) return
     fetchOrders(); fetchMenu(); fetchCustomers()
-    const t = setInterval(fetchOrders, 30000)
+    // Poll every 10 seconds for new orders (faster notification delivery)
+    const t = setInterval(fetchOrders, 10000)
     return () => clearInterval(t)
   }, [authed, fetchOrders, fetchMenu, fetchCustomers])
 
-  // Request notification permission when admin logs in
+  // Request notification permission and register service worker when admin logs in
   useEffect(() => {
     if (!authed) return
+
+    // Register service worker for background notifications
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('Service Worker registration failed:', err))
+    }
+
+    // Request notification permission
     requestNotificationPermission().then(granted => {
       setNotificationsEnabled(granted)
+      if (granted) console.log('✅ Notifications enabled')
     })
   }, [authed])
 
