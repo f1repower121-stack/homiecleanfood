@@ -5,7 +5,7 @@ import AdminLoyaltyTab from '@/components/admin/LoyaltyTab'
 import NotificationBell from '@/components/admin/NotificationBell'
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
-import { requestNotificationPermission, sendOrderNotification } from '@/lib/pushNotifications'
+import { requestNotificationPermission, sendOrderNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/lib/pushNotifications'
 
 const ADMIN_PASSWORD = 'homie2024'
 
@@ -152,12 +152,43 @@ export default function AdminPage() {
       const latestOrder = data[0]
       if (latestOrder.id !== lastOrderId) {
         setLastOrderId(latestOrder.id)
+
+        // Show local notification
         sendOrderNotification({
           customerName: latestOrder.customer_name || 'Customer',
           total: latestOrder.total || 0,
           items: latestOrder.items || [],
           referenceId: latestOrder.reference_id,
         })
+
+        // Trigger server-side Web Push to all subscribed devices
+        try {
+          const itemNames = (latestOrder.items || [])
+            .slice(0, 2)
+            .map((i: any) => i.name)
+            .join(', ')
+          const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
+
+          const response = await fetch('/api/send-push-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: `🎉 New Order from ${latestOrder.customer_name || 'Customer'}`,
+              body: `${itemNames}${itemsSuffix} - ฿${latestOrder.total || 0}`,
+              data: {
+                orderId: latestOrder.id,
+                referenceId: latestOrder.reference_id,
+              },
+            }),
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            console.log(`✅ Web Push sent to ${result.sent}/${result.total} subscribers`)
+          }
+        } catch (err: any) {
+          console.error('❌ Failed to send Web Push:', err)
+        }
       }
     }
 
@@ -240,16 +271,35 @@ export default function AdminPage() {
     // Register service worker for background notifications
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .then(reg => console.log('Service Worker registered:', reg))
-        .catch(err => console.error('Service Worker registration failed:', err))
+        .then(reg => console.log('✅ Service Worker registered:', reg))
+        .catch(err => console.error('❌ Service Worker registration failed:', err))
     }
 
-    // Request notification permission
+    // Request notification permission and subscribe to Web Push
     requestNotificationPermission().then(granted => {
       setNotificationsEnabled(granted)
-      if (granted) console.log('✅ Notifications enabled')
+      if (granted) {
+        console.log('✅ Notifications enabled')
+        // Subscribe to Web Push for background notifications
+        subscribeToPushNotifications()
+          .then(success => {
+            if (success) {
+              console.log('✅ Successfully subscribed to Web Push notifications')
+            } else {
+              console.warn('⚠️ Failed to subscribe to Web Push')
+            }
+          })
+          .catch(err => console.error('❌ Subscription error:', err))
+      }
     })
-  }, [authed])
+
+    // Cleanup: unsubscribe when unmounting
+    return () => {
+      if (notificationsEnabled) {
+        unsubscribeFromPushNotifications().catch(err => console.error('Unsubscribe error:', err))
+      }
+    }
+  }, [authed, notificationsEnabled])
 
   const updateStatus = async (order: Order, newStatus: string) => {
     await supabase.from('orders').update({status:newStatus}).eq('id',order.id)
