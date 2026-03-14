@@ -197,17 +197,28 @@ export default function OrderPage() {
       })
 
       // Send Line notification to admin
-      await sendOrderLineNotification({
-        id: data?.id || '',
-        customer_name: form.name,
-        customer_phone: form.phone,
-        items: items,
-        total: total,
-        delivery_address: form.address,
-        delivery_date: form.deliveryDate,
-        delivery_time: form.deliveryTime,
-        created_at: data?.created_at
-      })
+      console.log('📤 [ORDER] Preparing LINE notification...')
+      console.log('  - Order ID:', data?.id)
+      console.log('  - Customer:', form.name, form.phone)
+      console.log('  - Items count:', items.length)
+      console.log('  - Items:', JSON.stringify(items, null, 2))
+      console.log('  - Total:', total)
+      try {
+        await sendOrderLineNotification({
+          id: data?.id || '',
+          customer_name: form.name,
+          customer_phone: form.phone,
+          items: items as any, // Cast to ensure it's in correct format
+          total: total,
+          delivery_address: form.address,
+          delivery_date: form.deliveryDate,
+          delivery_time: form.deliveryTime,
+          created_at: data?.created_at
+        })
+        console.log('✅ [ORDER] LINE notification request sent')
+      } catch (lineErr) {
+        console.error('❌ [ORDER] LINE notification error:', lineErr)
+      }
 
       // Add earned points — uses admin loyalty_config
       if (u) {
