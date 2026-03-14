@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 // Line Messaging API webhook support enabled
+// Vercel cache clear trigger: 2026-03-14 webhook deployment
 const nextConfig = {
   reactStrictMode: true,
 
