@@ -203,6 +203,7 @@ export default function OrderPage() {
       console.log('  - Items count:', items.length)
       console.log('  - Items:', JSON.stringify(items, null, 2))
       console.log('  - Total:', total)
+
       try {
         await sendOrderLineNotification({
           id: data?.id || '',
@@ -215,6 +216,7 @@ export default function OrderPage() {
           delivery_time: form.deliveryTime,
           created_at: data?.created_at
         })
+
         console.log('✅ [ORDER] LINE notification request sent')
       } catch (lineErr) {
         console.error('❌ [ORDER] LINE notification error:', lineErr)
