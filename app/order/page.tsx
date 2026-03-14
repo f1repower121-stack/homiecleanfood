@@ -446,6 +446,16 @@ export default function OrderPage() {
                         ฿{total.toLocaleString()}
                       </div>
                       <p className="text-xs text-homie-gray">PromptPay: {promptpayPhone} · Homie Clean Food</p>
+                      <button
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.href = qrDataUrl
+                          link.download = `homie-promptpay-${total}.svg`
+                          link.click()
+                        }}
+                        className="text-xs text-homie-lime font-semibold hover:text-homie-green transition-colors">
+                        📥 Download QR Code
+                      </button>
                       <label className="flex items-center gap-2 cursor-pointer mt-1">
                         <input type="checkbox" checked={qrPaid} onChange={e => setQrPaid(e.target.checked)}
                           className="w-4 h-4 accent-homie-lime" />
