@@ -157,49 +157,29 @@ export default function OrderPage() {
       if (error) throw error
       setOrderId(referenceId)
 
-      // Upload payment slip if provided
+      // Upload payment slip if provided (via server-side API to avoid CORS issues)
       if (slipFile && data?.id) {
         setSlipUploading(true)
         try {
-          const ext = slipFile.name.split('.').pop() || 'jpg'
-          const path = `${data.id}.${ext}`
+          console.log('Starting payment slip upload:', { fileName: slipFile.name, size: slipFile.size, orderId: data.id })
 
-          console.log('Starting payment slip upload:', { fileName: slipFile.name, size: slipFile.size, path })
+          // Use server-side API to upload (avoids CORS issues)
+          const formData = new FormData()
+          formData.append('file', slipFile)
+          formData.append('orderId', data.id)
 
-          // Upload file to storage - read file as Blob first to ensure proper format
-          const fileBlob = new Blob([slipFile], { type: slipFile.type || 'image/jpeg' })
+          const response = await fetch('/api/upload-slip', {
+            method: 'POST',
+            body: formData,
+          })
 
-          const { data: uploadData, error: uploadErr } = await supabase.storage
-            .from('payment-slips')
-            .upload(path, fileBlob, { upsert: true, contentType: slipFile.type || 'image/jpeg' })
+          const result = await response.json()
 
-          if (uploadErr) {
-            console.error('❌ Upload failed:', uploadErr)
-            throw new Error(`Upload failed: ${uploadErr.message}`)
+          if (!response.ok) {
+            throw new Error(result.error || `Upload failed with status ${response.status}`)
           }
 
-          if (!uploadData) {
-            throw new Error('Upload returned no data')
-          }
-
-          console.log('✅ File uploaded successfully:', uploadData)
-
-          // IMPORTANT: The public URL needs to be constructed correctly for Supabase
-          const publicUrl = `https://efvbudblbtayfszxgxhq.supabase.co/storage/v1/object/public/payment-slips/${path}`
-          console.log('Public URL:', publicUrl)
-
-          // Update database with the payment slip URL
-          const { error: updateErr } = await supabase
-            .from('orders')
-            .update({ payment_slip_url: publicUrl })
-            .eq('id', data.id)
-
-          if (updateErr) {
-            console.error('❌ Database update failed:', updateErr)
-            throw new Error(`Database update failed: ${updateErr.message}`)
-          }
-
-          console.log('✅ Payment slip URL saved to database successfully')
+          console.log('✅ Payment slip uploaded successfully:', result)
           alert('✅ Payment slip uploaded successfully!')
         } catch (err: any) {
           console.error('❌ Payment slip error:', err)
