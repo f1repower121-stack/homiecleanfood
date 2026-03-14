@@ -180,7 +180,6 @@ export default function OrderPage() {
           }
 
           console.log('✅ Payment slip uploaded successfully:', result)
-          alert('✅ Payment slip uploaded successfully!')
         } catch (err: any) {
           console.error('❌ Payment slip error:', err)
           alert('Failed to upload payment slip: ' + (err?.message || 'Unknown error'))
