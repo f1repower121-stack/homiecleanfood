@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomieClean - Gamification Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #1a1a1a;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+            border-color: #10b981;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        .stat-icon {
+            font-size: 2em;
+            margin-top: 10px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+            border-color: #10b981;
+        }
+
+        /* Streak Card */
+        .streak-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .streak-number {
+            font-size: 4em;
+            font-weight: bold;
+            color: #b45309;
+            margin: 20px 0;
+        }
+
+        .streak-fire {
+            font-size: 2.5em;
+            letter-spacing: 5px;
+        }
+
+        .streak-label {
+            font-size: 1.1em;
+            color: #92400e;
+            margin-top: 10px;
+        }
+
+        .streak-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .streak-stat {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .streak-stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .streak-stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #b45309;
+        }
+
+        .weekly-breakdown {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .day-box {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .day-box.complete {
+            background: #10b981;
+            color: white;
+        }
+
+        .day-box.incomplete {
+            background: #e5e7eb;
+            color: #999;
+        }
+
+        .day-box:hover {
+            transform: scale(1.1);
+        }
+
+        .day-label {
+            font-size: 0.7em;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+
+        /* Badges */
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .badge {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .badge:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+            border-color: #10b981;
+        }
+
+        .badge.earned {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-color: #10b981;
+        }
+
+        .badge.locked {
+            background: #f9fafb;
+            opacity: 0.7;
+        }
+
+        .badge-emoji {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .badge-name {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 5px;
+        }
+
+        .badge-progress {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Levels */
+        .level-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .level-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+
+        .level-name {
+            font-size: 1.5em;
+            color: #4f46e5;
+            margin-top: 10px;
+        }
+
+        .level-emoji {
+            font-size: 3em;
+            margin: 15px 0;
+        }
+
+        .levels-path {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .level-box {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            background: white;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .level-box.active {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+            transform: scale(1.05);
+        }
+
+        .level-box .emoji {
+            font-size: 1.5em;
+        }
+
+        /* Challenges */
+        .challenges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .challenge-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border-left: 4px solid #10b981;
+            transition: all 0.3s ease;
+        }
+
+        .challenge-card:hover {
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .challenge-card.completed {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #e7f5ee 100%);
+        }
+
+        .challenge-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .challenge-emoji {
+            font-size: 2em;
+        }
+
+        .challenge-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #1a1a1a;
+        }
+
+        .challenge-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .challenge-progress-bar {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .challenge-progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .challenge-reward {
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #b45309;
+            font-weight: 600;
+        }
+
+        .tier-section {
+            margin-bottom: 30px;
+        }
+
+        .tier-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tier-bronze {
+            color: #b45309;
+        }
+
+        .tier-silver {
+            color: #6b7280;
+        }
+
+        .tier-gold {
+            color: #d97706;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .streak-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .levels-path {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .challenges-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .badges-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+
+        .badge-tier-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎮 HomieClean Gamification System</h1>
+            <p>Phase 1: Core Gamification Preview</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Current Streak</div>
+                <div class="stat-value">23</div>
+                <div class="stat-icon">🔥🔥</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Level</div>
+                <div class="stat-value">3</div>
+                <div class="stat-icon">⭐</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Badges Earned</div>
+                <div class="stat-value">7/12</div>
+                <div class="stat-icon">🏆</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Weekly Points</div>
+                <div class="stat-value">120</div>
+                <div class="stat-icon">⚡</div>
+            </div>
+        </div>
+
+        <!-- Streak Section -->
+        <div class="section">
+            <div class="section-title">🔥 Your Consistency Streak</div>
+            <div class="card">
+                <div class="streak-display">
+                    <div class="streak-number">23</div>
+                    <div class="streak-fire">🔥🔥</div>
+                    <div class="streak-label">Days</div>
+                </div>
+
+                <div class="streak-stats">
+                    <div class="streak-stat">
+                        <div class="streak-stat-label">Best Streak</div>
+                        <div class="streak-stat-value">45</div>
+                    </div>
+                    <div class="streak-stat">
+                        <div class="streak-stat-label">Total Meals</div>
+                        <div class="streak-stat-value">46</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; background: #dbeafe; padding: 15px; border-radius: 12px; text-align: center; color: #0369a1; font-weight: 600;">
+                    💡 Keep going! 7 more days for "Monthly Master" badge! 🏆
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <p style="font-size: 0.9em; color: #666; margin-bottom: 10px; font-weight: 600;">This Week: (7/7 meals)</p>
+                    <div class="weekly-breakdown">
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                        <div class="day-box complete">✓</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Badges Section -->
+        <div class="section">
+            <div class="section-title">🏆 Your Achievements</div>
+            <div class="card">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+                    <div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Badges Earned</div>
+                        <div style="font-size: 2em; font-weight: bold;">7</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Total Badges</div>
+                        <div style="font-size: 2em; font-weight: bold;">12</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Progress</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #d97706;">58%</div>
+                    </div>
+                </div>
+
+                <!-- Bronze Tier -->
+                <div class="tier-section">
+                    <div class="badge-tier-header tier-bronze">🥉 Bronze Tier</div>
+                    <div class="badges-grid">
+                        <div class="badge earned">
+                            <div class="badge-emoji">🌱</div>
+                            <div class="badge-name">First Step</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge earned">
+                            <div class="badge-emoji">🏃</div>
+                            <div class="badge-name">Week Warrior</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge earned">
+                            <div class="badge-emoji">💪</div>
+                            <div class="badge-name">Month Master</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge locked">
+                            <div class="badge-emoji">🎯</div>
+                            <div class="badge-name">Consistency Champion</div>
+                            <div class="badge-progress">38/45 days</div>
+                            <div class="progress-bar" style="margin-top: 8px;">
+                                <div class="progress-fill" style="width: 84%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Silver Tier -->
+                <div class="tier-section">
+                    <div class="badge-tier-header tier-silver">🥈 Silver Tier</div>
+                    <div class="badges-grid">
+                        <div class="badge earned">
+                            <div class="badge-emoji">🥗</div>
+                            <div class="badge-name">Veggie Lover</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge earned">
+                            <div class="badge-emoji">🍗</div>
+                            <div class="badge-name">Protein Pro</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge earned">
+                            <div class="badge-emoji">📊</div>
+                            <div class="badge-name">Data Driven</div>
+                            <div class="badge-progress">✓ Earned</div>
+                        </div>
+                        <div class="badge locked">
+                            <div class="badge-emoji">💰</div>
+                            <div class="badge-name">Savvy Saver</div>
+                            <div class="badge-progress">3,200/5,000 ฿</div>
+                            <div class="progress-bar" style="margin-top: 8px;">
+                                <div class="progress-fill" style="width: 64%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gold Tier -->
+                <div class="tier-section">
+                    <div class="badge-tier-header tier-gold">🥇 Gold Tier</div>
+                    <div class="badges-grid">
+                        <div class="badge locked">
+                            <div class="badge-emoji">🏅</div>
+                            <div class="badge-name">Elite Subscriber</div>
+                            <div class="badge-progress">1/2 programs</div>
+                        </div>
+                        <div class="badge locked">
+                            <div class="badge-emoji">🌟</div>
+                            <div class="badge-name">Perfect Month</div>
+                            <div class="badge-progress">15/30 days</div>
+                        </div>
+                        <div class="badge locked">
+                            <div class="badge-emoji">🎓</div>
+                            <div class="badge-name">Nutrition Master</div>
+                            <div class="badge-progress">In Progress</div>
+                        </div>
+                        <div class="badge locked">
+                            <div class="badge-emoji">👑</div>
+                            <div class="badge-name">Legend Status</div>
+                            <div class="badge-progress">75/200 meals</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Levels Section -->
+        <div class="section">
+            <div class="section-title">⭐ Your Wellness Level</div>
+            <div class="card">
+                <div class="level-display">
+                    <div class="level-emoji">⭐</div>
+                    <div class="level-number">3</div>
+                    <div class="level-name">Dedicated</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 12px;">
+                        <div style="font-size: 0.85em; color: #666; margin-bottom: 5px; font-weight: 600;">Total Meals</div>
+                        <div style="font-size: 2em; font-weight: bold;">75</div>
+                    </div>
+                    <div style="background: #f9fafb; padding: 15px; border-radius: 12px;">
+                        <div style="font-size: 0.85em; color: #666; margin-bottom: 5px; font-weight: 600;">To Next Level</div>
+                        <div style="font-size: 2em; font-weight: bold;">25</div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <div class="progress-bar" style="height: 10px;">
+                        <div class="progress-fill" style="width: 48%;"></div>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center; font-size: 0.9em; color: #666;">
+                        48% to Level 4: Master
+                    </div>
+                </div>
+
+                <div style="background: #dcfce7; border: 2px solid #10b981; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="color: #15803d; font-weight: 600; margin-bottom: 10px;">✓ Unlocked Features</div>
+                    <ul style="list-style: none; color: #166534;">
+                        <li style="margin-bottom: 5px;">→ Meal tracking</li>
+                        <li style="margin-bottom: 5px;">→ Priority support</li>
+                        <li>→ Custom meal swaps</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fef3c7; border: 2px solid #d97706; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="color: #92400e; font-weight: 600; margin-bottom: 10px;">🎁 Available Rewards</div>
+                    <ul style="list-style: none; color: #b45309;">
+                        <li style="margin-bottom: 5px;">★ Custom meal swaps</li>
+                        <li>★ Free consultation</li>
+                    </ul>
+                </div>
+
+                <div style="border-top: 2px solid #e5e7eb; padding-top: 20px;">
+                    <h4 style="margin-bottom: 15px; font-weight: bold;">Progression Path</h4>
+                    <div class="levels-path">
+                        <div class="level-box active">
+                            <div class="emoji">🌱</div>
+                            <div style="font-size: 0.8em; font-weight: 600;">Fresh Start</div>
+                            <div style="font-size: 0.7em; color: #666;">0+</div>
+                        </div>
+                        <div class="level-box active">
+                            <div class="emoji">🎯</div>
+                            <div style="font-size: 0.8em; font-weight: 600;">Committed</div>
+                            <div style="font-size: 0.7em; color: #666;">16+</div>
+                        </div>
+                        <div class="level-box active">
+                            <div class="emoji">⭐</div>
+                            <div style="font-size: 0.8em; font-weight: 600;">Dedicated</div>
+                            <div style="font-size: 0.7em; color: #666;">51+</div>
+                        </div>
+                        <div class="level-box">
+                            <div class="emoji">💎</div>
+                            <div style="font-size: 0.8em; font-weight: 600;">Master</div>
+                            <div style="font-size: 0.7em; color: #666;">101+</div>
+                        </div>
+                        <div class="level-box">
+                            <div class="emoji">👑</div>
+                            <div style="font-size: 0.8em; font-weight: 600;">Legend</div>
+                            <div style="font-size: 0.7em; color: #666;">200+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Challenges Section -->
+        <div class="section">
+            <div class="section-title">🎯 This Week's Challenges</div>
+            <div class="card">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+                    <div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Completed</div>
+                        <div style="font-size: 2em; font-weight: bold;">2/4</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Points Earned</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #d97706;">+80</div>
+                    </div>
+                </div>
+
+                <div class="challenges-grid">
+                    <!-- Challenge 1 - Completed -->
+                    <div class="challenge-card completed">
+                        <div class="challenge-header">
+                            <div class="challenge-emoji">👑</div>
+                            <div class="challenge-title">Consistency King</div>
+                        </div>
+                        <div class="challenge-description">Get all 7 meals this week</div>
+                        <div class="challenge-progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <div class="challenge-progress-text">
+                            <span>7/7 meals</span>
+                            <span style="color: #10b981; font-weight: 600;">100% ✓</span>
+                        </div>
+                        <div class="challenge-reward">
+                            ✓ Completed! +50 points
+                        </div>
+                    </div>
+
+                    <!-- Challenge 2 - In Progress -->
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-emoji">💪</div>
+                            <div class="challenge-title">Protein Power</div>
+                        </div>
+                        <div class="challenge-description">Average 25g+ protein per meal</div>
+                        <div class="challenge-progress-bar">
+                            <div class="progress-fill" style="width: 110%; background: linear-gradient(90deg, #10b981 0%, #10b981 100%);"></div>
+                        </div>
+                        <div class="challenge-progress-text">
+                            <span>27.5g avg</span>
+                            <span style="color: #10b981; font-weight: 600;">110% ✓</span>
+                        </div>
+                        <div class="challenge-reward">
+                            ✓ Completed! +30 points
+                        </div>
+                    </div>
+
+                    <!-- Challenge 3 - Close -->
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-emoji">🎯</div>
+                            <div class="challenge-title">Macros Match</div>
+                        </div>
+                        <div class="challenge-description">Hit carb target within 5%</div>
+                        <div class="challenge-progress-bar">
+                            <div class="progress-fill" style="width: 92%;"></div>
+                        </div>
+                        <div class="challenge-progress-text">
+                            <span>92% accurate</span>
+                            <span style="color: #f59e0b; font-weight: 600;">92%</span>
+                        </div>
+                        <div class="challenge-reward" style="background: #fef3c7; color: #b45309;">
+                            🔥 Close! Keep going
+                        </div>
+                    </div>
+
+                    <!-- Challenge 4 - Not Started -->
+                    <div class="challenge-card">
+                        <div class="challenge-header">
+                            <div class="challenge-emoji">🌟</div>
+                            <div class="challenge-title">Referral Rockstar</div>
+                        </div>
+                        <div class="challenge-description">Refer 1 friend this week</div>
+                        <div class="challenge-progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <div class="challenge-progress-text">
+                            <span>0/1 referrals</span>
+                            <span style="color: #666;">0%</span>
+                        </div>
+                        <div class="challenge-reward" style="background: #e0e7ff; color: #4f46e5;">
+                            💡 Refer now for 100 points!
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px;">
+                    <p style="color: #0369a1; font-weight: 600;">ℹ️ Weekly Reset</p>
+                    <p style="color: #0c4a6e; font-size: 0.95em; margin-top: 5px;">Challenges reset every Monday. Complete all challenges to unlock bonus rewards and climb the leaderboard!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 50px; padding: 30px; background: white; border-radius: 16px; border: 2px solid #e5e7eb;">
+            <h2 style="font-size: 1.5em; margin-bottom: 15px;">💡 Ready to Launch?</h2>
+            <p style="color: #666; margin-bottom: 20px;">This is Phase 1 of the advanced gamification system. Phase 2 will add:</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; border-left: 4px solid #10b981;">
+                    <div style="font-weight: 600; color: #15803d;">📊 Advanced Analytics</div>
+                    <p style="font-size: 0.9em; color: #166534; margin-top: 5px;">Health, nutrition & spending insights</p>
+                </div>
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 12px; border-left: 4px solid #3b82f6;">
+                    <div style="font-weight: 600; color: #1e40af;">👥 Community Features</div>
+                    <p style="font-size: 0.9em; color: #1e3a8a; margin-top: 5px;">Leaderboards, recommendations & reports</p>
+                </div>
+                <div style="background: #fef3c7; padding: 15px; border-radius: 12px; border-left: 4px solid #d97706;">
+                    <div style="font-weight: 600; color: #92400e;">⚡ Optimization</div>
+                    <p style="font-size: 0.9em; color: #b45309; margin-top: 5px;">Mobile optimization & launch prep</p>
+                </div>
+            </div>
+            <p style="color: #666; margin-top: 20px; font-size: 0.95em;">
+                ✅ Phase 1 code is production-ready and committed to GitHub!
+            </p>
+        </div>
+    </div>
+</body>
+</html>
