@@ -5,7 +5,7 @@ import AdminLoyaltyTab from '@/components/admin/LoyaltyTab'
 import NotificationBell from '@/components/admin/NotificationBell'
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
-import { requestNotificationPermission, sendOrderNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/lib/pushNotifications'
+import { requestNotificationPermission, subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/lib/pushNotifications'
 import { LayoutDashboard, Package, UtensilsCrossed, Users, Star, Gift, BarChart3, Settings, Sun, Moon, LogOut, Menu, RefreshCw, ChevronDown, DollarSign, TrendingUp, CheckCircle, Truck, ChefHat, MoreHorizontal, X, Search, ChevronUp, FileDown, Upload, Copy, ImageIcon } from 'lucide-react'
 
 const ADMIN_PASSWORD = 'homie2024'
@@ -169,7 +169,6 @@ export default function AdminPage() {
 
   // Push Notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [lastOrderId, setLastOrderId] = useState('')
   const [keepSessionAlive, setKeepSessionAlive] = useState(true)
 
   const fetchOrders = useCallback(async () => {
@@ -185,64 +184,6 @@ export default function AdminPage() {
         return
       }
       const { orders: data } = await res.json()
-
-      // Send notification for new order
-      if (data && data.length > 0 && notificationsEnabled) {
-        const latestOrder = data[0]
-        if (latestOrder.id !== lastOrderId) {
-          setLastOrderId(latestOrder.id)
-
-          // Show local notification
-          sendOrderNotification({
-            customerName: latestOrder.customer_name || 'Customer',
-            total: latestOrder.total || 0,
-            items: latestOrder.items || [],
-            referenceId: latestOrder.reference_id,
-          })
-
-          // Trigger server-side Web Push to all subscribed devices
-          try {
-            // Build item list with size (Bulk/Lean)
-            const itemNames = (latestOrder.items || [])
-              .slice(0, 2)
-              .map((i: any) => {
-                const size = i.size === 'bulk' ? 'Bulk' : i.size === 'lean' ? 'Lean' : ''
-                return `${i.name} ${size}`.trim()
-              })
-              .join(', ')
-            const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
-
-            // Get delivery time and address from order
-            const deliveryTime = latestOrder.delivery_time || 'ASAP'
-            const customerName = latestOrder.customer_name || 'Customer'
-            const deliveryAddr = latestOrder.delivery_address ? latestOrder.delivery_address.substring(0, 30) : 'Location TBD'
-
-            const response = await fetch('/api/send-push-notification', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                title: `🚀 DELIVER AT ${deliveryTime} | ${customerName}`,
-                body: `${itemNames}${itemsSuffix}\n📍 ${deliveryAddr}\n💰 ฿${latestOrder.total || 0}`,
-                data: {
-                  orderId: latestOrder.id,
-                  referenceId: latestOrder.reference_id,
-                  deliveryTime: deliveryTime,
-                  deliveryAddress: latestOrder.delivery_address,
-                  customerName: customerName,
-                },
-              }),
-            })
-
-            if (response.ok) {
-              const result = await response.json()
-              console.log(`✅ Web Push sent to ${result.sent}/${result.total} subscribers`)
-            }
-          } catch (err: any) {
-            console.error('❌ Failed to send Web Push:', err)
-          }
-        }
-      }
-
       setOrders(data||[])
       console.log(`✅ Loaded ${data?.length || 0} orders`)
     } catch (err: any) {
@@ -250,7 +191,7 @@ export default function AdminPage() {
       setOrders([])
     }
     setLoadingOrders(false)
-  }, [notificationsEnabled, lastOrderId])
+  }, [])
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -374,11 +315,33 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authed) return
-    fetchOrders(); fetchMenu(); fetchCustomers(); fetchReferrals()
-    // Poll every 10 seconds for new orders (faster notification delivery)
-    const t = setInterval(fetchOrders, 10000)
-    return () => clearInterval(t)
+    fetchOrders()
+    fetchMenu()
+    fetchCustomers()
+    fetchReferrals()
   }, [authed, fetchOrders, fetchMenu, fetchCustomers, fetchReferrals])
+
+  // Supabase Realtime: smooth live updates for orders and new customers (no polling)
+  useEffect(() => {
+    if (!authed) return
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        fetchOrders()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+        fetchOrders()
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
+        fetchCustomers()
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') console.log('✅ Admin Realtime: subscribed to orders & profiles')
+      })
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [authed, fetchOrders, fetchCustomers])
 
   // Request notification permission and register service worker when admin logs in
   useEffect(() => {
@@ -1611,8 +1574,8 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className={`${card} border rounded-2xl p-4`}>
-                  <h3 className="font-semibold text-sm mb-3">Auto-refresh</h3>
-                  <p className={`text-xs ${muted}`}>Orders auto-refresh every 30 seconds when admin panel is open.</p>
+                  <h3 className="font-semibold text-sm mb-3">Live updates</h3>
+                  <p className={`text-xs ${muted}`}>Orders and customers update in real time via Supabase. Push notifications when tab is closed.</p>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
                     <span className="text-xs text-green-600 font-medium">Active</span>

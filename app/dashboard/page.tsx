@@ -152,7 +152,7 @@ export default function DashboardPage() {
       setPreviewMode(true)
       u = MOCK_USER as any
       setUser(u)
-      setProfile({ full_name: 'Preview User', points: 150, tier: 'Homie', referral_code: 'PREVIEW1', phone: null, saved_addresses: [] })
+      setProfile({ full_name: 'Preview User', points: 150, tier: 'Homie', referral_code: 'PREVIEW1', phone: undefined, saved_addresses: [] })
       setDailyGoal(2000)
       setWeeklyGoal(14000)
       setOrders([])

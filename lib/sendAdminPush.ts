@@ -1,29 +1,40 @@
-import { NextResponse } from 'next/server'
+/**
+ * Server-side utility to send push notifications to admin subscribers.
+ * Used when orders are placed (via API) and when new customers register.
+ */
+import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { supabase } from '@/lib/supabase'
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 const vapidPrivate = process.env.VAPID_PRIVATE_KEY
 
 if (vapidPublic && vapidPrivate) {
   webpush.setVapidDetails(
-    `mailto:admin@homiecleanfood.com`,
+    'mailto:admin@homiecleanfood.com',
     vapidPublic,
     vapidPrivate.replace(/\\n/g, '\n')
   )
 }
 
-export async function POST(req: Request) {
-  if (!vapidPublic || !vapidPrivate) {
-    return NextResponse.json({ error: 'VAPID not configured' }, { status: 500 })
-  }
+export async function sendAdminPush(title: string, body: string, data?: Record<string, unknown>): Promise<number> {
+  if (!vapidPublic || !vapidPrivate) return 0
   try {
-    const { title, body, data } = await req.json()
+    const supabase = createClient(supabaseUrl, supabaseKey)
     const { data: subs } = await supabase.from('push_subscriptions').select('endpoint,p256dh_key,auth_key')
+    if (!subs?.length) return 0
 
-    if (!subs?.length) return NextResponse.json({ ok: true, sent: 0 })
+    const payload = JSON.stringify({
+      title,
+      body,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      tag: 'admin-notification',
+      requireInteraction: true,
+      data: data || {},
+    })
 
-    const payload = JSON.stringify({ title, body, data: data || {} })
     const results = await Promise.allSettled(
       subs.map((s: { endpoint: string; p256dh_key: string; auth_key: string }) =>
         webpush.sendNotification(
@@ -38,9 +49,9 @@ export async function POST(req: Request) {
       await supabase.from('push_subscriptions').delete().in('endpoint', failedEndpoints)
     }
 
-    return NextResponse.json({ ok: true, sent: results.filter((r) => r.status === 'fulfilled').length })
+    return results.filter((r) => r.status === 'fulfilled').length
   } catch (e) {
-    console.error('Push send error:', e)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    console.error('sendAdminPush error:', e)
+    return 0
   }
 }

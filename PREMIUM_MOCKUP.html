@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Meal Programs Design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fdfdf7;
+      color: #1f2937;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Navigation */
+    .navbar {
+      background: white;
+      padding: 20px 0;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .navbar-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #10b981;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 30px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: #1f2937;
+      font-weight: 500;
+      font-size: 0.95em;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: #10b981;
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, #10b981 0%, #1e3a5f 100%);
+      color: white;
+      padding: 100px 0;
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    .hero-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 3.5em;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25em;
+      opacity: 0.95;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .hero-desc {
+      font-size: 1.05em;
+      opacity: 0.85;
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+
+    .btn {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 0.95em;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #d4af37, #e5c158);
+      color: #1e3a5f;
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(212, 175, 55, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #1e3a5f;
+      border: 2px solid white;
+    }
+
+    .btn-secondary:hover {
+      background: transparent;
+      color: white;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+      font-size: 0.95em;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-weight: 700;
+    }
+
+    /* Section Title */
+    .section-title {
+      text-align: center;
+      font-family: 'Sora', sans-serif;
+      font-size: 2.5em;
+      font-weight: 700;
+      margin-bottom: 60px;
+      color: #1e3a5f;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-top: -40px;
+      margin-bottom: 50px;
+      font-size: 1.1em;
+    }
+
+    /* Program Cards */
+    .programs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 40px;
+      margin-bottom: 80px;
+    }
+
+    .program-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #ecf5f1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .program-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .program-header {
+      background: linear-gradient(135deg, #ecf5f1 0%, #fff5f3 100%);
+      padding: 32px 24px 24px;
+      border-bottom: 1px solid #e5e7eb;
+      position: relative;
+    }
+
+    .program-tier {
+      display: inline-block;
+      background: linear-gradient(135deg, #d4af37, #e5c158);
+      color: #1e3a5f;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75em;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .program-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 6px;
+    }
+
+    .program-tagline {
+      font-size: 0.95em;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .program-content {
+      padding: 32px 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metrics-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid #ecf5f1;
+    }
+
+    .metric {
+      flex: 1;
+      text-align: center;
+    }
+
+    .metric-icon {
+      font-size: 1.5em;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
+      font-size: 0.75em;
+      color: #9ca3af;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 1.3em;
+      font-weight: 700;
+      color: #1e3a5f;
+    }
+
+    .program-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #dcfce7;
+      color: #15803d;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .program-includes {
+      margin-bottom: 20px;
+    }
+
+    .program-includes-title {
+      font-weight: 700;
+      color: #1e3a5f;
+      font-size: 0.9em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+    }
+
+    .includes-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .includes-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95em;
+      color: #374151;
+    }
+
+    .includes-item::before {
+      content: "✓";
+      color: #10b981;
+      font-weight: 700;
+      font-size: 1.1em;
+    }
+
+    .program-pricing {
+      background: #fdfdf7;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      border: 1px solid #ecf5f1;
+    }
+
+    .price-label {
+      font-size: 0.85em;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .price-main {
+      font-family: 'Sora', sans-serif;
+      font-size: 2em;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+    }
+
+    .price-subtext {
+      font-size: 0.9em;
+      color: #6b7280;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .price-savings {
+      font-size: 0.9em;
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .guarantee {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(212, 175, 55, 0.05));
+      border: 1px solid #dcfce7;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.85em;
+      color: #047857;
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .card-cta {
+      background: linear-gradient(135deg, #d4af37, #e5c158);
+      color: #1e3a5f;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      font-size: 0.95em;
+    }
+
+    .card-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
+    }
+
+    /* Customer Dashboard Preview */
+    .dashboard-hero {
+      background: linear-gradient(135deg, #ecf5f1 0%, #fff5f3 100%);
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 60px;
+      border: 1px solid #dcfce7;
+    }
+
+    .dashboard-greeting {
+      font-size: 0.95em;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .dashboard-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 2em;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+    }
+
+    .dashboard-subtitle {
+      color: #6b7280;
+      font-size: 1.05em;
+      margin-bottom: 30px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #ecf5f1;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-card-icon {
+      font-size: 2em;
+      margin-bottom: 12px;
+    }
+
+    .stat-card-label {
+      font-size: 0.85em;
+      color: #9ca3af;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.8em;
+      font-weight: 700;
+      color: #10b981;
+      margin-bottom: 4px;
+    }
+
+    .stat-card-desc {
+      font-size: 0.85em;
+      color: #6b7280;
+    }
+
+    /* Progress Section */
+    .progress-section {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 60px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #ecf5f1;
+    }
+
+    .progress-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #ecf5f1;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      width: 50%;
+      transition: width 1s ease-out;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95em;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .meals-remaining {
+      background: linear-gradient(135deg, #f0fdf4, #ecf5f1);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .remaining-label {
+      font-size: 0.95em;
+      color: #047857;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .remaining-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 3em;
+      font-weight: 700;
+      color: #10b981;
+      margin-bottom: 8px;
+    }
+
+    .remaining-hint {
+      font-size: 0.95em;
+      color: #047857;
+    }
+
+    /* Next Delivery Card */
+    .next-delivery {
+      background: linear-gradient(135deg, #dbeafe, #ecf5f1);
+      border-left: 4px solid #3b82f6;
+      padding: 24px;
+      border-radius: 10px;
+      margin: 24px 0;
+    }
+
+    .next-delivery-title {
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 12px;
+      font-size: 1.05em;
+    }
+
+    .next-delivery-item {
+      color: #374151;
+      margin: 8px 0;
+      font-size: 0.95em;
+    }
+
+    /* Social Proof */
+    .testimonials {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 60px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .testimonial {
+      background: #fdfdf7;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #ecf5f1;
+    }
+
+    .testimonial-stars {
+      color: #d4af37;
+      margin-bottom: 12px;
+      font-size: 1.1em;
+      letter-spacing: 2px;
+    }
+
+    .testimonial-text {
+      font-size: 0.95em;
+      color: #374151;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      font-weight: 600;
+      color: #1e3a5f;
+      font-size: 0.9em;
+    }
+
+    /* Footer */
+    .footer {
+      background: #1e3a5f;
+      color: white;
+      padding: 40px 0;
+      text-align: center;
+      margin-top: 80px;
+    }
+
+    .footer p {
+      opacity: 0.8;
+      font-size: 0.95em;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.2em;
+      }
+
+      .section-title {
+        font-size: 1.8em;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .programs-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-row {
+        flex-direction: column;
+      }
+
+      .progress-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* View Selector */
+    .view-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .view-tab {
+      padding: 10px 20px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      color: #1f2937;
+    }
+
+    .view-tab.active {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+
+    .view-tab:hover {
+      border-color: #10b981;
+    }
+
+    .view-content {
+      display: none;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="navbar-content">
+        <div class="logo">🍱 HomieClean Food</div>
+        <ul class="nav-links">
+          <li><a href="#programs">Programs</a></li>
+          <li><a href="#customers">Customers</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- View Selector -->
+    <div class="view-tabs">
+      <button class="view-tab active" onclick="switchView('marketing')">🎯 Marketing Page</button>
+      <button class="view-tab" onclick="switchView('dashboard')">👥 Customer Dashboard</button>
+      <button class="view-tab" onclick="switchView('admin')">👨‍💼 Admin View</button>
+    </div>
+
+    <!-- Marketing Page View -->
+    <div id="marketing" class="view-content active">
+      <!-- Hero Section -->
+      <section class="hero">
+        <div class="hero-content">
+          <div class="hero-icon">🍱</div>
+          <h1 class="hero-title">Transform Your Health</h1>
+          <p class="hero-subtitle">With Personalized Meal Programs</p>
+          <p class="hero-desc">Crafted for your lifestyle. Delivered to you. Premium nutrition. Uncompromising quality.</p>
+          <div class="hero-buttons">
+            <button class="btn btn-primary">EXPLORE PROGRAMS</button>
+            <button class="btn btn-secondary">SCHEDULE CONSULTATION</button>
+          </div>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-value">161+</span>
+              <span>Satisfied Customers</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">★★★★★</span>
+              <span>4.8 Rating</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">✓</span>
+              <span>30-Day Guarantee</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Programs Section -->
+      <h2 class="section-title" id="programs">Choose Your Program</h2>
+      <p class="section-subtitle">Flexible plans designed for your goals</p>
+
+      <div class="programs-grid">
+        <!-- Program 1 -->
+        <div class="program-card">
+          <div class="program-header">
+            <div class="program-tier">STARTER</div>
+            <h3 class="program-name">30-Day Starter</h3>
+            <p class="program-tagline">"The Perfect Start"</p>
+          </div>
+          <div class="program-content">
+            <div class="metrics-row">
+              <div class="metric">
+                <div class="metric-icon">📅</div>
+                <div class="metric-label">Days</div>
+                <div class="metric-value">30</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">🍱</div>
+                <div class="metric-label">Meals/Day</div>
+                <div class="metric-value">2</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">📦</div>
+                <div class="metric-label">Total</div>
+                <div class="metric-value">60</div>
+              </div>
+            </div>
+
+            <div class="program-badge">
+              <span>✓</span> Nutritionist-Approved
+            </div>
+
+            <div class="program-includes">
+              <div class="program-includes-title">What's Included</div>
+              <ul class="includes-list">
+                <li class="includes-item">60 gourmet meals</li>
+                <li class="includes-item">Personal nutrition plan</li>
+                <li class="includes-item">Weekly meal schedule</li>
+                <li class="includes-item">Flexible pause/resume</li>
+              </ul>
+            </div>
+
+            <div class="program-pricing">
+              <div class="price-label">Investment</div>
+              <div class="price-main">฿9,000</div>
+              <div class="price-subtext">฿150 per meal</div>
+              <div class="price-savings">💰 Save 50% vs. dining out</div>
+            </div>
+
+            <div class="guarantee">
+              🔒 30-Day Money-Back Guarantee
+            </div>
+
+            <button class="card-cta">SELECT PROGRAM</button>
+          </div>
+        </div>
+
+        <!-- Program 2 -->
+        <div class="program-card">
+          <div class="program-header">
+            <div class="program-tier" style="background: linear-gradient(135deg, #d4af37, #e5c158);">ELITE</div>
+            <h3 class="program-name">60-Day Premium</h3>
+            <p class="program-tagline">"Maximum Results"</p>
+          </div>
+          <div class="program-content">
+            <div class="metrics-row">
+              <div class="metric">
+                <div class="metric-icon">📅</div>
+                <div class="metric-label">Days</div>
+                <div class="metric-value">60</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">🍱</div>
+                <div class="metric-label">Meals/Day</div>
+                <div class="metric-value">3</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">📦</div>
+                <div class="metric-label">Total</div>
+                <div class="metric-value">180</div>
+              </div>
+            </div>
+
+            <div class="program-badge" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(229, 193, 88, 0.2)); color: #b8860b;">
+              <span>✨</span> Premium Experience
+            </div>
+
+            <div class="program-includes">
+              <div class="program-includes-title">What's Included</div>
+              <ul class="includes-list">
+                <li class="includes-item">180 gourmet meals</li>
+                <li class="includes-item">Dedicated nutrition coach</li>
+                <li class="includes-item">Custom meal variations</li>
+                <li class="includes-item">Priority support</li>
+              </ul>
+            </div>
+
+            <div class="program-pricing">
+              <div class="price-label">Investment</div>
+              <div class="price-main">฿25,200</div>
+              <div class="price-subtext">฿140 per meal</div>
+              <div class="price-savings">💰 Save ฿9,800 vs. standard</div>
+            </div>
+
+            <div class="guarantee">
+              🔒 30-Day Money-Back Guarantee
+            </div>
+
+            <button class="card-cta">SELECT PROGRAM</button>
+          </div>
+        </div>
+
+        <!-- Program 3 -->
+        <div class="program-card">
+          <div class="program-header">
+            <div class="program-tier">TRIAL</div>
+            <h3 class="program-name">14-Day Trial</h3>
+            <p class="program-tagline">"Test the Quality"</p>
+          </div>
+          <div class="program-content">
+            <div class="metrics-row">
+              <div class="metric">
+                <div class="metric-icon">📅</div>
+                <div class="metric-label">Days</div>
+                <div class="metric-value">14</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">🍱</div>
+                <div class="metric-label">Meals/Day</div>
+                <div class="metric-value">1</div>
+              </div>
+              <div class="metric">
+                <div class="metric-icon">📦</div>
+                <div class="metric-label">Total</div>
+                <div class="metric-value">14</div>
+              </div>
+            </div>
+
+            <div class="program-badge">
+              <span>✓</span> Perfect for Newcomers
+            </div>
+
+            <div class="program-includes">
+              <div class="program-includes-title">What's Included</div>
+              <ul class="includes-list">
+                <li class="includes-item">14 gourmet meals</li>
+                <li class="includes-item">Free consultation</li>
+                <li class="includes-item">Taste test variety</li>
+                <li class="includes-item">Easy upgrade</li>
+              </ul>
+            </div>
+
+            <div class="program-pricing">
+              <div class="price-label">Investment</div>
+              <div class="price-main">฿2,100</div>
+              <div class="price-subtext">฿150 per meal</div>
+              <div class="price-savings">💰 Risk-free trial</div>
+            </div>
+
+            <div class="guarantee">
+              🔒 30-Day Money-Back Guarantee
+            </div>
+
+            <button class="card-cta">START TRIAL</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Testimonials Section -->
+      <h2 class="section-title">What Our Customers Say</h2>
+      <div class="testimonials">
+        <div class="testimonials-grid">
+          <div class="testimonial">
+            <div class="testimonial-stars">★ ★ ★ ★ ★</div>
+            <div class="testimonial-text">"Life-changing. Worth every baht. I feel healthier and more energized than ever before."</div>
+            <div class="testimonial-author">— Andras D., Bangkok</div>
+          </div>
+          <div class="testimonial">
+            <div class="testimonial-stars">★ ★ ★ ★ ★</div>
+            <div class="testimonial-text">"Finally eating healthy without the stress. The variety keeps it interesting every day."</div>
+            <div class="testimonial-author">— Bo M., Pattaya</div>
+          </div>
+          <div class="testimonial">
+            <div class="testimonial-stars">★ ★ ★ ★ ★</div>
+            <div class="testimonial-text">"Best investment in my health. The quality is unmatched. Highly recommend!"</div>
+            <div class="testimonial-author">— Eunice M., Bangkok</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Dashboard View -->
+    <div id="dashboard" class="view-content">
+      <h2 class="section-title">Customer Dashboard Experience</h2>
+
+      <div class="dashboard-hero">
+        <div class="dashboard-greeting">Welcome back 👋</div>
+        <div class="dashboard-title">Your Wellness Journey</div>
+        <div class="dashboard-subtitle">You're 50% through your transformation</div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon">📊</div>
+            <div class="stat-card-label">Progress</div>
+            <div class="stat-card-value">30/60</div>
+            <div class="stat-card-desc">Meals consumed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">🎯</div>
+            <div class="stat-card-label">Milestone</div>
+            <div class="stat-card-value">Halfway</div>
+            <div class="stat-card-desc">Achievement unlocked</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💪</div>
+            <div class="stat-card-label">Health Gains</div>
+            <div class="stat-card-value">+15%</div>
+            <div class="stat-card-desc">Energy increase</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💰</div>
+            <div class="stat-card-label">Savings</div>
+            <div class="stat-card-value">฿4.5K</div>
+            <div class="stat-card-desc">vs eating out</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-title">
+          <span>Your Active Program</span>
+          <span style="color: #10b981; font-size: 0.9em;">✓ ACTIVE</span>
+        </div>
+
+        <h3 style="color: #1e3a5f; font-size: 1.3em; margin-bottom: 8px;">30-Day Elite Program</h3>
+
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+
+        <div class="progress-info">
+          <span>30 meals completed</span>
+          <span>Progress: 50%</span>
+          <span>30 meals remaining</span>
+        </div>
+
+        <div class="meals-remaining">
+          <div class="remaining-label">Meals Remaining</div>
+          <div class="remaining-value">30</div>
+          <div class="remaining-hint">About 15 days left</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 24px 0;">
+          <div style="background: #fdfdf7; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8em; color: #6b7280; margin-bottom: 4px;">Started</div>
+            <div style="font-weight: 700; color: #1e3a5f;">2026-02-15</div>
+          </div>
+          <div style="background: #fdfdf7; padding: 12px; border-radius: 8px;">
+            <div style="font-size: 0.8em; color: #6b7280; margin-bottom: 4px;">Expires</div>
+            <div style="font-weight: 700; color: #1e3a5f;">2026-03-15</div>
+          </div>
+        </div>
+
+        <div class="next-delivery">
+          <div class="next-delivery-title">📦 Next Delivery</div>
+          <div class="next-delivery-item"><strong>Tomorrow at 5:00 PM</strong></div>
+          <div class="next-delivery-item">🍗 Grilled Chicken with Brown Rice - 420 cal</div>
+          <div class="next-delivery-item">🥗 Seasonal Salad with Olive Oil - 120 cal</div>
+          <div class="next-delivery-item">📍 123 Sathorn Rd, Bangkok</div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="card-cta" style="background: #f59e0b; width: 100%; margin: 0;">⏸️ PAUSE FOR TRAVEL</button>
+          <button class="card-cta" style="width: 100%; margin: 0;">📅 VIEW FULL SCHEDULE</button>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <h2 style="font-size: 1.3em; color: #1e3a5f; margin-bottom: 20px;">Your Meal Statistics</h2>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon">🎯</div>
+            <div class="stat-card-label">Meals This Month</div>
+            <div class="stat-card-value" style="color: #1e3a5f;">120</div>
+            <div class="stat-card-desc">total consumed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">⏰</div>
+            <div class="stat-card-label">Time Saved</div>
+            <div class="stat-card-value" style="color: #1e3a5f;">45h</div>
+            <div class="stat-card-desc">no shopping/cooking</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💰</div>
+            <div class="stat-card-label">Money Saved</div>
+            <div class="stat-card-value" style="color: #10b981;">฿3.5K</div>
+            <div class="stat-card-desc">vs eating out</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">🌟</div>
+            <div class="stat-card-label">Your Rating</div>
+            <div class="stat-card-value" style="color: #d4af37;">4.8★</div>
+            <div class="stat-card-desc">program quality</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin View -->
+    <div id="admin" class="view-content">
+      <h2 class="section-title">Admin Dashboard - Meal Programs</h2>
+
+      <div class="dashboard-hero">
+        <div class="dashboard-greeting">Administration</div>
+        <div class="dashboard-title">Meal Programs Overview</div>
+        <div class="dashboard-subtitle">Manage all programs and customer deliveries</div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon">📦</div>
+            <div class="stat-card-label">Active Plans</div>
+            <div class="stat-card-value">12</div>
+            <div class="stat-card-desc">Currently running</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">👥</div>
+            <div class="stat-card-label">Total Customers</div>
+            <div class="stat-card-value">45</div>
+            <div class="stat-card-desc">In programs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">💰</div>
+            <div class="stat-card-label">Revenue (Month)</div>
+            <div class="stat-card-value">฿245K</div>
+            <div class="stat-card-desc">From programs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">📊</div>
+            <div class="stat-card-label">This Week</div>
+            <div class="stat-card-value">120</div>
+            <div class="stat-card-desc">Meals scheduled</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h3 style="font-size: 1.3em; color: #1e3a5f;">Program Management</h3>
+          <button class="card-cta" style="width: auto; background: linear-gradient(135deg, #d4af37, #e5c158); color: #1e3a5f;">+ CREATE PROGRAM</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #fdfdf7;">
+              <tr>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Program</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Customers</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Total Meals</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Status</th>
+                <th style="padding: 12px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 2px solid #e5e7eb;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #ecf5f1;">
+                <td style="padding: 12px; color: #1e3a5f; font-weight: 600;">30-Day Standard</td>
+                <td style="padding: 12px; color: #6b7280;">12</td>
+                <td style="padding: 12px; color: #6b7280;">720</td>
+                <td style="padding: 12px;"><span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85em;">ACTIVE</span></td>
+                <td style="padding: 12px;">✏️ 👁️ ⏸️</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #ecf5f1;">
+                <td style="padding: 12px; color: #1e3a5f; font-weight: 600;">60-Day Premium</td>
+                <td style="padding: 12px; color: #6b7280;">8</td>
+                <td style="padding: 12px; color: #6b7280;">1,440</td>
+                <td style="padding: 12px;"><span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85em;">ACTIVE</span></td>
+                <td style="padding: 12px;">✏️ 👁️ ⏸️</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; color: #1e3a5f; font-weight: 600;">14-Day Trial</td>
+                <td style="padding: 12px; color: #6b7280;">5</td>
+                <td style="padding: 12px; color: #6b7280;">70</td>
+                <td style="padding: 12px;"><span style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85em;">ACTIVE</span></td>
+                <td style="padding: 12px;">✏️ 👁️ ⏸️</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <h3 style="font-size: 1.3em; color: #1e3a5f; margin-bottom: 20px;">📦 Tomorrow's Deliveries (12 meals, 6 customers)</h3>
+
+        <div style="background: #fdfdf7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+          <strong>📍 Bangkok (8 meals)</strong>
+          <div style="margin-top: 12px; color: #6b7280; font-size: 0.9em;">
+            <div style="margin-bottom: 8px;">5:00 PM - Andras Donauer: Chicken Rice + Salad (2 meals)</div>
+            <div>6:00 PM - Bo Mirasena: Beef Stir Fry + Salmon (2 meals)</div>
+          </div>
+        </div>
+
+        <div style="background: #fdfdf7; padding: 16px; border-radius: 8px;">
+          <strong>📍 Pattaya (4 meals)</strong>
+          <div style="margin-top: 12px; color: #6b7280; font-size: 0.9em;">
+            11:00 AM - Eunice M.: Tofu Bowl + Chicken Breast (2 meals)
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+          <button class="card-cta" style="width: 100%;">🖨️ PRINT TICKETS</button>
+          <button class="card-cta" style="width: 100%;">📨 SEND REMINDERS</button>
+          <button class="card-cta" style="width: 100%;">📊 GENERATE REPORT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="container">
+      <p>🍱 HomieClean Food - Premium Meal Programs</p>
+      <p style="margin-top: 10px; opacity: 0.6; font-size: 0.9em;">Bangkok • Pattaya | Delivering Quality Since 2024</p>
+    </div>
+  </div>
+
+  <script>
+    function switchView(viewName) {
+      // Hide all views
+      document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+      // Remove active from all tabs
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      // Show selected view
+      document.getElementById(viewName).classList.add('active');
+      // Add active to clicked tab
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

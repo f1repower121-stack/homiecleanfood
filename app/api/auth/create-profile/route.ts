@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendAdminPush } from '@/lib/sendAdminPush'
 
 /**
  * Create profile record for new user after signup
@@ -52,6 +53,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Profile created for ${userId}`)
+
+    // Push notification to admin for new customer
+    sendAdminPush(
+      '👤 New Customer',
+      `${fullName || 'Customer'} just registered`,
+      { url: '/admin', tab: 'customers' }
+    ).catch((e) => console.warn('Admin push failed:', e))
+
     return NextResponse.json({ success: true, profile: data })
   } catch (err: any) {
     console.error('❌ Unexpected error:', err)
