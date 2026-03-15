@@ -174,30 +174,40 @@ export class LineClient {
       }
       const portionEmoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
       const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
-      const nameAndPrice = `${baseName} ${portionEmoji}${portion}\n   ฿${itemTotal}`;
+      const portionColor = portion === 'BULK' ? '#E53935' : '#333333';
       const itemImage = (item as { image?: string })?.image;
+      const nameLine: Array<Record<string, unknown>> = portion
+        ? [
+            { type: 'text', text: `${baseName} ${portionEmoji}`, size: 'sm', color: '#333333', wrap: true, flex: 1 },
+            { type: 'text', text: portion, size: 'sm', color: portionColor, weight: 'bold' },
+          ]
+        : [{ type: 'text', text: baseName, size: 'sm', color: '#333333', wrap: true }];
+      const textContents: Array<Record<string, unknown>> = [
+        { type: 'box', layout: 'horizontal', spacing: 'xs', contents: nameLine },
+        { type: 'text', text: `   ฿${itemTotal}`, size: 'xs', color: '#666666' },
+      ];
       const rowContents: Array<Record<string, unknown>> = [
-        { type: 'text', text: `${idx + 1}. ${qty}×`, weight: 'bold', size: 'md', color: '#1DB446', flex: 0 },
-        { type: 'text', text: nameAndPrice, size: 'sm', color: '#333333', wrap: true, flex: 1 },
+        { type: 'text', text: `${qty}×`, weight: 'bold', size: 'sm', color: '#1DB446', flex: 0 },
+        { type: 'box', layout: 'vertical', spacing: 'xxs', flex: 1, contents: textContents },
       ];
       if (itemImage && itemImage.startsWith('http')) {
         rowContents.unshift({
           type: 'image',
           url: itemImage,
-          size: 'xs',
+          size: 'sm',
           aspectRatio: '1:1',
           flex: 0,
           margin: 'xs',
         });
       }
       return [
-        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: rowContents },
+        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xxs', contents: rowContents },
       ];
     });
 
     const totalMeals = itemsArray.reduce((sum, i) => sum + Math.max(1, Math.round(Number(i?.quantity ?? (i as { qty?: number })?.qty ?? 1))), 0);
     const itemsBoxContents = [
-      { type: 'text', text: `Total: ${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: '#666666', margin: 'sm' },
+      { type: 'text', text: `${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: '#666666', margin: 'xs' },
       ...itemComponents,
     ];
 
@@ -221,26 +231,26 @@ export class LineClient {
         body: {
           type: 'box',
           layout: 'vertical',
-          spacing: 'sm',
+          spacing: 'xs',
           contents: [
             // Order Header
             {
               type: 'box',
               layout: 'vertical',
-              spacing: 'xs',
+              spacing: 'xxs',
               contents: [
                 {
                   type: 'text',
                   text: '📱 Website Order',
                   weight: 'bold',
-                  size: 'xl',
+                  size: 'lg',
                   color: '#1DB446',
                 },
                 {
                   type: 'text',
                   text: `#${displayOrderId}`,
                   weight: 'bold',
-                  size: 'lg',
+                  size: 'md',
                   color: '#333333',
                 },
               ],
@@ -250,8 +260,8 @@ export class LineClient {
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'md',
-              paddingAll: 'md',
+              margin: 'sm',
+              paddingAll: 'sm',
               backgroundColor: '#1DB446',
               cornerRadius: 'md',
               contents: [
@@ -265,7 +275,7 @@ export class LineClient {
                 {
                   type: 'text',
                   text: `${orderData.deliveryDate ? orderData.deliveryDate + ' at ' : ''}${orderData.deliveryTime}`,
-                  size: 'lg',
+                  size: 'md',
                   weight: 'bold',
                   color: '#ffffff',
                 },
@@ -276,50 +286,50 @@ export class LineClient {
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'md',
-              height: '2px',
-              backgroundColor: '#dddddd',
+              margin: 'sm',
+              height: '1px',
+              backgroundColor: '#e5e7eb',
               contents: [],
             },
 
-            // Customer Name - Large
+            // Customer Name
             {
               type: 'text',
               text: `👤 ${orderData.customerName}`,
               weight: 'bold',
-              size: 'lg',
+              size: 'md',
               color: '#1a1a1a',
               wrap: true,
             },
 
-            // Phone - Prominent
+            // Phone
             {
               type: 'text',
               text: `📱 ${orderData.customerPhone}`,
               weight: 'bold',
-              size: 'md',
+              size: 'sm',
               color: '#1DB446',
-              margin: 'xs',
+              margin: 'xxs',
             },
 
-            // Delivery Address - Full address, clearly visible
+            // Delivery Address
             {
               type: 'text',
               text: `📍 ${orderData.deliveryAddress}`,
-              size: 'md',
+              size: 'sm',
               color: '#1a1a1a',
               weight: 'bold',
               wrap: true,
-              margin: 'md',
+              margin: 'sm',
             },
 
-            // Items List - quantity bold & larger
+            // Items List
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'md',
-              paddingAll: 'md',
-              paddingStart: 'lg',
+              margin: 'sm',
+              paddingAll: 'sm',
+              paddingStart: 'md',
               backgroundColor: '#fafbfc',
               borderColor: '#1DB446',
               borderWidth: '1px',
@@ -348,26 +358,26 @@ export class LineClient {
               },
             ] : []),
 
-            // Total Amount - Prominent Box
+            // Total Amount
             {
               type: 'box',
               layout: 'vertical',
-              margin: 'md',
-              paddingAll: 'lg',
+              margin: 'sm',
+              paddingAll: 'md',
               backgroundColor: '#1DB446',
               cornerRadius: 'md',
               contents: [
                 {
                   type: 'text',
                   text: 'Total',
-                  size: 'sm',
+                  size: 'xs',
                   color: '#ffffff',
                   weight: 'bold',
                 },
                 {
                   type: 'text',
                   text: `฿${orderData.totalPrice.toFixed(2)}`,
-                  size: 'xxl',
+                  size: 'xl',
                   weight: 'bold',
                   color: '#ffffff',
                 },
@@ -380,7 +390,7 @@ export class LineClient {
               text: `🕐 ${timeStr}`,
               size: 'xs',
               color: '#999999',
-              margin: 'md',
+              margin: 'sm',
               align: 'center',
             },
           ],
