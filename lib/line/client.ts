@@ -98,7 +98,8 @@ export class LineClient {
   }
 
   /**
-   * Send an order notification with flex message to all admin users
+   * Send an order notification with flex message to all admin users.
+   * Falls back to plain text if Flex message fails (e.g. validation error).
    */
   async sendOrderNotification(orderData: {
     orderId: string;
@@ -112,6 +113,14 @@ export class LineClient {
     orderTime: string;
     paymentSlipUrl?: string;
   }): Promise<void> {
+    const textFallback = `📱 New Order #${orderData.orderId.slice(0, 8).toUpperCase()}\n` +
+      `⏰ ${orderData.deliveryDate || ''} ${orderData.deliveryTime}\n` +
+      `👤 ${orderData.customerName}\n` +
+      `📱 ${orderData.customerPhone}\n` +
+      `📍 ${orderData.deliveryAddress}\n` +
+      orderData.items.map(i => `• ${i.quantity}× ${i.name} ฿${(i.price * i.quantity).toLocaleString('th-TH')}`).join('\n') +
+      `\n💰 Total: ฿${orderData.totalPrice.toFixed(2)}`;
+
     try {
       const flexMessage = this.createOrderFlexMessage(orderData);
 
@@ -127,9 +136,15 @@ export class LineClient {
 
       await Promise.all(sendPromises);
       console.log(`✅ Order notification sent to ${this.adminUserIds.length} admin(s)`);
-    } catch (error) {
-      console.error('Error sending Line order notification:', error);
-      throw error;
+    } catch (flexError) {
+      console.error('❌ [LINE] Flex message failed, falling back to text:', flexError);
+      try {
+        await this.sendTextMessage(textFallback);
+        console.log('✅ [LINE] Fallback text notification sent');
+      } catch (textError) {
+        console.error('❌ [LINE] Text fallback also failed:', textError);
+        throw flexError;
+      }
     }
   }
 
@@ -188,9 +203,9 @@ export class LineClient {
       ];
       const rowContents: Array<Record<string, unknown>> = [
         { type: 'text', text: `${qty}×`, weight: 'bold', size: 'sm', color: '#1DB446', flex: 0 },
-        { type: 'box', layout: 'vertical', spacing: 'xxs', flex: 1, contents: textContents },
+        { type: 'box', layout: 'vertical', spacing: 'xs', flex: 1, contents: textContents },
       ];
-      if (itemImage && itemImage.startsWith('http')) {
+      if (itemImage && itemImage.startsWith('https://')) {
         rowContents.unshift({
           type: 'image',
           url: itemImage,
@@ -201,7 +216,7 @@ export class LineClient {
         });
       }
       return [
-        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xxs', contents: rowContents },
+        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: rowContents },
       ];
     });
 
@@ -237,7 +252,7 @@ export class LineClient {
             {
               type: 'box',
               layout: 'vertical',
-              spacing: 'xxs',
+              spacing: 'xs',
               contents: [
                 {
                   type: 'text',
@@ -309,7 +324,7 @@ export class LineClient {
               weight: 'bold',
               size: 'sm',
               color: '#1DB446',
-              margin: 'xxs',
+              margin: 'xs',
             },
 
             // Delivery Address
