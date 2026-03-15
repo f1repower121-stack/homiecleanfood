@@ -27,13 +27,14 @@ import {
 } from '@/components/ui/table'
 import {
   LayoutDashboard,
-  ShoppingBag,
   LogOut,
-  Flame,
   Dumbbell,
-  UtensilsCrossed,
   Star,
   Users,
+  User,
+  MapPin,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import {
   BarChart,
@@ -116,19 +117,21 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<CalorieLog[]>([])
   const [exercises, setExercises] = useState<ExerciseLog[]>([])
   const [orders, setOrders] = useState<Order[]>([])
-  const [profile, setProfile] = useState<{ full_name: string | null; points: number; tier?: string; referral_code?: string } | null>(null)
+  const [profile, setProfile] = useState<{ full_name: string | null; points: number; tier?: string; referral_code?: string; phone?: string; saved_addresses?: { address: string; label?: string }[] } | null>(null)
   const [todayCalories, setTodayCalories] = useState(0)
   const [burnedCalories, setBurnedCalories] = useState(0)
   const [recommendations, setRecommendations] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
   const [exName, setExName] = useState('Walking')
   const [exDuration, setExDuration] = useState('')
-  const [tab, setTab] = useState<'overview' | 'tracker' | 'exercise' | 'recommendations' | 'loyalty' | 'referrals'>('overview')
+  const [tab, setTab] = useState<'overview' | 'exercise_tracker' | 'loyalty' | 'referrals' | 'profile'>('overview')
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [reorderItems, setReorderItems] = useState<{ [key: string]: number }>({})
   const [ordersPage, setOrdersPage] = useState(1)
   const [ordersShowAll, setOrdersShowAll] = useState(false)
+  const [newAddress, setNewAddress] = useState('')
+  const [newAddressLabel, setNewAddressLabel] = useState('')
   const ORDERS_PER_PAGE = 5
   const ordersTotalPages = Math.ceil(orders.length / ORDERS_PER_PAGE)
   const safeOrdersPage = Math.min(ordersPage, Math.max(1, ordersTotalPages))
@@ -148,7 +151,7 @@ export default function DashboardPage() {
     setUser(u)
 
     const [profileRes, ordersRes, goalsRes, logsRes, exRes, cfgRes] = await Promise.allSettled([
-      supabase.from('profiles').select('full_name, points, tier, daily_calorie_goal, weekly_calorie_goal, referral_code').eq('id', u.id).single(),
+      supabase.from('profiles').select('full_name, points, tier, daily_calorie_goal, weekly_calorie_goal, referral_code, phone, saved_addresses').eq('id', u.id).single(),
       supabase.from('orders').select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(200),
       supabase.from('user_goals').select('calorie_target, weekly_calorie_goal').eq('user_id', u.id).maybeSingle(),
       supabase.from('calorie_logs').select('*').eq('user_id', u.id).order('log_date', { ascending: false }).limit(14),
@@ -166,6 +169,8 @@ export default function DashboardPage() {
       points: pts,
       tier,
       referral_code: (p as any)?.referral_code ?? null,
+      phone: (p as any)?.phone ?? u.user_metadata?.phone ?? null,
+      saved_addresses: Array.isArray((p as any)?.saved_addresses) ? (p as any).saved_addresses : [],
     })
 
     const daily = (p as any)?.daily_calorie_goal ?? 2000
@@ -235,6 +240,32 @@ export default function DashboardPage() {
     router.replace('/signin')
   }
 
+  const saveAddress = async () => {
+    if (!user || !newAddress.trim()) return
+    const addrs = profile?.saved_addresses ?? []
+    const updated = [...addrs, { address: newAddress.trim(), label: newAddressLabel.trim() || 'Address' }]
+    await supabase.from('profiles').update({ saved_addresses: updated }).eq('id', user.id)
+    setProfile(p => p ? { ...p, saved_addresses: updated } : null)
+    setNewAddress('')
+    setNewAddressLabel('')
+    fetchData()
+  }
+
+  const removeAddress = async (idx: number) => {
+    if (!user || !profile?.saved_addresses) return
+    const updated = profile.saved_addresses.filter((_, i) => i !== idx)
+    await supabase.from('profiles').update({ saved_addresses: updated }).eq('id', user.id)
+    setProfile(p => p ? { ...p, saved_addresses: updated } : null)
+    fetchData()
+  }
+
+  const updateProfileInfo = async (updates: { full_name?: string; phone?: string }) => {
+    if (!user) return
+    await supabase.from('profiles').update(updates).eq('id', user.id)
+    setProfile(p => p ? { ...p, ...updates } : null)
+    fetchData()
+  }
+
   const itemKey = (item: { id: string; portion?: string }) => `${item.id}_${(item.portion || 'lean')}`
 
   const handleReorder = () => {
@@ -291,11 +322,10 @@ export default function DashboardPage() {
 
   const tabs = [
     { key: 'overview' as const, label: 'Overview', icon: <LayoutDashboard size={18} /> },
-    { key: 'tracker' as const, label: 'Tracker', icon: <Flame size={18} /> },
-    { key: 'exercise' as const, label: 'Exercise', icon: <Dumbbell size={18} /> },
-    { key: 'recommendations' as const, label: 'Recommend', icon: <UtensilsCrossed size={18} /> },
+    { key: 'exercise_tracker' as const, label: 'Exercise Tracker', icon: <Dumbbell size={18} /> },
     { key: 'loyalty' as const, label: 'Loyalty', icon: <Star size={18} /> },
     { key: 'referrals' as const, label: 'Referrals', icon: <Users size={18} /> },
+    { key: 'profile' as const, label: 'Account', icon: <User size={18} /> },
   ]
 
   return (
@@ -444,6 +474,11 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/menu" className="inline-flex items-center gap-2 px-4 py-2.5 bg-homie-lime text-white font-semibold rounded-xl hover:bg-homie-green transition-colors text-sm">
+                Order again
+              </Link>
+            </div>
             <Card className="border-gray-100 mt-6">
               <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
               <CardContent>
@@ -520,32 +555,25 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* TRACKER TAB */}
-        {tab === 'tracker' && (
-          <Card>
-            <CardHeader><CardTitle>Today&apos;s Calorie Tracker</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                {[
-                  { label: 'Consumed', value: todayCalories, color: 'text-homie-green' },
-                  { label: 'Burned', value: burnedCalories, color: 'text-homie-green' },
-                  { label: 'Remaining', value: remaining, color: 'text-homie-lime' },
-                  { label: 'Daily Goal', value: dailyGoal, color: 'text-homie-green' },
-                ].map(s => (
-                  <div key={s.label} className="text-center p-4 bg-gray-50 rounded-xl">
-                    <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                    <p className="text-xs text-homie-gray">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* EXERCISE TAB */}
-        {tab === 'exercise' && (
+        {/* EXERCISE TRACKER TAB — combines Tracker, Exercise, Recommend */}
+        {tab === 'exercise_tracker' && (
           <div className="space-y-6">
-            <Card>
+            {/* Calorie stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'Consumed', value: todayCalories, color: 'text-homie-green' },
+                { label: 'Burned', value: burnedCalories, color: 'text-homie-green' },
+                { label: 'Remaining', value: remaining, color: 'text-homie-lime' },
+                { label: 'Daily Goal', value: dailyGoal, color: 'text-homie-green' },
+              ].map(s => (
+                <div key={s.label} className="text-center p-4 bg-white border border-gray-100 rounded-2xl">
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                  <p className="text-xs text-homie-gray">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Log exercise */}
+            <Card className="border-gray-100">
               <CardHeader><CardTitle>Log Exercise</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -559,10 +587,11 @@ export default function DashboardPage() {
                   <Input type="number" placeholder="30" value={exDuration} onChange={e => setExDuration(e.target.value)} />
                 </div>
                 <Button onClick={logExercise} disabled={!exDuration}>Log Exercise</Button>
-                <p className="text-xs text-homie-gray">≈{exDuration ? calcBurned(exName, parseInt(exDuration) || 0) : 0} kcal burned for {exDuration || 0} min</p>
+                <p className="text-xs text-homie-gray">≈{exDuration ? calcBurned(exName, parseInt(exDuration) || 0) : 0} kcal burned</p>
               </CardContent>
             </Card>
-            <Card>
+            {/* Today's workouts */}
+            <Card className="border-gray-100">
               <CardHeader><CardTitle>Today&apos;s Workouts</CardTitle></CardHeader>
               <CardContent>
                 <Table>
@@ -589,38 +618,35 @@ export default function DashboardPage() {
                 </Table>
               </CardContent>
             </Card>
+            {/* Recommended meals */}
+            <Card className="border-gray-100">
+              <CardHeader>
+                <CardTitle>Recommended Menus</CardTitle>
+                <p className="text-sm text-homie-gray mt-1">Meals that fit your remaining {remaining} kcal</p>
+              </CardHeader>
+              <CardContent>
+                {recommendations.length === 0 ? (
+                  <p className="text-homie-gray">You&apos;ve hit your goal! Great work today 💪</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {recommendations.map(meal => (
+                      <div key={meal.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                        <div>
+                          <p className="font-semibold text-homie-dark">{meal.name}</p>
+                          <p className="text-sm text-homie-gray">Lean: {meal.leanCalories} kcal · Bulk: {meal.bulkCalories} kcal</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => logMeal(meal, meal.leanCalories)}>Lean</Button>
+                          <Button size="sm" variant="secondary" onClick={() => logMeal(meal, meal.bulkCalories)}>Bulk</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Link href="/menu" className="inline-block mt-4 text-homie-lime font-semibold text-sm hover:underline">Browse full menu →</Link>
+              </CardContent>
+            </Card>
           </div>
-        )}
-
-        {/* RECOMMENDATIONS TAB */}
-        {tab === 'recommendations' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Recommended Menus</CardTitle>
-              <p className="text-sm text-homie-gray mt-1">Meals that fit your remaining {remaining} kcal</p>
-            </CardHeader>
-            <CardContent>
-              {recommendations.length === 0 ? (
-                <p className="text-homie-gray">You&apos;ve hit your goal! Great work today 💪</p>
-              ) : (
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {recommendations.map(meal => (
-                    <div key={meal.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
-                      <div>
-                        <p className="font-semibold text-homie-dark">{meal.name}</p>
-                        <p className="text-sm text-homie-gray">Lean: {meal.leanCalories} kcal · Bulk: {meal.bulkCalories} kcal</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => logMeal(meal, meal.leanCalories)}>Lean</Button>
-                        <Button size="sm" variant="secondary" onClick={() => logMeal(meal, meal.bulkCalories)}>Bulk</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Link href="/menu" className="inline-block mt-4 text-homie-lime font-semibold text-sm hover:underline">Browse full menu →</Link>
-            </CardContent>
-          </Card>
         )}
 
         {/* LOYALTY TAB */}
@@ -710,6 +736,81 @@ export default function DashboardPage() {
         {/* REFERRALS TAB */}
         {tab === 'referrals' && (
           <ReferralTab profile={profile} user={user} />
+        )}
+
+        {/* PROFILE / ACCOUNT TAB */}
+        {tab === 'profile' && (
+          <div className="space-y-6">
+            <Card className="border-gray-100">
+              <CardHeader><CardTitle>Account Information</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-homie-dark mb-1">Name</label>
+                  <Input
+                    defaultValue={profile?.full_name || user?.user_metadata?.full_name || ''}
+                    onBlur={e => { const v = e.target.value.trim(); if (v) updateProfileInfo({ full_name: v }) }}
+                    placeholder="Your name"
+                    className="border-gray-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-homie-dark mb-1">Email</label>
+                  <Input value={user?.email || ''} disabled className="bg-gray-50 border-gray-200" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-homie-dark mb-1">Phone</label>
+                  <Input
+                    defaultValue={profile?.phone || user?.user_metadata?.phone || ''}
+                    onBlur={e => updateProfileInfo({ phone: e.target.value.trim() })}
+                    placeholder="+66 XX XXX XXXX"
+                    className="border-gray-200"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-gray-100">
+              <CardHeader><CardTitle>Saved Addresses</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm text-homie-gray mb-4">Use these addresses at checkout for faster ordering</p>
+                {(profile?.saved_addresses ?? []).length === 0 ? (
+                  <p className="text-homie-gray text-sm py-4">No saved addresses yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(profile?.saved_addresses ?? []).map((a: { address: string; label?: string }, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin size={16} className="text-homie-lime shrink-0" />
+                          <div>
+                            <p className="font-medium text-sm text-homie-dark">{a.label || 'Address'}</p>
+                            <p className="text-xs text-homie-gray truncate">{a.address}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => removeAddress(i)} className="text-red-500 hover:text-red-600 p-1"><Trash2 size={16} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="block text-sm font-medium text-homie-dark mb-2">Add new address</label>
+                  <Input
+                    placeholder="Address label (e.g. Home, Office)"
+                    value={newAddressLabel}
+                    onChange={e => setNewAddressLabel(e.target.value)}
+                    className="mb-2 border-gray-200"
+                  />
+                  <Input
+                    placeholder="Full delivery address"
+                    value={newAddress}
+                    onChange={e => setNewAddress(e.target.value)}
+                    className="mb-2 border-gray-200"
+                  />
+                  <Button onClick={saveAddress} disabled={!newAddress.trim()} size="sm" className="gap-1">
+                    <Plus size={14} /> Save Address
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
           </div>
         </div>

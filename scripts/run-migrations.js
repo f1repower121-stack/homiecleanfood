@@ -75,6 +75,13 @@ const MIGRATIONS = [
       END $$;
     `,
   },
+  {
+    id: '012',
+    name: 'user_saved_addresses',
+    sql: `
+      ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS saved_addresses jsonb DEFAULT '[]';
+    `,
+  },
 ];
 
 async function run() {

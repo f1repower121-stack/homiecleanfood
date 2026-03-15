@@ -43,8 +43,10 @@ export default function OrderPage() {
   const [userTier, setUserTier] = useState<string>('Homie')
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
 
-  // Recent addresses for easy checkout (logged-in users)
+  // Addresses for checkout: saved (from profile) + recent (from orders)
+  const [savedAddresses, setSavedAddresses] = useState<{ address: string; label?: string }[]>([])
   const [recentAddresses, setRecentAddresses] = useState<string[]>([])
+  const [saveAddressForNextTime, setSaveAddressForNextTime] = useState(false)
 
   // Auto-fill user details + load loyalty data + recent addresses
   useEffect(() => {
@@ -54,14 +56,15 @@ export default function OrderPage() {
       if (u) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, points, tier, address')
+          .select('full_name, points, tier, address, phone, saved_addresses')
           .eq('id', u.id)
           .single()
         setForm(prev => ({
           ...prev,
           name: profile?.full_name || u.user_metadata?.full_name || '',
-          phone: u.user_metadata?.phone || '',
+          phone: (profile as { phone?: string })?.phone || u.user_metadata?.phone || '',
         }))
+        setSavedAddresses(Array.isArray((profile as { saved_addresses?: { address: string; label?: string }[] })?.saved_addresses) ? (profile as { saved_addresses: { address: string; label?: string }[] }).saved_addresses : [])
 
         // Load recent addresses from orders (unique, most recent first)
         const { data: orders } = await supabase
@@ -83,8 +86,11 @@ export default function OrderPage() {
 
         // Pre-fill address: profile first, then last order, else first recent
         const profileAddr = (profile as { address?: string })?.address?.trim()
+        const savedFirst = Array.isArray((profile as { saved_addresses?: { address: string }[] })?.saved_addresses) && (profile as { saved_addresses: { address: string }[] }).saved_addresses.length > 0
+          ? (profile as { saved_addresses: { address: string }[] }).saved_addresses[0].address
+          : ''
         const lastOrder = orders?.[0] as { delivery_address?: string; customer_phone?: string } | undefined
-        const defaultAddr = profileAddr || lastOrder?.delivery_address?.trim() || addrs[0] || ''
+        const defaultAddr = savedFirst || profileAddr || lastOrder?.delivery_address?.trim() || addrs[0] || ''
         if (lastOrder?.customer_phone) {
           setForm(prev => ({ ...prev, phone: lastOrder.customer_phone || prev.phone }))
         }
@@ -257,6 +263,19 @@ export default function OrderPage() {
         try {
           await supabase.from('profiles').update({ address: form.address }).eq('id', u.id)
         } catch { }
+
+        // Save to saved_addresses if user checked "Save this address"
+        if (saveAddressForNextTime && form.address.trim()) {
+          try {
+            const { data: prof } = await supabase.from('profiles').select('saved_addresses').eq('id', u.id).single()
+            const existing = Array.isArray((prof as any)?.saved_addresses) ? (prof as { saved_addresses: { address: string; label?: string }[] }).saved_addresses : []
+            const alreadySaved = existing.some((a: { address: string }) => a.address.trim() === form.address.trim())
+            if (!alreadySaved) {
+              const updated = [...existing, { address: form.address.trim(), label: 'Saved from order' }]
+              await supabase.from('profiles').update({ saved_addresses: updated }).eq('id', u.id)
+            }
+          } catch { }
+        }
       }
 
       setOrderId(data?.id?.slice(0, 8).toUpperCase() || 'HCF001')
@@ -410,25 +429,33 @@ export default function OrderPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-homie-dark mb-1">Delivery Address *</label>
-                  {user && recentAddresses.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {recentAddresses.slice(0, 5).map((addr) => (
-                        <button
-                          key={addr}
-                          type="button"
-                          onClick={() => setForm(prev => ({ ...prev, address: addr }))}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors truncate max-w-full ${
-                            form.address === addr
-                              ? 'bg-homie-lime text-white ring-2 ring-homie-green'
-                              : 'bg-gray-100 text-homie-gray hover:bg-gray-200 hover:text-homie-dark'
-                          }`}
-                          title={addr}
-                        >
-                          📍 {addr.length > 35 ? addr.slice(0, 35) + '…' : addr}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {user && (savedAddresses.length > 0 || recentAddresses.length > 0) && (() => {
+                    const savedSet = new Set(savedAddresses.map(a => a.address.trim()))
+                    const recentOnly = recentAddresses.filter(a => !savedSet.has(a.trim()))
+                    const allOptions = [
+                      ...savedAddresses.map(a => ({ address: a.address, label: a.label })),
+                      ...recentOnly.map(addr => ({ address: addr, label: undefined })),
+                    ].slice(0, 8)
+                    return (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {allOptions.map(({ address, label }) => (
+                          <button
+                            key={address}
+                            type="button"
+                            onClick={() => setForm(prev => ({ ...prev, address }))}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors truncate max-w-full ${
+                              form.address === address
+                                ? 'bg-homie-lime text-white ring-2 ring-homie-green'
+                                : 'bg-gray-100 text-homie-gray hover:bg-gray-200 hover:text-homie-dark'
+                            }`}
+                            title={address}
+                          >
+                            📍 {label ? `${label}: ` : ''}{address.length > 30 ? address.slice(0, 30) + '…' : address}
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
                   <input
                     type="text"
                     placeholder="Full address, building, floor, room — or choose above"
@@ -436,8 +463,16 @@ export default function OrderPage() {
                     onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime"
                   />
-                  {user && recentAddresses.length > 0 && (
-                    <p className="text-xs text-homie-gray mt-1.5">Choose a recent address or type a new one</p>
+                  {user && (
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={saveAddressForNextTime}
+                        onChange={e => setSaveAddressForNextTime(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-homie-lime focus:ring-homie-lime"
+                      />
+                      <span className="text-sm text-homie-gray">Save this address for next time</span>
+                    </label>
                   )}
                 </div>
 
