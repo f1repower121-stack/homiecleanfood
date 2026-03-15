@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Programs Dashboard Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 1em;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .view-btn {
+      padding: 10px 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      color: #1f2937;
+    }
+
+    .view-btn.active {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+
+    .view-btn:hover {
+      border-color: #10b981;
+    }
+
+    .view-content {
+      display: none;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    /* Admin Dashboard Styles */
+    .admin-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+
+    .admin-title {
+      font-size: 1.8em;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .breadcrumb {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      text-align: center;
+      border-top: 4px solid #10b981;
+    }
+
+    .stat-icon {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      color: #6b7280;
+      font-size: 0.85em;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 5px;
+    }
+
+    .stat-desc {
+      font-size: 0.8em;
+      color: #9ca3af;
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9em;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #059669;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8em;
+    }
+
+    .program-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .program-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 20px;
+      border-left: 5px solid #10b981;
+    }
+
+    .program-card:hover {
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+
+    .program-name {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+
+    .program-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .info-item {
+      font-size: 0.85em;
+      color: #6b7280;
+    }
+
+    .info-value {
+      font-weight: bold;
+      color: #1f2937;
+    }
+
+    .customer-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .customer-table thead {
+      background: #f9fafb;
+    }
+
+    .customer-table th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.9em;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .customer-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.9em;
+    }
+
+    .customer-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .status-paused {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .progress-bar {
+      width: 100px;
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #10b981;
+    }
+
+    /* Customer Dashboard Styles */
+    .customer-header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+
+    .customer-tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 20px;
+    }
+
+    .customer-tab {
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7280;
+      border-bottom: 3px solid transparent;
+    }
+
+    .customer-tab.active {
+      color: #10b981;
+      border-bottom-color: #10b981;
+    }
+
+    .program-hero {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dbeafe 100%);
+      border-radius: 12px;
+      padding: 30px;
+      border-left: 5px solid #10b981;
+      margin-bottom: 30px;
+    }
+
+    .program-hero-title {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 5px;
+    }
+
+    .program-hero-desc {
+      color: #6b7280;
+      margin-bottom: 15px;
+    }
+
+    .status-badge-lg {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #dcfce7;
+      color: #15803d;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin: 25px 0;
+    }
+
+    .metric {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .metric-icon {
+      font-size: 1.5em;
+      margin-bottom: 8px;
+    }
+
+    .metric-label {
+      font-size: 0.75em;
+      color: #6b7280;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .metric-value {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #1f2937;
+    }
+
+    .progress-section {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 25px 0;
+    }
+
+    .progress-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-bar-lg {
+      width: 100%;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-fill-lg {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      width: 50%;
+    }
+
+    .meals-remaining {
+      background: #f0fdf4;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .meals-remaining-label {
+      font-size: 0.9em;
+      color: #047857;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .meals-remaining-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #10b981;
+      margin-bottom: 5px;
+    }
+
+    .meals-remaining-hint {
+      font-size: 0.85em;
+      color: #047857;
+    }
+
+    .next-delivery {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .next-delivery-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+
+    .next-delivery-item {
+      color: #374151;
+      margin: 8px 0;
+      font-size: 0.95em;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin: 25px 0;
+    }
+
+    .action-buttons .btn {
+      flex: 1;
+      padding: 12px;
+    }
+
+    .menu-preview {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+
+    .menu-tabs {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .menu-tab {
+      padding: 12px 24px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-weight: 600;
+      color: #1f2937;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .menu-tab.active {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
+    }
+
+    .menu-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-size: 0.9em;
+      color: #1e40af;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e5e7eb;
+      margin: 30px 0;
+    }
+
+    @media (max-width: 768px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .program-list {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🍱 Meal Programs Dashboard Preview</h1>
+    <p class="subtitle">Visual mockups showing all features for Admin & Customer</p>
+
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-btn active" onclick="showView('menu')">📍 Menu Navigation</button>
+      <button class="view-btn" onclick="showView('admin')">👨‍💼 Admin Dashboard</button>
+      <button class="view-btn" onclick="showView('customer')">👥 Customer Dashboard</button>
+    </div>
+
+    <!-- Menu Navigation View -->
+    <div id="menu" class="view-content active">
+      <div class="menu-preview">
+        <h2 style="margin-bottom: 30px; color: #1f2937;">Dashboard Navigation - 3 Main Tabs</h2>
+
+        <h3 style="margin-bottom: 20px; color: #6b7280; font-size: 1em;">CUSTOMER DASHBOARD</h3>
+        <div class="menu-tabs" style="margin-bottom: 50px;">
+          <div class="menu-tab">📱 Home</div>
+          <div class="menu-tab">⭐ Loyalty</div>
+          <div class="menu-tab active">🍱 Meal Programs</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3 style="margin-bottom: 20px; color: #6b7280; font-size: 1em;">ADMIN DASHBOARD</h3>
+        <div class="menu-tabs">
+          <div class="menu-tab">📋 Orders</div>
+          <div class="menu-tab">👥 Customers</div>
+          <div class="menu-tab active">🍱 Meal Programs</div>
+        </div>
+
+        <div class="info-box" style="margin-top: 40px;">
+          <strong>✨ New Feature:</strong> Tab 3 "Meal Programs" gives both admins and customers a centralized place to manage custom meal programs, track progress, pause/resume, and view detailed nutrition information.
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Dashboard View -->
+    <div id="admin" class="view-content">
+      <!-- Header -->
+      <div class="admin-header">
+        <div class="admin-title">🍱 Meal Programs Management</div>
+        <div class="breadcrumb">Admin Dashboard > Meal Programs Tab</div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-label">Active Plans</div>
+          <div class="stat-value">12</div>
+          <div class="stat-desc">Currently running</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-label">Total Customers</div>
+          <div class="stat-value">45</div>
+          <div class="stat-desc">In meal programs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-label">Revenue This Month</div>
+          <div class="stat-value">฿245K</div>
+          <div class="stat-desc">From programs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-label">Meals This Week</div>
+          <div class="stat-value">120</div>
+          <div class="stat-desc">Scheduled</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏸️</div>
+          <div class="stat-label">Paused Plans</div>
+          <div class="stat-value">8</div>
+          <div class="stat-desc">Temporarily paused</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-label">Avg Days Remaining</div>
+          <div class="stat-value">16</div>
+          <div class="stat-desc">Per customer</div>
+        </div>
+      </div>
+
+      <!-- Meal Programs Section -->
+      <div class="section">
+        <div class="section-title">
+          <span>📋 Meal Programs Library</span>
+          <button class="btn btn-primary">+ Create New Program</button>
+        </div>
+
+        <div class="program-list">
+          <div class="program-card">
+            <div class="program-name">30-Day Standard Plan</div>
+            <div class="program-info">
+              <div class="info-item">
+                <span>📅 Days:</span> <span class="info-value">30</span>
+              </div>
+              <div class="info-item">
+                <span>🍱 Meals/Day:</span> <span class="info-value">2</span>
+              </div>
+              <div class="info-item">
+                <span>📦 Total:</span> <span class="info-value">60</span>
+              </div>
+              <div class="info-item">
+                <span>💰 Price:</span> <span class="info-value">฿9,000</span>
+              </div>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+              <div style="font-size: 0.9em; color: #6b7280; margin-bottom: 10px;">
+                👥 <strong>12 customers</strong> | ✓ <strong>Active</strong>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm">View Meals</button>
+                <button class="btn btn-secondary btn-sm">Edit</button>
+                <button class="btn btn-secondary btn-sm">Duplicate</button>
+                <button class="btn btn-secondary btn-sm">Deactivate</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="program-card">
+            <div class="program-name">60-Day Premium Plan</div>
+            <div class="program-info">
+              <div class="info-item">
+                <span>📅 Days:</span> <span class="info-value">60</span>
+              </div>
+              <div class="info-item">
+                <span>🍱 Meals/Day:</span> <span class="info-value">3</span>
+              </div>
+              <div class="info-item">
+                <span>📦 Total:</span> <span class="info-value">180</span>
+              </div>
+              <div class="info-item">
+                <span>💰 Price:</span> <span class="info-value">฿25,200</span>
+              </div>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+              <div style="font-size: 0.9em; color: #6b7280; margin-bottom: 10px;">
+                👥 <strong>8 customers</strong> | ✓ <strong>Active</strong>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm">View Meals</button>
+                <button class="btn btn-secondary btn-sm">Edit</button>
+                <button class="btn btn-secondary btn-sm">Duplicate</button>
+                <button class="btn btn-secondary btn-sm">Deactivate</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="program-card">
+            <div class="program-name">14-Day Trial Plan</div>
+            <div class="program-info">
+              <div class="info-item">
+                <span>📅 Days:</span> <span class="info-value">14</span>
+              </div>
+              <div class="info-item">
+                <span>🍱 Meals/Day:</span> <span class="info-value">1</span>
+              </div>
+              <div class="info-item">
+                <span>📦 Total:</span> <span class="info-value">14</span>
+              </div>
+              <div class="info-item">
+                <span>💰 Price:</span> <span class="info-value">฿2,100</span>
+              </div>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+              <div style="font-size: 0.9em; color: #6b7280; margin-bottom: 10px;">
+                👥 <strong>5 customers</strong> | ✓ <strong>Active</strong>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm">View Meals</button>
+                <button class="btn btn-secondary btn-sm">Edit</button>
+                <button class="btn btn-secondary btn-sm">Duplicate</button>
+                <button class="btn btn-secondary btn-sm">Deactivate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Programs Section -->
+      <div class="section">
+        <div class="section-title">
+          <span>👥 Active Customer Meal Programs</span>
+          <div>
+            <select style="padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-right: 10px;">
+              <option>All Statuses</option>
+              <option>Active Only</option>
+              <option>Paused Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="customer-table">
+            <thead>
+              <tr>
+                <th>Customer Name</th>
+                <th>Program</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Expires</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Andras Donauer</strong></td>
+                <td>30-Day Standard</td>
+                <td>
+                  <div class="progress-bar" style="margin-bottom: 4px;">
+                    <div class="progress-fill" style="width: 50%;"></div>
+                  </div>
+                  <span style="font-size: 0.8em; color: #6b7280;">30/60 meals</span>
+                </td>
+                <td><span class="status-badge status-active">ACTIVE</span></td>
+                <td>BKK</td>
+                <td>2026-03-15</td>
+                <td style="font-size: 1.2em;">⏸️ ✏️ 💬</td>
+              </tr>
+              <tr>
+                <td><strong>Bo Mirasena</strong></td>
+                <td>60-Day Premium</td>
+                <td>
+                  <div class="progress-bar" style="margin-bottom: 4px;">
+                    <div class="progress-fill" style="width: 47%;"></div>
+                  </div>
+                  <span style="font-size: 0.8em; color: #6b7280;">85/180 meals</span>
+                </td>
+                <td><span class="status-badge status-paused">PAUSED</span></td>
+                <td>BKK</td>
+                <td>2026-05-15</td>
+                <td style="font-size: 1.2em;">▶️ ✏️ 💬</td>
+              </tr>
+              <tr>
+                <td><strong>Eunice M.</strong></td>
+                <td>30-Day Standard</td>
+                <td>
+                  <div class="progress-bar" style="margin-bottom: 4px;">
+                    <div class="progress-fill" style="width: 34%;"></div>
+                  </div>
+                  <span style="font-size: 0.8em; color: #6b7280;">20/60 meals</span>
+                </td>
+                <td><span class="status-badge status-active">ACTIVE</span></td>
+                <td>PT</td>
+                <td>2026-04-15</td>
+                <td style="font-size: 1.2em;">⏸️ ✏️ 💬</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="info-box" style="margin-top: 20px;">
+          📊 Showing 3 of 45 active customer programs | <strong>Click customer name for full details</strong>
+        </div>
+      </div>
+
+      <!-- Daily Schedule Section -->
+      <div class="section">
+        <div class="section-title">
+          📦 Tomorrow's Meal Deliveries (March 16)
+        </div>
+
+        <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <strong>Total: 12 meals | 6 customers | 2 locations</strong>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h4 style="color: #1f2937; margin-bottom: 12px;">📍 Bangkok (8 meals)</h4>
+          <div style="background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 3px solid #10b981;">
+            <div style="margin-bottom: 15px;">
+              <strong>5:00 PM - Andras Donauer</strong> <span style="color: #6b7280;">(555-1234)</span><br>
+              <span style="font-size: 0.9em; color: #6b7280;">2 meals • Grilled Chicken (420 cal) + Tuna Salad (380 cal)</span><br>
+              <span style="font-size: 0.85em;">
+                <button class="btn btn-secondary btn-sm" style="margin-top: 8px;">Ready to Pack</button>
+                <button class="btn btn-secondary btn-sm" style="margin-top: 8px;">Delivered</button>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px; background: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7;">
+          <button class="btn btn-primary">Print Delivery Tickets</button>
+          <button class="btn btn-secondary" style="margin-left: 10px;">Send Reminders</button>
+          <button class="btn btn-secondary" style="margin-left: 10px;">Generate Report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Dashboard View -->
+    <div id="customer" class="view-content">
+      <!-- Tab Navigation -->
+      <div class="customer-header">
+        <div class="customer-tabs">
+          <button class="customer-tab">📱 Home</button>
+          <button class="customer-tab">⭐ Loyalty</button>
+          <button class="customer-tab active">🍱 Meal Programs</button>
+        </div>
+      </div>
+
+      <!-- Active Program Card -->
+      <div class="program-hero">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+          <div>
+            <div class="program-hero-title">🍱 30-Day Standard Plan</div>
+            <div class="program-hero-desc">Your customized meal delivery program</div>
+          </div>
+          <span class="status-badge-lg">✓ Active</span>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-icon">📅</div>
+            <div class="metric-label">Days</div>
+            <div class="metric-value">30</div>
+          </div>
+          <div class="metric">
+            <div class="metric-icon">🍱</div>
+            <div class="metric-label">Meals/Day</div>
+            <div class="metric-value">2</div>
+          </div>
+          <div class="metric">
+            <div class="metric-icon">📦</div>
+            <div class="metric-label">Total</div>
+            <div class="metric-value">60</div>
+          </div>
+          <div class="metric">
+            <div class="metric-icon">⏱️</div>
+            <div class="metric-label">Valid</div>
+            <div class="metric-value">30d</div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section">
+          <div class="progress-title">
+            <span>Your Progress</span>
+            <span style="font-weight: normal; color: #6b7280;">30 / 60 meals</span>
+          </div>
+          <div class="progress-bar-lg">
+            <div class="progress-fill-lg"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85em; color: #6b7280;">
+            <span>Consumed</span>
+            <span>Progress: 50%</span>
+          </div>
+        </div>
+
+        <!-- Meals Remaining -->
+        <div class="meals-remaining">
+          <div class="meals-remaining-label">Meals Remaining</div>
+          <div class="meals-remaining-value">30</div>
+          <div class="meals-remaining-hint">About 15 days left</div>
+        </div>
+
+        <!-- Date Info -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+          <div style="background: white; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.8em; color: #6b7280; margin-bottom: 4px;">Started</div>
+            <div style="font-weight: bold; color: #1f2937;">2026-02-15</div>
+          </div>
+          <div style="background: white; padding: 12px; border-radius: 6px;">
+            <div style="font-size: 0.8em; color: #6b7280; margin-bottom: 4px;">Expires</div>
+            <div style="font-weight: bold; color: #1f2937;">2026-03-15</div>
+          </div>
+        </div>
+
+        <!-- Next Delivery -->
+        <div class="next-delivery">
+          <div class="next-delivery-title">📦 Next Delivery</div>
+          <div class="next-delivery-item">Tomorrow at 5:00 PM</div>
+          <div class="next-delivery-item">• Grilled Chicken with Rice - 420 cal</div>
+          <div class="next-delivery-item">• Tuna Salad - 380 cal</div>
+          <div class="next-delivery-item">📍 123 Sathorn Rd, Bangkok</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn btn-primary">⏸️ Pause Program</button>
+          <button class="btn btn-secondary">💬 Get Help</button>
+        </div>
+      </div>
+
+      <!-- Program Details Expandable Section -->
+      <div class="section">
+        <div class="section-title" style="cursor: pointer; user-select: none;">
+          <span>📋 [▼ EXPAND] Full Program Details</span>
+        </div>
+
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h4 style="color: #1f2937; margin-bottom: 12px;">Program Summary</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Duration</div>
+              <div style="font-weight: bold; color: #1f2937;">30 days (Feb 15 - Mar 15)</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Total Meals</div>
+              <div style="font-weight: bold; color: #1f2937;">60 meals (2 per day)</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Price/Meal</div>
+              <div style="font-weight: bold; color: #1f2937;">฿150 each</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Total Price</div>
+              <div style="font-weight: bold; color: #10b981;">฿9,000</div>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="color: #1f2937; margin-bottom: 12px; margin-top: 20px;">📊 Nutrition Tracking</h4>
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Avg Calories/Day</div>
+              <div style="font-weight: bold; color: #1f2937; font-size: 1.2em;">1,650 cal</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Protein</div>
+              <div style="font-weight: bold; color: #1f2937; font-size: 1.2em;">120g/day</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Carbs</div>
+              <div style="font-weight: bold; color: #1f2937; font-size: 1.2em;">180g/day</div>
+            </div>
+            <div>
+              <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Fat</div>
+              <div style="font-weight: bold; color: #1f2937; font-size: 1.2em;">45g/day</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="section">
+        <div class="section-title">📊 Your Meal Stats</div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-label">Meals This Month</div>
+            <div class="stat-value">120</div>
+            <div class="stat-desc">total consumed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏰</div>
+            <div class="stat-label">Time Saved</div>
+            <div class="stat-value">45h</div>
+            <div class="stat-desc">no shopping/cooking</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-label">Money Saved</div>
+            <div class="stat-value">฿3.5K</div>
+            <div class="stat-desc">vs eating out</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🌟</div>
+            <div class="stat-label">Your Rating</div>
+            <div class="stat-value">4.8★</div>
+            <div class="stat-desc">program quality</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showView(viewName) {
+      // Hide all views
+      document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+      // Remove active from all buttons
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      // Show selected view
+      document.getElementById(viewName).classList.add('active');
+      // Add active to clicked button
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

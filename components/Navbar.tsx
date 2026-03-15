@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useCart } from './CartProvider'
 import { supabase } from '@/lib/supabase/client'
-import { ShoppingBag, User, Home, UtensilsCrossed, Star, Phone } from 'lucide-react'
+import { ShoppingBag, User, Home, UtensilsCrossed, Star } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 
 export default function Navbar() {
@@ -55,30 +55,25 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Desktop/Top Navbar */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 h-[68px] flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-homie-lime to-homie-green rounded-xl flex items-center justify-center shadow-md shadow-lime-200/30">
-              <span className="text-white font-bold text-lg">H</span>
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-stone-200">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="w-10 h-10 bg-homie-green rounded-xl flex items-center justify-center">
+              <span className="text-white font-display font-bold text-lg">H</span>
             </div>
             <div className="leading-none">
-              <span className="font-display font-bold text-homie-green text-lg block">Homie</span>
-              <span className="text-[10px] font-medium text-homie-gray uppercase tracking-wider">Fresh meals, daily</span>
+              <span className="font-display font-semibold text-homie-green text-[15px] block">Homie</span>
+              <span className="text-[10px] text-stone-500 uppercase tracking-wider">Fresh meals, daily</span>
             </div>
           </Link>
 
-          {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-1">
             {desktopLinks.map(l => (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  pathname === l.href
-                    ? 'text-homie-green bg-lime-50 border border-lime-100'
-                    : 'text-homie-gray hover:text-homie-green hover:bg-gray-50'
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  pathname === l.href ? 'text-homie-green bg-stone-100' : 'text-stone-600 hover:text-homie-green'
                 }`}
               >
                 {l.label}
@@ -86,32 +81,31 @@ export default function Navbar() {
             ))}
             <Link
               href="/order"
-              className="ml-2 bg-homie-lime text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-homie-green transition-all"
+              className="ml-2 font-display font-semibold px-5 py-2.5 rounded-xl bg-homie-green text-white hover:bg-homie-lime transition-colors"
             >
               Order Now
             </Link>
           </div>
 
-          {/* Right actions */}
           <div className="flex items-center gap-3">
             {user ? (
-              <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-lime-50 hover:bg-lime-100/80 rounded-xl px-4 py-2 border border-lime-100 transition-colors">
-                <div className="w-6 h-6 bg-homie-lime rounded-full flex items-center justify-center">
+              <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-stone-100 rounded-xl px-4 py-2 border border-stone-200">
+                <div className="w-7 h-7 bg-homie-green rounded-lg flex items-center justify-center">
                   <span className="text-white text-xs font-bold">{firstName?.[0]?.toUpperCase() ?? 'U'}</span>
                 </div>
-                <span className="text-sm font-medium text-homie-dark">{firstName}</span>
+                <span className="text-sm font-medium text-stone-700">{firstName}</span>
                 <span className="text-xs font-semibold text-homie-green">{points} pts</span>
               </Link>
             ) : (
-              <Link href="/signin" className="hidden md:flex items-center gap-1.5 text-sm font-medium text-homie-gray hover:text-homie-green transition-colors">
-                <User size={16} />
-                <span>Sign In</span>
+              <Link href="/signin" className="hidden md:flex items-center gap-2 text-sm font-medium text-stone-600 hover:text-homie-green">
+                <User size={18} />
+                Sign In
               </Link>
             )}
-            <Link href="/order" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-              <ShoppingBag size={20} className="text-homie-green" />
+            <Link href="/order" className="relative p-2 rounded-xl hover:bg-stone-100">
+              <ShoppingBag size={22} className="text-stone-600" />
               {count > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none">
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-lg flex items-center justify-center font-bold">
                   {count}
                 </span>
               )}
@@ -120,8 +114,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-200">
         <div className="flex items-stretch h-16">
           {mobileNavItems.map(item => {
             const Icon = item.icon
@@ -131,30 +124,26 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
-                  isOrder
-                    ? 'text-white'
-                    : isActive
-                    ? 'text-homie-lime'
-                    : 'text-gray-400 hover:text-homie-green'
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative ${
+                  isOrder ? 'text-white' : isActive ? 'text-homie-green' : 'text-stone-400'
                 }`}
               >
                 {isOrder ? (
-                  <div className="absolute -top-4 w-14 h-14 bg-homie-lime rounded-full flex flex-col items-center justify-center shadow-lg shadow-lime-200">
-                    <Icon size={20} className="text-white" />
+                  <div className="absolute -top-4 w-14 h-14 bg-homie-green rounded-2xl flex items-center justify-center shadow-lg">
+                    <Icon size={22} />
                     {count > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-homie-orange text-white text-[10px] rounded-lg flex items-center justify-center font-bold">
                         {count}
                       </span>
                     )}
                   </div>
                 ) : (
                   <>
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                    <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                    <span className="text-[10px] font-medium">{item.label}</span>
                   </>
                 )}
-                {isOrder && <span className="text-[10px] font-semibold text-homie-lime mt-7 leading-none">Order</span>}
+                {isOrder && <span className="text-[10px] font-semibold text-homie-green mt-7">Order</span>}
               </Link>
             )
           })}

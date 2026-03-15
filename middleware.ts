@@ -21,7 +21,11 @@ export async function middleware(request: NextRequest) {
     }
   )
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session && request.nextUrl.pathname.startsWith('/dashboard')) {
+  const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+  const isPreview = request.nextUrl.searchParams.get('preview') === '1'
+  const isDev = process.env.NODE_ENV === 'development'
+
+  if (!session && isDashboard && !(isDev && isPreview)) {
     return NextResponse.redirect(new URL('/signin?redirect=' + request.nextUrl.pathname, request.url))
   }
   return response

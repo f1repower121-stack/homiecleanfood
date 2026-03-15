@@ -10,18 +10,22 @@ module.exports = {
     extend: {
       colors: {
         homie: {
-          green: '#2D5016',
-          lime: '#7CB518',
-          cream: '#F5F0E8',
-          orange: '#E8722A',
-          dark: '#1A1A1A',
-          gray: '#6B6B6B',
-        }
+          green: '#2d5a3d',
+          lime: '#4a7c59',
+          cream: '#faf7f4',
+          orange: '#c4704a',
+          dark: '#1c1917',
+          gray: '#57534e',
+        },
       },
       fontFamily: {
-        display: ['var(--font-display)'],
-        body: ['var(--font-body)'],
-      }
+        sans: ['DM Sans', '-apple-system', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
+      },
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.25rem',
+      },
     },
   },
   plugins: [],
