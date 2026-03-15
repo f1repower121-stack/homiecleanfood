@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomieClean - Loyalty Points System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f8fafb;
+            color: #1a1a1a;
+        }
+
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 20px;
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #10b981;
+            min-width: 150px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 30px;
+            flex: 1;
+        }
+
+        .tab {
+            padding: 8px 0;
+            font-size: 0.95em;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #999;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #10b981;
+            border-bottom-color: #10b981;
+        }
+
+        .tab:hover {
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* ============ DASHBOARD TAB WITH LOYALTY ============ */
+        .dashboard-header {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .dashboard-program {
+            flex: 1;
+        }
+
+        .dashboard-program-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+
+        .stat-progress {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .stat-progress-fill {
+            height: 100%;
+            background: #10b981;
+            transition: width 0.3s ease;
+        }
+
+        /* Loyalty Card */
+        .loyalty-card {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .loyalty-tier {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .loyalty-tier-name {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .loyalty-points {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .loyalty-to-next {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .loyalty-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .loyalty-progress-fill {
+            height: 100%;
+            background: white;
+            transition: width 0.3s ease;
+        }
+
+        /* Health Section */
+        .health-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .health-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .health-metric {
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #d1fae5;
+            text-align: center;
+        }
+
+        .health-metric-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 6px;
+        }
+
+        .health-metric-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* Rewards Section */
+        .rewards-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .reward-card {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .reward-card:hover {
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+        }
+
+        .reward-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .reward-points-needed {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .reward-progress {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .reward-progress-fill {
+            height: 100%;
+            background: #10b981;
+            transition: width 0.3s ease;
+        }
+
+        .reward-progress-text {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .reward-btn {
+            width: 100%;
+            padding: 10px;
+            background: #e5e7eb;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+
+        .reward-btn.available {
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+        }
+
+        .reward-btn.available:hover {
+            background: #059669;
+        }
+
+        /* Menu Tab with Loyalty */
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .program-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .program-card:hover {
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-color: #10b981;
+            transform: translateY(-4px);
+        }
+
+        .program-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3em;
+        }
+
+        .program-body {
+            padding: 20px;
+        }
+
+        .program-name {
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .program-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .program-price {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 12px;
+        }
+
+        .program-loyalty {
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            border-left: 4px solid #10b981;
+        }
+
+        .loyalty-points-text {
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .loyalty-benefit-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .program-cta {
+            width: 100%;
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .program-cta:hover {
+            background: #059669;
+        }
+
+        /* Admin Loyalty Stats */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-card-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 8px;
+        }
+
+        .stat-card-note {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-top {
+                grid-template-columns: 1fr;
+            }
+
+            .progress-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .programs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="navbar">
+        <div class="logo">🍜 HomieClean + Loyalty</div>
+        <div class="tabs">
+            <button class="tab" onclick="showTab(event, 'menu')">📋 Menu</button>
+            <button class="tab active" onclick="showTab(event, 'dashboard')">📊 Dashboard</button>
+            <button class="tab" onclick="showTab(event, 'admin')">⚙️ Admin</button>
+        </div>
+    </div>
+
+    <!-- ============ MENU TAB WITH LOYALTY ============ -->
+    <div id="menu" class="section">
+        <div class="container">
+            <h1 style="font-size: 1.8em; font-weight: 700; margin-bottom: 30px;">Meal Programs</h1>
+
+            <div class="programs-grid">
+                <!-- Program 1 -->
+                <div class="program-card">
+                    <div class="program-image">🥗</div>
+                    <div class="program-body">
+                        <div class="program-name">30-Day Health</div>
+                        <div class="program-meta">
+                            <span>30 meals • 30 days</span>
+                            <span>⭐ 4.8</span>
+                        </div>
+                        <div class="program-price">฿2,490</div>
+
+                        <!-- Loyalty Section -->
+                        <div class="program-loyalty">
+                            <div style="margin-bottom: 8px;">
+                                <span class="loyalty-points-text">🏆 Earn 300 points</span>
+                            </div>
+                            <div class="loyalty-benefit-text">+500 bonus for completing</div>
+                            <div class="loyalty-benefit-text" style="margin-top: 4px; font-weight: 600; color: #10b981;">= 1 free meal value</div>
+                        </div>
+
+                        <button class="program-cta">Subscribe Now</button>
+                    </div>
+                </div>
+
+                <!-- Program 2 -->
+                <div class="program-card">
+                    <div class="program-image">💪</div>
+                    <div class="program-body">
+                        <div class="program-name">45-Day Athlete</div>
+                        <div class="program-meta">
+                            <span>45 meals • 45 days</span>
+                            <span>⭐ 4.9</span>
+                        </div>
+                        <div class="program-price">฿3,990</div>
+
+                        <!-- Loyalty Section -->
+                        <div class="program-loyalty">
+                            <div style="margin-bottom: 8px;">
+                                <span class="loyalty-points-text">🏆 Earn 450 points</span>
+                            </div>
+                            <div class="loyalty-benefit-text">+500 bonus for completing</div>
+                            <div class="loyalty-benefit-text" style="margin-top: 4px; font-weight: 600; color: #10b981;">= Free meal + discount</div>
+                        </div>
+
+                        <button class="program-cta">Subscribe Now</button>
+                    </div>
+                </div>
+
+                <!-- Program 3 -->
+                <div class="program-card">
+                    <div class="program-image">⚡</div>
+                    <div class="program-body">
+                        <div class="program-name">60-Day Weight Loss</div>
+                        <div class="program-meta">
+                            <span>60 meals • 60 days</span>
+                            <span>⭐ 4.7</span>
+                        </div>
+                        <div class="program-price">฿5,990</div>
+
+                        <!-- Loyalty Section -->
+                        <div class="program-loyalty">
+                            <div style="margin-bottom: 8px;">
+                                <span class="loyalty-points-text">🏆 Earn 600 points</span>
+                            </div>
+                            <div class="loyalty-benefit-text">+500 bonus for completing</div>
+                            <div class="loyalty-benefit-text" style="margin-top: 4px; font-weight: 600; color: #10b981;">= Next program discount</div>
+                        </div>
+
+                        <button class="program-cta">Subscribe Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ DASHBOARD TAB WITH LOYALTY ============ -->
+    <div id="dashboard" class="section active">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="dashboard-top">
+                    <div class="dashboard-program">
+                        <h2 class="dashboard-program-title">Active Program: 30-Day Health</h2>
+                        <div class="progress-stats">
+                            <div class="stat">
+                                <div class="stat-label">Meals Consumed</div>
+                                <div class="stat-value">14/30</div>
+                                <div class="stat-progress">
+                                    <div class="stat-progress-fill" style="width: 47%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Days Completed</div>
+                                <div class="stat-value">14/30</div>
+                                <div class="stat-progress">
+                                    <div class="stat-progress-fill" style="width: 47%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Days Remaining</div>
+                                <div class="stat-value">16</div>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 8px;">On track ✓</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-label">Points Today</div>
+                                <div class="stat-value">+10</div>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 8px;">Meal logged</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loyalty Card -->
+                    <div class="loyalty-card">
+                        <div class="loyalty-tier">Your Status</div>
+                        <div class="loyalty-tier-name">🏆 SILVER</div>
+                        <div class="loyalty-points">825</div>
+                        <div class="loyalty-to-next">375 points to GOLD</div>
+                        <div class="loyalty-progress">
+                            <div class="loyalty-progress-fill" style="width: 69%;"></div>
+                        </div>
+                        <div style="margin-top: 16px; font-size: 0.9em;">
+                            <div>✓ 5% discount on all programs</div>
+                            <div>✓ Free shipping</div>
+                            <div>✓ Priority support</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="health-section">
+                <h3 class="section-title">Your Health Progress</h3>
+                <div class="health-metrics-grid">
+                    <div class="health-metric">
+                        <div class="health-metric-value">+28%</div>
+                        <div class="health-metric-label">Energy Level</div>
+                    </div>
+                    <div class="health-metric">
+                        <div class="health-metric-value">-1.8 kg</div>
+                        <div class="health-metric-label">Weight Change</div>
+                    </div>
+                    <div class="health-metric">
+                        <div class="health-metric-value">32g</div>
+                        <div class="health-metric-label">Avg Protein</div>
+                    </div>
+                    <div class="health-metric">
+                        <div class="health-metric-value">94%</div>
+                        <div class="health-metric-label">Target Hit</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rewards-section">
+                <h3 class="section-title">Your Available Rewards</h3>
+                <div class="rewards-grid">
+                    <!-- Reward 1 -->
+                    <div class="reward-card">
+                        <div class="reward-title">฿50 Off Next Program</div>
+                        <div class="reward-points-needed">300 points needed</div>
+                        <div class="reward-progress">
+                            <div class="reward-progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <div class="reward-progress-text">825 / 300 points (✓ Ready!)</div>
+                        <button class="reward-btn available">Redeem Now</button>
+                    </div>
+
+                    <!-- Reward 2 -->
+                    <div class="reward-card">
+                        <div class="reward-title">1 Free Meal</div>
+                        <div class="reward-points-needed">500 points needed</div>
+                        <div class="reward-progress">
+                            <div class="reward-progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <div class="reward-progress-text">825 / 500 points (✓ Ready!)</div>
+                        <button class="reward-btn available">Redeem Now</button>
+                    </div>
+
+                    <!-- Reward 3 -->
+                    <div class="reward-card">
+                        <div class="reward-title">Free Delivery (1 month)</div>
+                        <div class="reward-points-needed">500 points needed</div>
+                        <div class="reward-progress">
+                            <div class="reward-progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <div class="reward-progress-text">825 / 500 points (✓ Ready!)</div>
+                        <button class="reward-btn available">Redeem Now</button>
+                    </div>
+
+                    <!-- Reward 4 -->
+                    <div class="reward-card">
+                        <div class="reward-title">฿200 Off Any Program</div>
+                        <div class="reward-points-needed">1,000 points needed</div>
+                        <div class="reward-progress">
+                            <div class="reward-progress-fill" style="width: 83%;"></div>
+                        </div>
+                        <div class="reward-progress-text">825 / 1,000 points (175 to go)</div>
+                        <button class="reward-btn">Coming Soon (175 pts)</button>
+                    </div>
+
+                    <!-- Reward 5 -->
+                    <div class="reward-card">
+                        <div class="reward-title">Unlock GOLD Tier</div>
+                        <div class="reward-points-needed">1,200 points needed</div>
+                        <div class="reward-progress">
+                            <div class="reward-progress-fill" style="width: 69%;"></div>
+                        </div>
+                        <div class="reward-progress-text">825 / 1,200 points (375 to go)</div>
+                        <button class="reward-btn">Coming Soon (375 pts)</button>
+                    </div>
+
+                    <!-- Reward 6 -->
+                    <div class="reward-card">
+                        <div class="reward-title">Refer Friend Program</div>
+                        <div class="reward-points-needed">Share & Earn</div>
+                        <div style="padding: 12px; background: #ecfdf5; border-radius: 8px; text-align: center; margin-bottom: 12px;">
+                            <div style="font-weight: 600; color: #10b981; margin-bottom: 4px;">500 pts per signup</div>
+                            <div style="font-size: 0.85em; color: #666;">500 pts when they complete</div>
+                        </div>
+                        <button class="reward-btn available">Share Referral Link</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ ADMIN TAB WITH LOYALTY ANALYTICS ============ -->
+    <div id="admin" class="section">
+        <div class="container">
+            <h1 style="font-size: 1.8em; font-weight: 700; margin-bottom: 30px;">Loyalty Analytics</h1>
+
+            <div class="admin-stats">
+                <div class="stat-card">
+                    <div class="stat-card-label">Total Points Issued</div>
+                    <div class="stat-card-value">127,450</div>
+                    <div class="stat-card-note">Across all customers</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-label">Points Redeemed</div>
+                    <div class="stat-card-value">฿42,000</div>
+                    <div class="stat-card-note">As discounts & rewards</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-label">Loyalty ROI</div>
+                    <div class="stat-card-value">4.2x</div>
+                    <div class="stat-card-note">Revenue vs points cost</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-label">Repeat Rate</div>
+                    <div class="stat-card-value">75%</div>
+                    <div class="stat-card-note">+25% vs non-members</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-label">Referral Revenue</div>
+                    <div class="stat-card-value">฿420,000</div>
+                    <div class="stat-card-note">From 280 referred customers</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-label">Avg Customer LTV</div>
+                    <div class="stat-card-value">฿4,350</div>
+                    <div class="stat-card-note">+75% vs without loyalty</div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                <h3 style="font-size: 1.3em; font-weight: 700; margin-bottom: 20px;">Tier Distribution</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5em; font-weight: 700; color: #d97706; margin-bottom: 8px;">340</div>
+                        <div style="font-size: 1.1em; font-weight: 600; margin-bottom: 4px;">Bronze</div>
+                        <div style="color: #666; font-size: 0.9em;">32% of customers</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5em; font-weight: 700; color: #c0c0c0; margin-bottom: 8px;">280</div>
+                        <div style="font-size: 1.1em; font-weight: 600; margin-bottom: 4px;">Silver</div>
+                        <div style="color: #666; font-size: 0.9em;">26% of customers</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5em; font-weight: 700; color: #d4af37; margin-bottom: 8px;">250</div>
+                        <div style="font-size: 1.1em; font-weight: 600; margin-bottom: 4px;">Gold</div>
+                        <div style="color: #666; font-size: 0.9em;">23% of customers</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5em; font-weight: 700; color: #10b981; margin-bottom: 8px;">185</div>
+                        <div style="font-size: 1.1em; font-weight: 600; margin-bottom: 4px;">Platinum</div>
+                        <div style="color: #666; font-size: 0.9em;">17% of customers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(e, tabName) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(s => s.classList.remove('active'));
+
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            document.getElementById(tabName).classList.add('active');
+            e.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
