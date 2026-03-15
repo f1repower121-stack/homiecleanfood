@@ -161,7 +161,7 @@ export class LineClient {
     // Build item rows as Flex components - quantity bold & larger
     // Support both quantity and qty (orders may use either), ensure we get the true meal count
     const itemComponents = itemsArray.flatMap((item, idx) => {
-      const rawQty = item?.quantity ?? item?.qty ?? 1;
+      const rawQty = item?.quantity ?? (item as { qty?: number })?.qty ?? 1;
       const qty = Math.max(1, Math.round(Number(rawQty)));
       const name = String(item?.name || 'Item');
       const price = Number(item?.price) || 0;
@@ -183,7 +183,7 @@ export class LineClient {
       ];
     });
 
-    const totalMeals = itemsArray.reduce((sum, i) => sum + Math.max(1, Math.round(Number(i?.quantity ?? i?.qty ?? 1))), 0);
+    const totalMeals = itemsArray.reduce((sum, i) => sum + Math.max(1, Math.round(Number(i?.quantity ?? (i as { qty?: number })?.qty ?? 1))), 0);
     const itemsBoxContents = [
       { type: 'text', text: `Total: ${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: '#666666', margin: 'sm' },
       ...itemComponents,
