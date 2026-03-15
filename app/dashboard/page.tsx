@@ -292,8 +292,11 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-homie-gray">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#faf8f6]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-lime-200 border-t-homie-lime rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-homie-gray font-medium">Loading your dashboard...</p>
+        </div>
       </div>
     )
   }
@@ -329,30 +332,30 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#faf8f6]">
       <div className="flex min-h-screen">
         {/* Sidebar — desktop only */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white lg:shrink-0">
-          <div className="p-5 border-b border-gray-100">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-homie-lime to-homie-green rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-lime-200/50">
+        <aside className="hidden lg:flex lg:w-72 lg:flex-col lg:border-r lg:border-gray-200/80 lg:bg-white lg:shrink-0 lg:shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-11 h-11 bg-gradient-to-br from-homie-lime to-homie-green rounded-2xl flex items-center justify-center text-white font-bold shadow-lg shadow-lime-200/40 group-hover:shadow-lime-300/50 transition-shadow">
                 H
               </div>
               <div>
-                <span className="font-display font-bold text-homie-green block leading-tight">Homie</span>
-                <span className="text-[10px] text-homie-gray uppercase tracking-wider">Clean Food</span>
+                <span className="font-display font-bold text-homie-green block leading-tight text-lg">Homie</span>
+                <span className="text-[10px] text-homie-gray uppercase tracking-wider font-medium">Clean Food</span>
               </div>
             </Link>
           </div>
-          <nav className="flex-1 p-3 space-y-0.5">
+          <nav className="flex-1 p-4 space-y-1">
             {tabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   tab === t.key
-                    ? 'bg-lime-50 text-homie-green border border-lime-100'
-                    : 'text-homie-gray hover:bg-gray-50 hover:text-homie-dark border border-transparent'
+                    ? 'bg-lime-50 text-homie-green shadow-sm'
+                    : 'text-homie-gray hover:bg-gray-50/80 hover:text-homie-dark'
                 }`}
               >
                 {t.icon}
@@ -361,35 +364,35 @@ export default function DashboardPage() {
             ))}
           </nav>
           <div className="p-4 border-t border-gray-100">
-            <div className="bg-lime-50 border border-lime-100 rounded-xl p-4">
-              <p className="text-2xl font-bold text-homie-green">{userPoints.toLocaleString()} pts</p>
-              <p className="text-xs font-semibold text-homie-gray mt-0.5">{currentTier.emoji} {currentTier.name}</p>
+            <div className="bg-gradient-to-br from-lime-50 to-emerald-50/50 border border-lime-100 rounded-2xl p-5">
+              <p className="text-2xl font-bold text-homie-green">{userPoints.toLocaleString()}</p>
+              <p className="text-sm font-semibold text-homie-gray mt-1">{currentTier.emoji} {currentTier.name}</p>
             </div>
           </div>
         </aside>
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
-          <div className="max-w-4xl mx-auto px-4 py-6 lg:py-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="font-display text-2xl font-bold text-homie-green">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {firstName}</h1>
-                <p className="text-homie-gray text-sm mt-0.5">Your wellness dashboard</p>
+                <h1 className="font-display text-2xl sm:text-3xl font-bold text-homie-green tracking-tight">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {firstName}</h1>
+                <p className="text-homie-gray text-sm sm:text-base mt-1">Track meals, stay on goal</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-homie-gray hover:text-homie-green">
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-homie-gray hover:text-homie-green hover:bg-lime-50/50">
                 <LogOut size={16} /> Log out
               </Button>
             </div>
 
             {/* Mobile tabs */}
-            <div className="lg:hidden flex gap-2 p-2 bg-white rounded-xl border border-gray-100 mb-6 overflow-x-auto">
+            <div className="lg:hidden flex gap-2 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-x-auto">
               {tabs.map(t => (
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
-                    tab === t.key ? 'bg-homie-green text-white' : 'text-homie-gray hover:bg-gray-50'
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap ${
+                    tab === t.key ? 'bg-homie-green text-white shadow-sm' : 'text-homie-gray hover:bg-gray-50'
                   }`}
                 >
                   {t.icon}
@@ -403,30 +406,30 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Stats grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
-                <div className="text-2xl mb-2">🔥</div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:border-lime-100 transition-all">
+                <div className="text-3xl mb-3">🔥</div>
                 <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Consumed</p>
-                <p className="text-2xl font-bold text-homie-green mt-0.5">{todayCalories} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+                <p className="text-2xl sm:text-3xl font-bold text-homie-green mt-1">{todayCalories} <span className="text-base font-medium text-homie-gray">kcal</span></p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
-                <div className="text-2xl mb-2">🎯</div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:border-lime-100 transition-all">
+                <div className="text-3xl mb-3">🎯</div>
                 <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Daily goal</p>
-                <p className="text-2xl font-bold text-homie-green mt-0.5">{dailyGoal} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+                <p className="text-2xl sm:text-3xl font-bold text-homie-green mt-1">{dailyGoal} <span className="text-base font-medium text-homie-gray">kcal</span></p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all bg-lime-50/50">
-                <div className="text-2xl mb-2">✨</div>
+              <div className="bg-white rounded-2xl border border-lime-100 p-6 shadow-sm bg-lime-50/60">
+                <div className="text-3xl mb-3">✨</div>
                 <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Remaining</p>
-                <p className="text-2xl font-bold text-homie-lime mt-0.5">{remaining} kcal</p>
+                <p className="text-2xl sm:text-3xl font-bold text-homie-lime mt-1">{remaining} kcal</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
-                <div className="text-2xl mb-2">🏃</div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:border-lime-100 transition-all">
+                <div className="text-3xl mb-3">🏃</div>
                 <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Burned</p>
-                <p className="text-2xl font-bold text-homie-green mt-0.5">{burnedCalories} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+                <p className="text-2xl sm:text-3xl font-bold text-homie-green mt-1">{burnedCalories} <span className="text-base font-medium text-homie-gray">kcal</span></p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Calorie Goals</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -441,7 +444,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Daily Progress</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between text-sm mb-2">
@@ -456,7 +459,7 @@ export default function DashboardPage() {
             </Card>
             </div>
 
-            <Card className="border-gray-100 mt-6">
+            <Card className="border-gray-100 shadow-sm mt-6">
               <CardHeader><CardTitle>Weekly Progress</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-64">
@@ -474,12 +477,12 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/menu" className="inline-flex items-center gap-2 px-4 py-2.5 bg-homie-lime text-white font-semibold rounded-xl hover:bg-homie-green transition-colors text-sm">
+            <div className="mt-6">
+              <Link href="/menu" className="inline-flex items-center gap-2 px-6 py-3 bg-homie-lime text-white font-semibold rounded-xl hover:bg-homie-green hover:shadow-lg shadow-md transition-all text-sm">
                 Order again
               </Link>
             </div>
-            <Card className="border-gray-100 mt-6">
+            <Card className="border-gray-100 shadow-sm mt-6">
               <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
               <CardContent>
                 {orders.length === 0 ? (
@@ -488,12 +491,12 @@ export default function DashboardPage() {
                   <>
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Total</TableHead>
-                          <TableHead>Calories</TableHead>
-                          <TableHead>Points</TableHead>
-                          <TableHead>Action</TableHead>
+                        <TableRow className="border-gray-100 hover:bg-transparent">
+                          <TableHead className="text-homie-gray font-semibold">Date</TableHead>
+                          <TableHead className="text-homie-gray font-semibold">Total</TableHead>
+                          <TableHead className="text-homie-gray font-semibold">Calories</TableHead>
+                          <TableHead className="text-homie-gray font-semibold">Points</TableHead>
+                          <TableHead className="text-homie-gray font-semibold"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -501,7 +504,7 @@ export default function DashboardPage() {
                           const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
                           const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
                           return (
-                            <TableRow key={o.id} className="hover:bg-gray-50 cursor-pointer">
+                            <TableRow key={o.id} className="hover:bg-lime-50/50 cursor-pointer border-gray-50">
                               <TableCell>{formatDateICT(o.created_at)}</TableCell>
                               <TableCell>฿{o.total}</TableCell>
                               <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
@@ -566,14 +569,14 @@ export default function DashboardPage() {
                 { label: 'Remaining', value: remaining, color: 'text-homie-lime' },
                 { label: 'Daily Goal', value: dailyGoal, color: 'text-homie-green' },
               ].map(s => (
-                <div key={s.label} className="text-center p-4 bg-white border border-gray-100 rounded-2xl">
+                <div key={s.label} className="text-center p-5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-xs text-homie-gray">{s.label}</p>
+                  <p className="text-xs text-homie-gray mt-1">{s.label}</p>
                 </div>
               ))}
             </div>
             {/* Log exercise */}
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Log Exercise</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -591,7 +594,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
             {/* Today's workouts */}
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Today&apos;s Workouts</CardTitle></CardHeader>
               <CardContent>
                 <Table>
@@ -619,7 +622,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
             {/* Recommended meals */}
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader>
                 <CardTitle>Recommended Menus</CardTitle>
                 <p className="text-sm text-homie-gray mt-1">Meals that fit your remaining {remaining} kcal</p>
@@ -654,7 +657,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
 
             {/* Points card */}
-            <div className="bg-homie-green text-white rounded-3xl p-8 relative overflow-hidden">
+            <div className="bg-homie-green text-white rounded-3xl p-8 relative overflow-hidden shadow-lg">
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #7CB518 0%, transparent 60%)' }} />
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
@@ -684,7 +687,7 @@ export default function DashboardPage() {
             </div>
 
             {/* How to earn */}
-            <Card>
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>How to Earn Points</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -705,7 +708,7 @@ export default function DashboardPage() {
             </Card>
 
             {/* Member tiers */}
-            <Card>
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Member Tiers</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -742,7 +745,7 @@ export default function DashboardPage() {
         {tab === 'profile' && (
           <div className="space-y-6">
             {/* Points & Tier — prominent, big, clear */}
-            <div className="bg-gradient-to-br from-homie-green to-homie-green/90 rounded-2xl p-8 border border-lime-200">
+            <div className="bg-gradient-to-br from-homie-green to-homie-green/90 rounded-2xl p-8 shadow-lg">
               <p className="text-lime-200 text-sm font-semibold uppercase tracking-wider mb-2">Loyalty Points</p>
               <p className="text-white text-4xl md:text-5xl font-bold">{userPoints.toLocaleString()}</p>
               <p className="text-white/90 text-lg mt-1">points</p>
@@ -754,7 +757,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Account Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -781,7 +784,7 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-gray-100">
+            <Card className="border-gray-100 shadow-sm">
               <CardHeader><CardTitle>Saved Addresses</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-sm text-homie-gray mb-4">Use these addresses at checkout for faster ordering</p>
@@ -831,8 +834,8 @@ export default function DashboardPage() {
 
       {/* REORDER MODAL */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 bg-black/50">
-          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-xl w-full md:max-w-lg max-h-[90vh] md:max-h-[90vh] flex flex-col p-6 space-y-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-t-3xl md:rounded-2xl shadow-2xl w-full md:max-w-lg max-h-[90vh] md:max-h-[90vh] flex flex-col p-6 space-y-4 overflow-y-auto border border-gray-100">
             {/* Header */}
             <div className="flex justify-between items-center">
               <h2 className="font-display text-2xl font-bold text-homie-green">Reorder</h2>
