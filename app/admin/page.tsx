@@ -26,7 +26,7 @@ type MenuItem = {
 }
 type Customer = {
   id: string; full_name: string; email: string; phone: string
-  points: number; tier: string; created_at: string
+  points: number; tier: string; created_at: string; total_spent?: number
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -126,16 +126,29 @@ export default function AdminPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [custSearch, setCustSearch] = useState('')
   const [custLoading, setCustLoading] = useState(false)
+  const [custError, setCustError] = useState<string | null>(null)
 
   // Loyalty management
   const [loyaltySearch, setLoyaltySearch] = useState('')
   const [editingPoints, setEditingPoints] = useState<string|null>(null)
   const [pointsInput, setPointsInput] = useState('')
+  const [pointsMode, setPointsMode] = useState<'add'|'set'>('add')
+  const [editingName, setEditingName] = useState<string|null>(null)
+  const [nameInput, setNameInput] = useState('')
+  const [editingPhone, setEditingPhone] = useState<string|null>(null)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string|null>(null)
   const [pointsMsg, setPointsMsg] = useState('')
   const [pointsSaving, setPointsSaving] = useState(false)
 
   // Analytics
   const [period, setPeriod] = useState('7')
+
+  // Referrals
+  const [referrals, setReferrals] = useState<any[]>([])
+  const [referralCodes, setReferralCodes] = useState<any[]>([])
+  const [referralsLoading, setReferralsLoading] = useState(false)
+  const [referralsStats, setReferralsStats] = useState({ total: 0, completed: 0, pending: 0 })
 
   // Push Notifications
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
@@ -145,14 +158,16 @@ export default function AdminPage() {
   const fetchOrders = useCallback(async () => {
     setLoadingOrders(true)
     try {
-      const { data, error } = await supabase.from('orders').select('*').order('created_at',{ascending:false})
-
-      if (error) {
-        console.error('❌ Error fetching orders:', error)
+      // Use API to bypass RLS and get ALL orders
+      const res = await fetch('/api/admin/orders')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('❌ Error fetching orders:', err)
         setOrders([])
         setLoadingOrders(false)
         return
       }
+      const { orders: data } = await res.json()
 
       // Send notification for new order
       if (data && data.length > 0 && notificationsEnabled) {
@@ -170,17 +185,24 @@ export default function AdminPage() {
 
           // Trigger server-side Web Push to all subscribed devices
           try {
+            // Build item list with size (bulk/lean)
             const itemNames = (latestOrder.items || [])
               .slice(0, 2)
-              .map((i: any) => i.name)
+              .map((i: any) => {
+                const size = i.size === 'bulk' ? '(B)' : i.size === 'lean' ? '(L)' : ''
+                return `${i.name} ${size}`.trim()
+              })
               .join(', ')
             const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
+
+            // Get delivery time from order (format: HH:MM or similar)
+            const deliveryTime = latestOrder.delivery_time || 'ASAP'
 
             const response = await fetch('/api/send-push-notification', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                title: `🎉 New Order from ${latestOrder.customer_name || 'Customer'}`,
+                title: `🌿 Website Order - ${deliveryTime}`,
                 body: `${itemNames}${itemsSuffix} - ฿${latestOrder.total || 0}`,
                 data: {
                   orderId: latestOrder.id,
@@ -218,13 +240,16 @@ export default function AdminPage() {
   // ✅ FIXED: fetch from API endpoint that bypasses RLS
   const fetchCustomers = useCallback(async () => {
     setCustLoading(true)
+    setCustError(null)
     try {
       // Use API endpoint to bypass RLS and get ALL customers
       const response = await fetch('/api/admin/customers')
 
       if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json().catch(() => ({}))
+        const msg = error?.error || `API error ${response.status}`
         console.error('❌ Error fetching customers from API:', error)
+        setCustError(msg)
         setCustomers([])
         setCustLoading(false)
         return
@@ -247,10 +272,33 @@ export default function AdminPage() {
       setCustomers(enriched)
       console.log(`✅ Enriched ${enriched.length} customers with order data`)
     } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to load customers'
       console.error('❌ Unexpected error in fetchCustomers:', e)
+      setCustError(msg)
       setCustomers([])
     }
     setCustLoading(false)
+  }, [])
+
+  const fetchReferrals = useCallback(async () => {
+    setReferralsLoading(true)
+    try {
+      const res = await fetch('/api/admin/referrals')
+      if (!res.ok) throw new Error('Failed to fetch')
+      const data = await res.json()
+      setReferrals(data.referrals || [])
+      setReferralCodes(data.referralCodes || [])
+      setReferralsStats({
+        total: data.totalReferrals ?? 0,
+        completed: data.completedCount ?? 0,
+        pending: data.pendingCount ?? 0,
+      })
+    } catch (e) {
+      console.error('Failed to fetch referrals:', e)
+      setReferrals([])
+      setReferralCodes([])
+    }
+    setReferralsLoading(false)
   }, [])
 
   // Load PromptPay phone from DB + generate QR
@@ -304,11 +352,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!authed) return
-    fetchOrders(); fetchMenu(); fetchCustomers()
+    fetchOrders(); fetchMenu(); fetchCustomers(); fetchReferrals()
     // Poll every 10 seconds for new orders (faster notification delivery)
     const t = setInterval(fetchOrders, 10000)
     return () => clearInterval(t)
-  }, [authed, fetchOrders, fetchMenu, fetchCustomers])
+  }, [authed, fetchOrders, fetchMenu, fetchCustomers, fetchReferrals])
 
   // Request notification permission and register service worker when admin logs in
   useEffect(() => {
@@ -414,6 +462,94 @@ export default function AdminPage() {
     } catch {
       setPointsMsg('❌ Failed')
       setTimeout(() => setPointsMsg(''), 3000)
+    }
+    setPointsSaving(false)
+  }
+
+  const applyPoints = (customerId: string) => {
+    if (pointsMode === 'set') {
+      const val = parseInt(pointsInput)
+      if (!isNaN(val)) setAbsolutePoints(customerId, Math.max(0, val))
+    } else {
+      savePoints(customerId)
+    }
+  }
+
+  const exportCustomersCSV = () => {
+    const cols = ['Name','Email','Phone','Points','Tier','Total Spent','Join Date']
+    const rows = customers.map(c => [
+      c.full_name || '',
+      c.email || '',
+      c.phone || '',
+      String(c.points ?? 0),
+      c.tier || getTierFromPoints(c.points || 0),
+      String(c.total_spent ?? 0),
+      c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB') : ''
+    ])
+    const csv = [cols.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `customers-${new Date().toISOString().slice(0,10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const saveCustomerName = async (customerId: string) => {
+    if (!nameInput.trim()) return
+    setPointsSaving(true)
+    try {
+      const res = await fetch('/api/admin/customers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, full_name: nameInput.trim() })
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setPointsMsg('Name updated ✅')
+      setEditingName(null)
+      setNameInput('')
+      fetchCustomers()
+      setTimeout(() => setPointsMsg(''), 3000)
+    } catch {
+      setPointsMsg('❌ Failed to update name')
+      setTimeout(() => setPointsMsg(''), 3000)
+    }
+    setPointsSaving(false)
+  }
+
+  const saveCustomerPhone = async (customerId: string) => {
+    setPointsSaving(true)
+    try {
+      const res = await fetch('/api/admin/customers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, phone: phoneInput.trim() })
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setPointsMsg('Phone updated ✅')
+      setEditingPhone(null)
+      setPhoneInput('')
+      fetchCustomers()
+      setTimeout(() => setPointsMsg(''), 3000)
+    } catch {
+      setPointsMsg('❌ Failed to update phone')
+      setTimeout(() => setPointsMsg(''), 3000)
+    }
+    setPointsSaving(false)
+  }
+
+  const deleteCustomer = async (customerId: string) => {
+    setPointsSaving(true)
+    try {
+      const res = await fetch(`/api/admin/customers?customerId=${encodeURIComponent(customerId)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setDeleteConfirmId(null)
+      setPointsMsg('Customer deleted ✅')
+      fetchCustomers()
+      setTimeout(() => setPointsMsg(''), 3000)
+    } catch (e) {
+      setPointsMsg('❌ Failed to delete: ' + (e instanceof Error ? e.message : 'Error'))
+      setTimeout(() => setPointsMsg(''), 4000)
     }
     setPointsSaving(false)
   }
@@ -865,9 +1001,14 @@ export default function AdminPage() {
           {/* ═══ CUSTOMERS ════════════════════════════════════════════════ */}
           {tab==='customers' && (
             <div>
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">Customers</h2>
-                <p className={`text-sm ${muted}`}>{customers.length} registered users</p>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Customers</h2>
+                  <p className={`text-sm ${muted}`}>{customers.length} registered users</p>
+                </div>
+                <button onClick={exportCustomersCSV} disabled={custLoading || customers.length === 0} className="text-sm border rounded-xl px-4 py-2 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2">
+                  📥 Export CSV
+                </button>
               </div>
               <input placeholder="Search by name..."
                 value={custSearch} onChange={e=>setCustSearch(e.target.value)}
@@ -879,13 +1020,26 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {!custLoading && customers.length === 0 && (
+              {!custLoading && custError && (
+                <div className="text-center py-12 px-4">
+                  <p className="text-amber-600 font-medium">⚠️ Could not load customers</p>
+                  <p className="text-sm text-gray-500 mt-1">{custError}</p>
+                  <p className="text-xs text-gray-400 mt-2">Check SUPABASE_SERVICE_ROLE_KEY in Vercel</p>
+                  <button onClick={() => fetchCustomers()} className="mt-4 px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Retry</button>
+                </div>
+              )}
+              {!custLoading && !custError && customers.length === 0 && (
                 <div className={`text-center py-16 ${muted}`}>
                   <p className="text-4xl mb-2">👥</p>
                   <p>No customers yet</p>
+                  <p className="text-sm mt-2">Run migration 005_backfill_profiles.sql in Supabase to add existing users</p>
                 </div>
               )}
 
+              {pointsMsg && !custLoading && (
+                <div className={`p-3 rounded-xl text-sm font-medium mb-4 ${pointsMsg.includes('✅')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200'}`}>{pointsMsg}</div>
+              )}
+              {!custLoading && !custError && customers.length > 0 && (
               <div className="grid gap-3">
                 {customers
                   .filter(c=>!custSearch ||
@@ -893,75 +1047,188 @@ export default function AdminPage() {
                   .map(c=>{
                     const tier = c.tier || getTierFromPoints(c.points || 0)
                     const badge = TIER_BADGE[tier] || TIER_BADGE['Homie']
+                    const isEditingPoints = editingPoints === c.id
+                    const isEditingName = editingName === c.id
+                    const isEditingPhone = editingPhone === c.id
                     return (
-                      <div key={c.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow`}>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
-                          {(c.full_name||'?')[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm">{c.full_name||'Unknown'}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                      <div key={c.id} className={`${card} border rounded-2xl p-4 ${(isEditingPoints||isEditingName||isEditingPhone)?(dm?'bg-gray-800/50':'bg-green-50/30'):''} transition-shadow`}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
+                            {(c.full_name||'?')[0].toUpperCase()}
                           </div>
-                          <p className={`text-xs ${muted}`}>Joined {new Date(c.created_at).toLocaleDateString('en-GB')}</p>
+                          <div className="flex-1 min-w-0">
+                            {isEditingName ? (
+                              <div className="flex gap-2 items-center">
+                                <input value={nameInput} onChange={e=>setNameInput(e.target.value)} placeholder="Full name" className={`${inputCls} flex-1 py-2`} onKeyDown={e=>e.key==='Enter'&&saveCustomerName(c.id)}/>
+                                <button onClick={()=>saveCustomerName(c.id)} disabled={pointsSaving||!nameInput.trim()} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
+                                <button onClick={()=>{setEditingName(null);setNameInput('')}} className={`text-xs ${muted}`}>Cancel</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm">{c.full_name||'Unknown'}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                                <button onClick={()=>{setEditingName(c.id);setNameInput(c.full_name||'')}} className="text-xs text-gray-400 hover:text-green-600">Edit</button>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                              {c.email && <span className={`text-xs ${muted}`} title="Email (from auth)">📧 {c.email}</span>}
+                              {isEditingPhone ? (
+                                <div className="flex gap-1.5 items-center">
+                                  <input value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} placeholder="Phone" className={`${inputCls} py-1 text-xs w-36`} onKeyDown={e=>e.key==='Enter'&&saveCustomerPhone(c.id)}/>
+                                  <button onClick={()=>saveCustomerPhone(c.id)} disabled={pointsSaving} className="px-2 py-1 bg-green-600 text-white rounded text-xs disabled:opacity-50">Save</button>
+                                  <button onClick={()=>{setEditingPhone(null);setPhoneInput('')}} className={`text-xs ${muted}`}>✕</button>
+                                </div>
+                              ) : (
+                                <span className={`text-xs ${muted}`}>
+                                  📞 {c.phone || '—'}
+                                  <button onClick={()=>{setEditingPhone(c.id);setPhoneInput(c.phone||'')}} className="ml-1 text-gray-400 hover:text-green-600">Edit</button>
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-xs ${muted}`}>Joined {new Date(c.created_at).toLocaleDateString('en-GB')}</p>
+                          </div>
+                          <div className="text-right shrink-0 flex items-center gap-2">
+                            <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
+                            {!isEditingPoints ? (
+                              <button onClick={()=>{setEditingPoints(c.id);setPointsInput('');setPointsMode('add')}} className="text-xs border px-3 py-1.5 rounded-xl hover:bg-gray-50">Edit Points</button>
+                            ) : (
+                              <button onClick={()=>{setEditingPoints(null);setPointsInput('')}} className={`text-xs ${muted}`}>✕</button>
+                            )}
+                            <button onClick={()=>setDeleteConfirmId(c.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-300">Delete</button>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
-                        </div>
+                        {isEditingPoints && (
+                          <div className={`mt-4 p-4 rounded-2xl border ${dm?'bg-gray-800 border-gray-700':'bg-white border-gray-200'}`}>
+                            <div className="flex gap-2 mb-3">
+                              <button onClick={()=>setPointsMode('add')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='add'?'bg-green-600 text-white border-green-600':'border-gray-200 text-gray-600'}`}>Add / Remove</button>
+                              <button onClick={()=>setPointsMode('set')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='set'?'bg-blue-600 text-white border-blue-600':'border-gray-200 text-gray-600'}`}>Set Exact</button>
+                            </div>
+                            <div className="flex gap-2 mb-2">
+                              <input type="number" placeholder={pointsMode==='add'?'e.g. 50 or -20':`Current: ${c.points||0}`} value={pointsInput} onChange={e=>setPointsInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&applyPoints(c.id)} className={`${inputCls} flex-1`}/>
+                              <button onClick={()=>applyPoints(c.id)} disabled={pointsSaving||!pointsInput} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">{pointsSaving?'...':pointsMode==='set'?'Set':'Apply'}</button>
+                            </div>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {[10,25,50,100,200,-50,-100].map(n=>(
+                                <button key={n} onClick={()=>setPointsInput(String(n))} className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${n>0?'border-green-200 text-green-600 hover:bg-green-50':'border-red-200 text-red-500 hover:bg-red-50'}`}>{n>0?`+${n}`:n}</button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
               </div>
+              )}
+              {/* Delete customer confirmation modal */}
+              {deleteConfirmId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className={`${card} border rounded-2xl p-6 max-w-sm w-full shadow-xl`}>
+                    <h3 className="font-bold text-lg mb-2">Delete customer?</h3>
+                    <p className={`text-sm ${muted} mb-4`}>
+                      This will remove the customer account and profile. Orders will remain for records. This cannot be undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <button onClick={()=>deleteCustomer(deleteConfirmId)} disabled={pointsSaving} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50">
+                        {pointsSaving ? 'Deleting...' : 'Delete'}
+                      </button>
+                      <button onClick={()=>setDeleteConfirmId(null)} disabled={pointsSaving} className="flex-1 py-2.5 border rounded-xl font-semibold text-gray-600 hover:bg-gray-50">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
                     {tab==='loyalty' && (
-            <AdminLoyaltyTab darkMode={dm} />
+            <AdminLoyaltyTab
+              darkMode={dm}
+              customers={customers.map(c => ({ id: c.id, full_name: c.full_name, points: c.points, tier: c.tier || getTierFromPoints(c.points || 0), created_at: c.created_at }))}
+              customersLoading={custLoading}
+            />
           )}
 
           {/* ═══ REFERRAL SYSTEM ════════════════════════════════════════════ */}
           {tab==='referrals' && (
             <div>
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">🎁 Referral System</h2>
-                <p className={`text-sm ${muted}`}>Manage customer referrals and rewards</p>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">🎁 Referral System</h2>
+                  <p className={`text-sm ${muted}`}>Manage customer referrals and rewards</p>
+                </div>
+                <button onClick={fetchReferrals} disabled={referralsLoading} className="text-sm border rounded-xl px-3 py-2 hover:bg-gray-50 disabled:opacity-50">
+                  {referralsLoading ? 'Loading...' : '↻ Refresh'}
+                </button>
               </div>
+              {referralsLoading ? (
+                <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/></div>
+              ) : (
+                <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className={`${card} border rounded-2xl p-5`}>
                   <p className={`text-sm ${muted} mb-1`}>Total Referrals</p>
-                  <p className="text-3xl font-bold text-green-600">0</p>
-                  <p className={`text-xs ${muted} mt-1`}>Pending activation</p>
+                  <p className="text-3xl font-bold text-green-600">{referralsStats.total}</p>
+                  <p className={`text-xs ${muted} mt-1`}>Signups with referral code</p>
                 </div>
                 <div className={`${card} border rounded-2xl p-5`}>
-                  <p className={`text-sm ${muted} mb-1`}>Active Referrals</p>
-                  <p className="text-3xl font-bold text-emerald-600">0</p>
-                  <p className={`text-xs ${muted} mt-1`}>Successfully referred customers</p>
+                  <p className={`text-sm ${muted} mb-1`}>Completed</p>
+                  <p className="text-3xl font-bold text-emerald-600">{referralsStats.completed}</p>
+                  <p className={`text-xs ${muted} mt-1`}>Referred friend made first order</p>
                 </div>
                 <div className={`${card} border rounded-2xl p-5`}>
-                  <p className={`text-sm ${muted} mb-1`}>Total Rewards Given</p>
-                  <p className="text-3xl font-bold text-orange-600">฿0</p>
-                  <p className={`text-xs ${muted} mt-1`}>Referral bonuses</p>
+                  <p className={`text-sm ${muted} mb-1`}>Pending</p>
+                  <p className="text-3xl font-bold text-amber-600">{referralsStats.pending}</p>
+                  <p className={`text-xs ${muted} mt-1`}>Awaiting first order</p>
+                </div>
+              </div>
+
+              <div className={`${card} border rounded-2xl p-6 mb-4`}>
+                <h3 className="font-bold mb-4">📋 Customer Referral Codes</h3>
+                <div className={`${dm?'bg-gray-800':'bg-gray-50'} rounded-xl p-4`}>
+                  {referralCodes.length === 0 ? (
+                    <p className={`text-sm ${muted} text-center`}>No referral codes yet. Codes are auto-generated when customers sign up.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {referralCodes.map((p: any) => (
+                        <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
+                          <span className="font-medium">{p.full_name || 'Unknown'}</span>
+                          <span className="font-mono text-sm text-green-600 font-bold tracking-wider">{p.referral_code}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className={`${card} border rounded-2xl p-6`}>
-                <h3 className="font-bold mb-4">📋 Referral Codes</h3>
-                <div className={`${dm?'bg-gray-800':'bg-gray-50'} rounded-xl p-4 text-center`}>
-                  <p className={`text-sm ${muted} mb-3`}>No active referral codes</p>
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700">
-                    ➕ Create Referral Code
-                  </button>
-                </div>
-              </div>
-
-              <div className={`${card} border rounded-2xl p-6 mt-4`}>
                 <h3 className="font-bold mb-4">📊 Recent Referrals</h3>
-                <div className={`text-center py-12 ${muted}`}>
-                  <p className="text-4xl mb-2">🎯</p>
-                  <p>No referrals yet</p>
-                  <p className="text-xs mt-2">Referrals will appear here once customers start using your referral codes</p>
-                </div>
+                {referrals.length === 0 ? (
+                  <div className={`text-center py-12 ${muted}`}>
+                    <p className="text-4xl mb-2">🎯</p>
+                    <p>No referrals yet</p>
+                    <p className="text-xs mt-2">Referrals appear when new customers sign up with a referral code and make their first order</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {referrals.map((r: any) => (
+                      <div key={r.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                        <div>
+                          <p className="font-medium">{r.referrer_name} → {r.referred_user_name}</p>
+                          <p className={`text-xs ${muted}`}>{new Date(r.created_at).toLocaleString('th-TH')} · Code: {r.referral_code}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          r.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {r.status === 'completed' ? 'Completed (+100 pts)' : 'Pending'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+                </>
+              )}
             </div>
           )}
 
