@@ -107,6 +107,7 @@ export class LineClient {
     items: Array<{ name: string; quantity: number; price: number }>;
     totalPrice: number;
     deliveryAddress: string;
+    deliveryTime: string;
     orderTime: string;
     paymentSlipUrl?: string;
   }): Promise<void> {
@@ -141,6 +142,7 @@ export class LineClient {
     items: Array<{ name: string; quantity: number; price: number }>;
     totalPrice: number;
     deliveryAddress: string;
+    deliveryTime: string;
     orderTime: string;
     paymentSlipUrl?: string;
   }): LineFlexMessage {
@@ -154,7 +156,7 @@ export class LineClient {
       console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
     }
 
-    // Create detailed item display with portions - show ALL items
+    // Create detailed item display with portions - show ALL items with Bulk/Lean clearly
     const itemsText = itemsArray
       .map((item, idx) => {
         const qty = Number(item?.quantity) || 1;
@@ -164,9 +166,10 @@ export class LineClient {
         // Extract portion type from name (Bulk/Lean/Regular)
         const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
         const portion = portionMatch ? portionMatch[1] : '';
+        const portionEmoji = portion.toLowerCase() === 'bulk' ? '💪' : portion.toLowerCase() === 'lean' ? '🏃' : '';
         const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
 
-        return `${idx + 1}. ${qty}× ${baseName}\n   ${portion ? `[${portion}] ` : ''}฿${itemTotal}`;
+        return `${idx + 1}. ${qty}× ${baseName}  ${portionEmoji}${portion}\n   ฿${itemTotal}`;
       })
       .join('\n');
 
@@ -213,6 +216,32 @@ export class LineClient {
                   weight: 'bold',
                   size: 'lg',
                   color: '#333333',
+                },
+              ],
+            },
+
+            // Delivery Time - PROMINENT
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'md',
+              paddingAll: 'md',
+              backgroundColor: '#1DB446',
+              cornerRadius: 'md',
+              contents: [
+                {
+                  type: 'text',
+                  text: '⏰ DELIVERY TIME',
+                  size: 'xs',
+                  color: '#ffffff',
+                  weight: 'bold',
+                },
+                {
+                  type: 'text',
+                  text: orderData.deliveryTime,
+                  size: 'lg',
+                  weight: 'bold',
+                  color: '#ffffff',
                 },
               ],
             },

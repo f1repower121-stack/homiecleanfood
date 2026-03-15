@@ -40,12 +40,13 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
 
     // Send rich flex message with order details
     await lineClient.sendOrderNotification({
-      orderId: order.id, // Use full order ID for order details page link
+      orderId: order.id,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
       items: order.items,
       totalPrice: order.total,
       deliveryAddress: order.delivery_address,
+      deliveryTime: order.delivery_time || 'ASAP',
       orderTime: order.created_at || new Date().toISOString(),
       paymentSlipUrl: order.payment_slip_url,
     });
