@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
 import CartProvider from '@/components/CartProvider'
 import PushNotificationSetup from '@/components/PushNotificationSetup'
+import RouteAwareLayout from '@/components/RouteAwareLayout'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -31,11 +30,7 @@ export default function RootLayout({
       <body>
         <PushNotificationSetup />
         <CartProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
+          <RouteAwareLayout>{children}</RouteAwareLayout>
         </CartProvider>
       </body>
     </html>

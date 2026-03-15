@@ -31,16 +31,19 @@ export async function POST(request: NextRequest) {
     // Create admin client at request time (not build time)
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    // Create profile record
+    // Upsert profile (works whether DB trigger already created one or not)
     const { data, error } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        full_name: fullName || 'Customer',
-        points: 0,
-        tier: 'Homie',
-        created_at: new Date().toISOString(),
-      })
+      .upsert(
+        {
+          id: userId,
+          full_name: fullName || 'Customer',
+          points: 0,
+          tier: 'Homie',
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
       .select()
 
     if (error) {

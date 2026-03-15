@@ -167,7 +167,8 @@ export class LineClient {
         const itemTotal = (price * qty).toLocaleString('th-TH');
 
         // Try to get portion from item.size or item.portion field, then from name
-        let portion = String(item?.size || item?.portion || '').toUpperCase();
+        const it = item as { size?: string; portion?: string }
+        let portion = String(it?.size || it?.portion || '').toUpperCase();
         if (!portion) {
           const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
           portion = portionMatch ? portionMatch[1].toUpperCase() : '';

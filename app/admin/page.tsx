@@ -6,6 +6,7 @@ import NotificationBell from '@/components/admin/NotificationBell'
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
 import { requestNotificationPermission, sendOrderNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/lib/pushNotifications'
+import { LayoutDashboard, Package, UtensilsCrossed, Users, Star, Gift, BarChart3, Settings, Sun, Moon, LogOut, Menu, RefreshCw, ChevronDown, DollarSign, TrendingUp, CheckCircle, Truck, ChefHat, MoreHorizontal, X, Search, ChevronUp, FileDown } from 'lucide-react'
 
 const ADMIN_PASSWORD = 'homie2024'
 
@@ -25,7 +26,7 @@ type MenuItem = {
   fat_lean: number; available: boolean; meal_type?: string
 }
 type Customer = {
-  id: string; full_name: string; email: string; phone: string
+  id: string; full_name: string; email: string; phone: string; address?: string
   points: number; tier: string; created_at: string; total_spent?: number
 }
 
@@ -75,19 +76,23 @@ function Badge({s}:{s:string}) {
   </span>
 }
 
-function StatCard({icon,label,value,sub,color='green'}:{icon:string,label:string,value:string|number,sub?:string,color?:string}) {
-  const colors:Record<string,string> = {
-    green:'from-emerald-500 to-green-600',
-    orange:'from-orange-400 to-amber-500',
-    blue:'from-blue-500 to-indigo-600',
-    purple:'from-purple-500 to-violet-600',
+function StatCard({icon,label,value,sub,color='slate',darkMode}:{icon:React.ReactNode,label:string,value:string|number,sub?:string,color?:string,darkMode?:boolean}) {
+  const accents:Record<string,string> = {
+    slate:'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
+    blue:'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400',
+    emerald:'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400',
+    amber:'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400',
   }
+  const dm = darkMode ?? false
   return (
-    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center text-lg mb-3`}>{icon}</div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{label}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    <div className={`rounded-lg p-5 border transition-colors
+      ${dm ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/80'}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${accents[color]||accents.slate}`}>
+        {icon}
+      </div>
+      <p className={`text-2xl font-semibold tracking-tight tabular-nums ${dm?'text-white':'text-slate-900'}`}>{value}</p>
+      <p className={`text-sm mt-0.5 ${dm?'text-slate-400':'text-slate-500'}`}>{label}</p>
+      {sub && <p className={`text-xs mt-1.5 ${dm?'text-slate-500':'text-slate-400'}`}>{sub}</p>}
     </div>
   )
 }
@@ -99,7 +104,7 @@ export default function AdminPage() {
   const [pwErr, setPwErr] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
-  const [tab, setTab] = useState('orders')
+  const [tab, setTab] = useState('dashboard')
   const [payFilter, setPayFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
   const [role, setRole] = useState<'admin'|'kitchen'>('admin')
 
@@ -112,6 +117,10 @@ export default function AdminPage() {
   // Orders state
   const [orders, setOrders] = useState<Order[]>([])
   const [orderFilter, setOrderFilter] = useState('all')
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
+  const [orderDetailPanel, setOrderDetailPanel] = useState<Order|null>(null)
+  const [bulkStatusSaving, setBulkStatusSaving] = useState(false)
   const [expanded, setExpanded] = useState<string|null>(null)
   const [loadingOrders, setLoadingOrders] = useState(false)
 
@@ -125,6 +134,10 @@ export default function AdminPage() {
   // Customers
   const [customers, setCustomers] = useState<Customer[]>([])
   const [custSearch, setCustSearch] = useState('')
+  const [custSortBy, setCustSortBy] = useState<'name'|'points'|'joined'>('joined')
+  const [custSortDir, setCustSortDir] = useState<'asc'|'desc'>('desc')
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<Set<string>>(new Set())
+  const [customerEditModal, setCustomerEditModal] = useState<Customer|null>(null)
   const [custLoading, setCustLoading] = useState(false)
   const [custError, setCustError] = useState<string | null>(null)
 
@@ -137,6 +150,7 @@ export default function AdminPage() {
   const [nameInput, setNameInput] = useState('')
   const [editingPhone, setEditingPhone] = useState<string|null>(null)
   const [phoneInput, setPhoneInput] = useState('')
+  const [addressInput, setAddressInput] = useState('')
   const [deleteConfirmId, setDeleteConfirmId] = useState<string|null>(null)
   const [pointsMsg, setPointsMsg] = useState('')
   const [pointsSaving, setPointsSaving] = useState(false)
@@ -147,6 +161,7 @@ export default function AdminPage() {
   // Referrals
   const [referrals, setReferrals] = useState<any[]>([])
   const [referralCodes, setReferralCodes] = useState<any[]>([])
+  const [referralStatusFilter, setReferralStatusFilter] = useState<'all'|'completed'|'pending'>('all')
   const [referralsLoading, setReferralsLoading] = useState(false)
   const [referralsStats, setReferralsStats] = useState({ total: 0, completed: 0, pending: 0 })
 
@@ -417,6 +432,21 @@ export default function AdminPage() {
     await supabase.from('orders').update({ payment_confirmed: confirmed } as any).eq('id', orderId)
   }
 
+  const bulkUpdateOrderStatus = async (newStatus: string) => {
+    if (selectedOrderIds.size === 0) return
+    setBulkStatusSaving(true)
+    for (const id of Array.from(selectedOrderIds)) {
+      const order = orders.find(o => o.id === id)
+      if (order) {
+        await supabase.from('orders').update({ status: newStatus }).eq('id', id)
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
+      }
+    }
+    setSelectedOrderIds(new Set())
+    setBulkStatusSaving(false)
+    fetchOrders()
+  }
+
   const saveMenuItem = async () => {
     if (!editItem?.name) return
     setMenuSaving(true)
@@ -437,8 +467,8 @@ export default function AdminPage() {
     if (isNaN(delta)) return
     setPointsSaving(true)
     try {
-      const { error } = await supabase.rpc('add_points', { user_id: customerId, points_to_add: delta })
-      if (error) throw error
+      const res = await fetch('/api/admin/add-points', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: customerId, points_to_add: delta }) })
+      if (!res.ok) throw new Error((await res.json()).error)
       setPointsMsg(delta > 0 ? `+${delta} pts added ✅` : `${delta} pts removed ✅`)
       setEditingPoints(null)
       setPointsInput('')
@@ -458,7 +488,8 @@ export default function AdminPage() {
     const delta = newTotal - (customer.points || 0)
     setPointsSaving(true)
     try {
-      await supabase.rpc('add_points', { user_id: customerId, points_to_add: delta })
+      const res = await fetch('/api/admin/add-points', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: customerId, points_to_add: delta }) })
+      if (!res.ok) throw new Error((await res.json()).error)
       setPointsMsg(`Points set to ${newTotal} ✅`)
       setEditingPoints(null)
       setPointsInput('')
@@ -480,12 +511,16 @@ export default function AdminPage() {
     }
   }
 
-  const exportCustomersCSV = () => {
-    const cols = ['Name','Email','Phone','Points','Tier','Total Spent','Join Date']
-    const rows = customers.map(c => [
+  const exportCustomersCSV = (selectedOnly = false) => {
+    const toExport = selectedOnly && selectedCustomerIds.size > 0
+      ? customers.filter(c => selectedCustomerIds.has(c.id))
+      : customers
+    const cols = ['Name','Email','Phone','Address','Points','Tier','Total Spent','Join Date']
+    const rows = toExport.map(c => [
       c.full_name || '',
       c.email || '',
       c.phone || '',
+      c.address || '',
       String(c.points ?? 0),
       c.tier || getTierFromPoints(c.points || 0),
       String(c.total_spent ?? 0),
@@ -495,7 +530,7 @@ export default function AdminPage() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `customers-${new Date().toISOString().slice(0,10)}.csv`
+    a.download = `customers-${selectedOnly && selectedCustomerIds.size>0 ? 'selected-' : ''}${new Date().toISOString().slice(0,10)}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -592,37 +627,38 @@ export default function AdminPage() {
 
   const filteredOrders = orders
     .filter(o => orderFilter==='all' || o.status===orderFilter)
+    .filter(o => orderPaymentFilter==='all' || o.payment_method===orderPaymentFilter)
 
   // ─── Login Screen ─────────────────────────────────────────────────────────
   if (!authed) return (
-    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className="bg-gradient-to-br from-[#1a2e0f] via-[#2d5016] to-[#1a2e0f] flex items-center justify-center p-4">
+    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className="bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-            <span className="text-4xl">🥗</span>
+          <div className="w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4 border border-slate-700">
+            <span className="text-2xl font-bold text-slate-300">H</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Homie Clean Food</h1>
-          <p className="text-green-300 text-sm mt-1">Admin Dashboard</p>
+          <h1 className="text-xl font-semibold text-white tracking-tight">Homie Admin</h1>
+          <p className="text-slate-400 text-sm mt-1">Sign in to continue</p>
         </div>
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl">
-          <label className="block text-white/70 text-sm mb-1.5">Password</label>
+        <div className="bg-slate-900/80 rounded-xl p-6 border border-slate-800">
+          <label className="block text-slate-400 text-sm font-medium mb-1.5">Password</label>
           <input
             type="password" value={pw} placeholder="Enter admin password"
             onChange={e=>{setPw(e.target.value);setPwErr(false)}}
             onKeyDown={e=>{if(e.key==='Enter'){if(pw===ADMIN_PASSWORD)setAuthed(true);else setPwErr(true)}}}
-            className={`w-full bg-white/10 border rounded-xl px-4 py-3 text-white placeholder-white/30 text-sm outline-none focus:ring-2 focus:ring-green-400 mb-1 ${pwErr?'border-red-400':'border-white/20'}`}
+            className={`w-full bg-slate-800 border rounded-lg px-4 py-3 text-white placeholder-slate-500 text-sm outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 mb-1 ${pwErr?'border-rose-500':'border-slate-700'}`}
           />
-          {pwErr && <p className="text-red-300 text-xs mb-3">Incorrect password</p>}
+          {pwErr && <p className="text-rose-400 text-xs mb-3">Incorrect password</p>}
           <div className="flex gap-2 mt-3 mb-4">
             {(['admin','kitchen'] as const).map(r=>(
               <button key={r} onClick={()=>setRole(r)}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${role===r?'bg-green-500 text-white':'bg-white/10 text-white/60 hover:bg-white/20'}`}>
-                {r==='admin'?'👑 Admin':'👨‍🍳 Kitchen'}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${role===r?'bg-slate-700 text-white':'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                {r==='admin'?'Admin':'Kitchen'}
               </button>
             ))}
           </div>
           <button onClick={()=>{if(pw===ADMIN_PASSWORD)setAuthed(true);else setPwErr(true)}}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl py-3 font-semibold hover:opacity-90 transition-opacity shadow-lg">
+            className="w-full bg-slate-700 hover:bg-slate-600 text-white rounded-lg py-3 font-medium transition-colors">
             Sign In
           </button>
         </div>
@@ -636,269 +672,296 @@ export default function AdminPage() {
   ).length
 
   const navItems = [
-    {key:'orders', icon:'📦', label:'Orders & Payments', badge: pendingCount + unconfirmedPayments || undefined},
+    {key:'dashboard', icon: LayoutDashboard, label:'Dashboard'},
+    {key:'orders', icon: Package, label:'Orders & Payments', badge: pendingCount + unconfirmedPayments || undefined},
     ...(role==='admin' ? [
-      {key:'menu', icon:'🍱', label:'Menu / Meals'},
-      {key:'customers', icon:'👥', label:'Customers'},
-      {key:'loyalty', icon:'⭐', label:'Loyalty Points'},
-      {key:'referrals', icon:'🎁', label:'Referral System'},
-      {key:'analytics', icon:'📊', label:'Analytics'},
-      {key:'settings', icon:'⚙️', label:'Settings'},
+      {key:'menu', icon: UtensilsCrossed, label:'Menu'},
+      {key:'customers', icon: Users, label:'Customers'},
+      {key:'loyalty', icon: Star, label:'Loyalty'},
+      {key:'referrals', icon: Gift, label:'Referrals'},
+      {key:'analytics', icon: BarChart3, label:'Analytics'},
+      {key:'settings', icon: Settings, label:'Settings'},
     ] : []),
   ]
 
   const dm = darkMode
-  const bg = dm ? 'bg-gray-950' : 'bg-gray-50'
-  const card = dm ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'
-  const text = dm ? 'text-gray-100' : 'text-gray-900'
-  const muted = dm ? 'text-gray-400' : 'text-gray-500'
-  const sidebarBg = dm ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'
-  const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700 text-gray-100':'border-gray-200'}`
+  const bg = dm ? 'bg-slate-950' : 'bg-slate-50'
+  const card = dm ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'
+  const text = dm ? 'text-slate-100' : 'text-slate-900'
+  const muted = dm ? 'text-slate-400' : 'text-slate-500'
+  const inputCls = `w-full border rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400 transition-all ${dm?'bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500':'border-slate-200 text-slate-900 placeholder-slate-400'}`
 
   return (
-    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className={`${bg} ${text} flex flex-col md:flex-row`}>
+    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, position: 'fixed', top: 0, left: 0, overflow: 'hidden' }} className={`${bg} ${text} flex flex-col md:flex-row transition-colors duration-300`}>
 
       {/* Mobile Overlay for Sidebar */}
-      {sidebarOpen && <div className="md:hidden fixed inset-0 bg-black/50 z-10" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-10" onClick={() => setSidebarOpen(false)} />}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className={`${sidebarBg} border-r flex flex-col transition-all duration-300 fixed md:sticky md:w-56 top-0 h-screen z-30 overflow-hidden
-        ${sidebarOpen ? 'w-56 left-0' : 'w-16 -left-full md:left-0 md:w-16'}`}>
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-inherit">
-          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-700 rounded-lg flex items-center justify-center shrink-0 text-sm">🥗</div>
-          {sidebarOpen && <span className="font-bold text-sm text-green-700 truncate">Homie Admin</span>}
+      {/* ── Sidebar (Enterprise dark sidebar) ──────────────────────────────────── */}
+      <aside className={`bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 ease-out fixed md:sticky top-0 h-screen z-30 overflow-hidden
+        ${sidebarOpen ? 'w-60 left-0' : 'w-[72px] -left-full md:left-0 md:w-[72px]'}`}>
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800 shrink-0">
+          <div className="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center shrink-0 text-slate-300 font-semibold text-sm">H</div>
+          {sidebarOpen && <span className="font-semibold text-sm text-white truncate">Homie Admin</span>}
         </div>
-        <nav className="flex-1 py-4 overflow-y-auto">
-          {navItems.map(item=>(
+        <nav className="flex-1 py-4 overflow-y-auto px-3">
+          {navItems.map(item=>{
+            const Icon = item.icon
+            return (
             <button key={item.key} onClick={()=>setTab(item.key)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all relative
-                ${tab===item.key?'bg-green-50 text-green-700 border-r-2 border-green-600':`${muted} hover:bg-gray-50`}`}>
-              <span className="text-base shrink-0">{item.icon}</span>
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative
+                ${tab===item.key 
+                  ? 'bg-slate-800 text-white' 
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}>
+              <Icon className="w-5 h-5 shrink-0" />
               {sidebarOpen && <span className="truncate">{item.label}</span>}
-              {item.badge ? <span className={`${sidebarOpen?'ml-auto':'absolute top-1.5 right-1.5'} bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold`}>{item.badge}</span> : null}
+              {item.badge ? <span className={`${sidebarOpen?'ml-auto':'absolute top-2 right-2'} bg-rose-500 text-white text-[10px] rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-semibold px-1`}>{item.badge}</span> : null}
             </button>
-          ))}
+          )})}
         </nav>
-        <div className="border-t border-inherit p-3 space-y-1">
-          <button onClick={()=>setDarkMode(!dm)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm ${muted} hover:bg-gray-100 transition-all`}>
-            <span>{dm?'☀️':'🌙'}</span>
-            {sidebarOpen && <span>{dm?'Light Mode':'Dark Mode'}</span>}
+        <div className="border-t border-slate-800 p-3 space-y-0.5 shrink-0">
+          <button onClick={()=>setDarkMode(!dm)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-colors">
+            {dm ? <Sun className="w-5 h-5 shrink-0" /> : <Moon className="w-5 h-5 shrink-0" />}
+            {sidebarOpen && <span>{dm?'Light mode':'Dark mode'}</span>}
           </button>
-          <button onClick={()=>setAuthed(false)} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all">
-            <span>🚪</span>
-            {sidebarOpen && <span>Checkout</span>}
+          <button onClick={()=>setAuthed(false)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-slate-800/50 hover:text-rose-400 transition-colors">
+            <LogOut className="w-5 h-5 shrink-0" />
+            {sidebarOpen && <span>Sign out</span>}
           </button>
         </div>
       </aside>
 
       {/* ── Main ────────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 w-full md:w-auto">
-        <header className={`${card} border-b sticky top-0 z-10 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3`}>
-          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`${muted} p-1.5 rounded-lg hover:bg-gray-100`}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <header className={`${card} border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3`}>
+          <button onClick={()=>setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-lg transition-colors ${muted} hover:bg-slate-100 dark:hover:bg-slate-800`}>
+            <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          <div className="flex items-center gap-2 ml-auto">
-            <div className={`hidden sm:flex items-center gap-2 text-xs ${muted} ${dm?'bg-gray-800':'bg-gray-100'} rounded-xl px-3 py-1.5`}>
-              <span className="text-green-600 font-semibold">Today</span>
+          <div className="flex items-center gap-3">
+            <div className={`hidden sm:flex items-center gap-2.5 text-xs font-medium ${dm?'bg-slate-800 text-slate-300':'bg-slate-100 text-slate-600'} rounded-lg px-4 py-2`}>
+              <span className="text-slate-500">Today</span>
               <span>{todayOrders.length} orders</span>
-              <span>·</span>
-              <span className="font-semibold text-green-600">฿{fmt(todayRev)}</span>
+              <span className="text-slate-400">·</span>
+              <span className="font-semibold text-slate-900 dark:text-white">฿{fmt(todayRev)}</span>
             </div>
             <NotificationBell onSelectOrder={()=>setTab('orders')} darkMode={dm} />
-            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-9 h-9 bg-slate-800 dark:bg-slate-700 rounded-full flex items-center justify-center text-white text-sm font-semibold">
               {role==='admin'?'A':'K'}
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+
+          {/* ═══ DASHBOARD (Overview) ═══════════════════════════════════════════ */}
+          {tab==='dashboard' && (
+            <div>
+              <div className="mb-6">
+                <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Dashboard</h1>
+                <p className={`text-sm ${muted} mt-0.5`}>Overview of your business performance</p>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <StatCard icon={<DollarSign className="w-5 h-5"/>} label="Today's Revenue" value={`฿${fmt(todayRev)}`} sub={`${todayOrders.length} orders`} color="emerald" darkMode={dm}/>
+                <StatCard icon={<Package className="w-5 h-5"/>} label="Pending Orders" value={pendingCount} sub="Awaiting action" color="amber" darkMode={dm}/>
+                <StatCard icon={<Users className="w-5 h-5"/>} label="Customers" value={customers.length} sub="Registered users" color="blue" darkMode={dm}/>
+                <StatCard icon={<BarChart3 className="w-5 h-5"/>} label="7d Revenue" value={`฿${fmt(filteredByPeriod.reduce((s,o)=>s+(o.total||0),0))}`} sub="Last 7 days" color="slate" darkMode={dm}/>
+              </div>
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className={`${card} border rounded-lg p-6`}>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Recent Orders</h3>
+                  {orders.slice(0, 5).length === 0 ? (
+                    <p className={`text-sm ${muted}`}>No orders yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {orders.slice(0, 5).map(o=>(
+                        <div key={o.id} className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700 last:border-0">
+                          <div>
+                            <p className="font-medium text-sm">{o.customer_name||'Guest'}</p>
+                            <p className={`text-xs ${muted}`}>{fmtDate(o.created_at)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-slate-900 dark:text-white">฿{fmt(o.total)}</p>
+                            <Badge s={o.status}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={()=>setTab('orders')} className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                    View all orders →
+                  </button>
+                </div>
+                <div className={`${card} border rounded-lg p-6`}>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Quick Actions</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={()=>setTab('orders')} className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
+                      <Package className="w-5 h-5 text-slate-500 mb-2"/>
+                      <p className="font-medium text-sm">Orders</p>
+                      <p className={`text-xs ${muted}`}>Manage orders</p>
+                    </button>
+                    <button onClick={()=>setTab('menu')} className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
+                      <UtensilsCrossed className="w-5 h-5 text-slate-500 mb-2"/>
+                      <p className="font-medium text-sm">Menu</p>
+                      <p className={`text-xs ${muted}`}>Edit meals</p>
+                    </button>
+                    <button onClick={()=>setTab('customers')} className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
+                      <Users className="w-5 h-5 text-slate-500 mb-2"/>
+                      <p className="font-medium text-sm">Customers</p>
+                      <p className={`text-xs ${muted}`}>Customer list</p>
+                    </button>
+                    <button onClick={()=>setTab('analytics')} className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left">
+                      <BarChart3 className="w-5 h-5 text-slate-500 mb-2"/>
+                      <p className="font-medium text-sm">Analytics</p>
+                      <p className={`text-xs ${muted}`}>View reports</p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ═══ ORDERS & PAYMENTS ════════════════════════════════════════════ */}
           {tab==='orders' && (
             <div>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold">Orders & Payments</h2>
-                  <p className={`text-sm ${muted}`}>{filteredOrders.length} orders · {unconfirmedPayments} pending payment confirmation</p>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Orders & Payments</h1>
+                  <p className={`text-sm ${muted} mt-0.5`}>{filteredOrders.length} orders · {unconfirmedPayments} pending payment</p>
                 </div>
-                <button onClick={fetchOrders} className="text-sm border rounded-xl px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-1.5">
-                  <span>↻</span> Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                  {selectedOrderIds.size > 0 && (
+                    <div className="flex items-center gap-2 mr-2">
+                      <span className="text-sm text-slate-500">{selectedOrderIds.size} selected</span>
+                      <select onChange={e=>{const v=e.target.value;if(v)bulkUpdateOrderStatus(v);e.target.value=''}}
+                        className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800"
+                        disabled={bulkStatusSaving}>
+                        <option value="">Bulk update status...</option>
+                        {STATUS_STEPS.map(s=>(<option key={s} value={s}>{STATUS_LABEL[s]}</option>))}
+                      </select>
+                      <button onClick={()=>setSelectedOrderIds(new Set())} className="text-xs text-slate-500 hover:text-slate-700">Clear</button>
+                    </div>
+                  )}
+                  <button onClick={fetchOrders} className="text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4"/> Refresh
+                  </button>
+                </div>
               </div>
 
-              {/* Status & Payment Filter Tabs */}
-              <div className="flex gap-2 mb-4 overflow-x-auto pb-1 flex-wrap">
-                {['all',...STATUS_STEPS].map(s=>(
-                  <button key={s} onClick={()=>setOrderFilter(s)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border
-                      ${orderFilter===s?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-200 hover:border-green-300'}`}>
-                    {s==='all'?`All (${orders.length})`:STATUS_LABEL[s]}
-                    {s!=='all' && orders.filter(o=>o.status===s).length>0 && ` (${orders.filter(o=>o.status===s).length})`}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
+                  {['all',...STATUS_STEPS].map(s=>(
+                    <button key={s} onClick={()=>setOrderFilter(s)}
+                      className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
+                        ${orderFilter===s ? 'bg-slate-900 dark:bg-slate-700 text-white' : dm ? 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+                      {s==='all'?`All`:STATUS_LABEL[s]} ({orders.filter(o=>(s==='all'||o.status===s)&&(orderPaymentFilter==='all'||o.payment_method===orderPaymentFilter)).length})
+                    </button>
+                  ))}
+                </div>
+                <select value={orderPaymentFilter} onChange={e=>setOrderPaymentFilter(e.target.value as any)}
+                  className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 min-w-[140px]">
+                  <option value="all">All payment</option>
+                  <option value="promptpay">PromptPay</option>
+                  <option value="cod">COD</option>
+                  <option value="card">Card</option>
+                </select>
               </div>
-              {loadingOrders && (
+
+              {loadingOrders ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/>
+                  <div className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin"/>
+                </div>
+              ) : (
+                <div className={`${card} border rounded-lg overflow-hidden`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
+                          <th className="text-left py-3 px-4 w-10"><input type="checkbox" checked={filteredOrders.length>0&&selectedOrderIds.size===filteredOrders.length} onChange={e=>{if(e.target.checked)setSelectedOrderIds(new Set(filteredOrders.map(o=>o.id)));else setSelectedOrderIds(new Set())}}/></th>
+                          <th className="text-left py-3 px-4 font-medium">Date</th>
+                          <th className="text-left py-3 px-4 font-medium">Customer</th>
+                          <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Items</th>
+                          <th className="text-right py-3 px-4 font-medium">Total</th>
+                          <th className="text-left py-3 px-4 font-medium">Status</th>
+                          <th className="text-left py-3 px-4 font-medium">Payment</th>
+                          <th className="w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOrders.map(order=>{
+                          const isPP = order.payment_method==='promptpay'
+                          const needsConfirm = (isPP||order.payment_method==='card')&&!order.payment_confirmed
+                          const methodLabel = isPP?'PromptPay':order.payment_method==='cod'?'COD':'Card'
+                          return (
+                            <tr key={order.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'} transition-colors ${needsConfirm?'bg-amber-50/30 dark:bg-amber-950/20':''}`}>
+                              <td className="py-3 px-4" onClick={e=>e.stopPropagation()}>
+                                <input type="checkbox" checked={selectedOrderIds.has(order.id)} onChange={e=>{const next=new Set(selectedOrderIds);if(e.target.checked)next.add(order.id);else next.delete(order.id);setSelectedOrderIds(next)}}/>
+                              </td>
+                              <td className="py-3 px-4 text-slate-500">{fmtDate(order.created_at)}</td>
+                              <td className="py-3 px-4">
+                                <span className="font-medium">{order.customer_name||'Guest'}</span>
+                                {order.reference_id && <span className="text-xs font-mono text-slate-400 ml-1">#{order.reference_id}</span>}
+                              </td>
+                              <td className="py-3 px-4 hidden sm:table-cell text-slate-500 max-w-[180px] truncate">{(order.items||[]).slice(0,2).map((i:any)=>i.name).join(', ')}{(order.items||[]).length>2?'...':''}</td>
+                              <td className="py-3 px-4 text-right font-semibold tabular-nums">฿{fmt(order.total)}</td>
+                              <td className="py-3 px-4"><Badge s={order.status}/></td>
+                              <td className="py-3 px-4">
+                                <span className={`text-xs px-2 py-0.5 rounded ${needsConfirm?'bg-amber-100 text-amber-700':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>{methodLabel} {order.payment_confirmed?'✓':'⏳'}</span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <button onClick={()=>setOrderDetailPanel(order)} className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"><ChevronDown className="w-4 h-4 rotate-[-90deg]"/></button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {filteredOrders.length===0 && (
+                    <div className={`text-center py-16 ${muted}`}>No orders found</div>
+                  )}
                 </div>
               )}
-              <div className="space-y-3">
-                {filteredOrders.map(order=>{
-                  const isPromptPay = order.payment_method === 'promptpay'
-                  const isCard = order.payment_method === 'card'
-                  const needsConfirm = (isPromptPay || isCard) && !order.payment_confirmed
-                  const methodColor = isPromptPay ? 'bg-green-100 text-green-700' : order.payment_method === 'cod' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                  const methodLabel = isPromptPay ? '🇹🇭 PromptPay' : order.payment_method === 'cod' ? '💵 COD' : '💳 Card'
-                  return (
-                  <div key={order.id} className={`${card} border-2 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all ${needsConfirm ? 'border-amber-200 bg-amber-50' : 'border-transparent'}`}>
-                    <div className="p-4 cursor-pointer select-none" onClick={()=>setExpanded(expanded===order.id?null:order.id)}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-lg shrink-0">
-                          {order.status==='delivered'?'✅':order.status==='out_for_delivery'?'🚚':order.status==='preparing'?'👨‍🍳':'📦'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-semibold text-sm">{order.customer_name||'Guest'}</span>
-                            {order.reference_id && <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">#{order.reference_id}</span>}
-                            <Badge s={order.status}/>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${methodColor}`}>{methodLabel}</span>
-                            {order.payment_confirmed ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">✓ Paid</span>
-                            ) : needsConfirm ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">⏳ Pending</span>
-                            ) : (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500">○ COD</span>
-                            )}
-                          </div>
-                          <p className={`text-xs ${muted} mb-0.5`}>{order.customer_phone} · {fmtDate(order.created_at)}</p>
-                          <p className={`text-xs ${muted} truncate`}>{order.delivery_address}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-green-600 text-lg">฿{fmt(order.total)}</p>
-                          {order.payment_slip_url && (
-                            <p className="text-xs text-blue-600 font-semibold mt-1">📎 Slip</p>
-                          )}
-                        </div>
-                        <svg className={`w-4 h-4 ${muted} shrink-0 transition-transform mt-1 ${expanded===order.id?'rotate-180':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                      </div>
-                    </div>
-                    {expanded===order.id && (
-                      <div className={`border-t border-inherit px-4 pb-4 ${dm?'bg-gray-800/50':''}`}>
-                        <div className="mt-3 mb-3">
-                          <p className={`text-xs font-semibold uppercase tracking-wide ${muted} mb-2`}>Order Items</p>
-                          <div className="space-y-1">
-                            {(order.items||[]).map((item:any,i:number)=>(
-                              <div key={i} className={`flex justify-between text-sm py-1.5 border-b border-dashed ${dm?'border-gray-700':'border-gray-100'} last:border-0`}>
-                                <span>{item.name} <span className={`text-xs ${muted}`}>({item.portion})</span> × {item.quantity}</span>
-                                <span className="font-medium">฿{fmt(item.price*item.quantity)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Payment Section */}
-                        {(order.payment_method === 'promptpay' || order.payment_method === 'card') && (
-                          <div className={`${dm?'bg-gray-800':'bg-blue-50'} border ${dm?'border-gray-700':'border-blue-100'} rounded-xl p-3 mb-3`}>
-                            <p className={`text-xs font-semibold uppercase tracking-wide ${dm?'text-blue-300':'text-blue-700'} mb-2`}>💳 Payment</p>
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className={muted}>Method:</span>
-                                <span className="font-medium">{order.payment_method === 'promptpay' ? '🇹🇭 PromptPay' : '💳 Card'}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className={muted}>Status:</span>
-                                <span className={order.payment_confirmed ? 'text-green-600 font-semibold' : 'text-amber-600 font-semibold'}>
-                                  {order.payment_confirmed ? '✓ Confirmed' : '⏳ Pending'}
-                                </span>
-                              </div>
-                              {order.payment_slip_url && (
-                                <div className="mt-2 pt-2 border-t border-inherit">
-                                  <img
-                                    src={order.payment_slip_url}
-                                    alt="Payment slip"
-                                    className="w-24 h-24 object-cover rounded-xl border cursor-pointer hover:opacity-80"
-                                    onClick={() => window.open(order.payment_slip_url, '_blank')}
-                                  />
-                                  <a href={order.payment_slip_url} target="_blank" rel="noreferrer"
-                                    className="text-xs text-blue-600 underline mt-1 block">
-                                    View full slip ↗
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                            {!order.payment_confirmed && (order.payment_method === 'promptpay' || order.payment_method === 'card') && (
-                              <button onClick={() => confirmPayment(order.id, true)}
-                                className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors">
-                                ✓ Confirm Payment
-                              </button>
-                            )}
-                            {order.payment_confirmed && (
-                              <button onClick={() => confirmPayment(order.id, false)}
-                                className="w-full mt-2 border text-xs font-semibold py-2 rounded-lg transition-colors border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600">
-                                ↩ Undo
-                              </button>
-                            )}
-                          </div>
-                        )}
 
-                        {order.notes && (
-                          <div className="bg-amber-50 border border-amber-100 rounded-xl p-2.5 mb-3 text-sm text-amber-800 flex gap-2">
-                            <span>📝</span><span>{order.notes}</span>
-                          </div>
-                        )}
-                        <div className="mb-3">
-                          <div className="flex justify-between mb-1.5">
-                            {STATUS_STEPS.map((s,i)=>(
-                              <div key={s} className="flex flex-col items-center text-center flex-1">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mb-1 transition-all
-                                  ${STATUS_STEPS.indexOf(order.status)>=i?'bg-green-500 text-white':'bg-gray-200 text-gray-400'}`}>
-                                  {STATUS_STEPS.indexOf(order.status)>i?'✓':(i+1)}
-                                </div>
-                                <span className={`text-xs hidden sm:block ${STATUS_STEPS.indexOf(order.status)>=i?'text-green-600 font-medium':muted}`}>
-                                  {s==='out_for_delivery'?'Delivery':STATUS_LABEL[s]}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
+              {/* Order Detail Slide-over Panel */}
+              {orderDetailPanel && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                  <div className="absolute inset-0 bg-black/50" onClick={()=>setOrderDetailPanel(null)}/>
+                  <div className={`relative w-full max-w-md ${card} border-l shadow-2xl overflow-y-auto flex flex-col`}>
+                    <div className="sticky top-0 flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-inherit">
+                      <h3 className="font-semibold">Order #{orderDetailPanel.reference_id||orderDetailPanel.id.slice(0,8)}</h3>
+                      <button onClick={()=>setOrderDetailPanel(null)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="p-4 space-y-4">
+                      <div><p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Customer</p><p className="font-medium">{orderDetailPanel.customer_name} · {orderDetailPanel.customer_phone}</p><p className="text-sm text-slate-500 mt-0.5">{orderDetailPanel.delivery_address}</p></div>
+                      <div><p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Items</p>{(orderDetailPanel.items||[]).map((item:any,i:number)=>(<div key={i} className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800 text-sm"><span>{item.name} ({item.portion}) ×{item.quantity}</span><span className="font-medium">฿{fmt(item.price*item.quantity)}</span></div>))}</div>
+                      {(orderDetailPanel.payment_method==='promptpay'||orderDetailPanel.payment_method==='card')&&(
+                        <div className={`rounded-lg p-4 ${dm?'bg-slate-800':'bg-slate-50'} border border-slate-200 dark:border-slate-700`}>
+                          <p className="text-xs font-medium text-slate-500 mb-2">Payment · {orderDetailPanel.payment_confirmed?'✓ Confirmed':'⏳ Pending'}</p>
+                          {orderDetailPanel.payment_slip_url&&(<img src={orderDetailPanel.payment_slip_url} alt="Slip" className="w-20 h-20 object-cover rounded cursor-pointer mb-2" onClick={()=>window.open(orderDetailPanel!.payment_slip_url,'_blank')}/>)}
+                          {!orderDetailPanel.payment_confirmed?(<button onClick={()=>{confirmPayment(orderDetailPanel.id,true);setOrderDetailPanel({...orderDetailPanel,payment_confirmed:true})}} className="w-full py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-lg">Confirm Payment</button>):(<button onClick={()=>{confirmPayment(orderDetailPanel.id,false);setOrderDetailPanel({...orderDetailPanel,payment_confirmed:false})}} className="w-full py-2 border text-sm font-medium rounded-lg">Undo</button>)}
                         </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {STATUS_STEPS.map(s=>(
-                            <button key={s} onClick={()=>updateStatus(order,s)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all
-                                ${order.status===s?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-600'}`}>
-                              {STATUS_LABEL[s]}{(s==='preparing'||s==='out_for_delivery')?' 💬':''}
-                            </button>
-                          ))}
-                          <button onClick={()=>window.open(`https://wa.me/${order.customer_phone?.replace(/\D/g,'').replace(/^0/,'66')}?text=${encodeURIComponent(`Hi ${order.customer_name}! 🥗 Homie Clean Food here.`)}`,'_blank')}
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium border border-green-200 text-green-600 hover:bg-green-50 transition-all ml-auto">
-                            📱 WhatsApp
-                          </button>
-                        </div>
-                        <p className={`text-xs ${muted} mt-1.5`}>💬 = sends WhatsApp notification automatically</p>
-                      </div>
-                    )}
+                      )}
+                      {orderDetailPanel.notes&&<div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm"><span className="font-medium">Note:</span> {orderDetailPanel.notes}</div>}
+                      <div><p className="text-xs text-slate-500 mb-2">Update status</p><div className="flex flex-wrap gap-2">{STATUS_STEPS.map(s=>(<button key={s} onClick={()=>{updateStatus(orderDetailPanel,s);setOrderDetailPanel({...orderDetailPanel,status:s})}} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${orderDetailPanel.status===s?'bg-slate-900 dark:bg-slate-700 text-white':'border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{STATUS_LABEL[s]}</button>))}</div></div>
+                      <button onClick={()=>window.open(`https://wa.me/${orderDetailPanel.customer_phone?.replace(/\D/g,'').replace(/^0/,'66')}?text=${encodeURIComponent(`Hi ${orderDetailPanel.customer_name}! 🥗 Homie Clean Food here.`)}`,'_blank')} className="w-full py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">WhatsApp</button>
+                    </div>
                   </div>
-                )})}
-                {filteredOrders.length===0 && !loadingOrders && (
-                  <div className={`text-center py-16 ${muted}`}>
-                    <p className="text-4xl mb-2">📭</p>
-                    <p>No orders found</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* ═══ MENU ═════════════════════════════════════════════════════ */}
           {tab==='menu' && (
             <div>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-bold">Menu / Meals</h2>
-                  <p className={`text-sm ${muted}`}>{menuItems.length} items</p>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Menu / Meals</h1>
+                  <p className={`text-sm ${muted} mt-0.5`}>{menuItems.length} items</p>
                 </div>
                 <button onClick={()=>{setIsNew(true);setEditItem({available:true,category:'chicken',meal_type:'high-protein'})}}
-                  className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors">
+                  className="bg-slate-900 dark:bg-slate-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
                   + Add Meal
                 </button>
               </div>
@@ -958,7 +1021,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4 items-center">
-                    <button onClick={saveMenuItem} disabled={menuSaving} className="bg-green-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={saveMenuItem} disabled={menuSaving} className="bg-slate-900 dark:bg-slate-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors">
                       {menuSaving?'Saving...':'Save Meal'}
                     </button>
                     <button onClick={()=>setEditItem(null)} className="border px-5 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
@@ -975,7 +1038,7 @@ export default function AdminPage() {
               )}
               <div className="grid gap-3">
                 {menuItems.map(item=>(
-                  <div key={item.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 hover:shadow-sm transition-shadow`}>
+                  <div key={item.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 transition-all duration-200`}>
                     {item.image_url
                       ? <img src={item.image_url} className="w-14 h-14 rounded-xl object-cover shrink-0" alt={item.name}/>
                       : <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-2xl shrink-0">
@@ -994,8 +1057,8 @@ export default function AdminPage() {
                       {item.calories_lean && <p className={`text-xs ${muted}`}>{item.calories_lean} kcal · {item.protein_lean}g protein</p>}
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={()=>{setIsNew(false);setEditItem(item)}} className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 hover:bg-gray-50 hover:border-green-300">Edit</button>
-                      <button onClick={()=>deleteMenuItem(item.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-300">Delete</button>
+                      <button onClick={()=>{setIsNew(false);setEditItem(item)}} className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-emerald-300 transition-colors">Edit</button>
+                      <button onClick={()=>deleteMenuItem(item.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 transition-colors">Delete</button>
                     </div>
                   </div>
                 ))}
@@ -1006,137 +1069,148 @@ export default function AdminPage() {
           {/* ═══ CUSTOMERS ════════════════════════════════════════════════ */}
           {tab==='customers' && (
             <div>
-              <div className="mb-5 flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-xl font-bold">Customers</h2>
-                  <p className={`text-sm ${muted}`}>{customers.length} registered users</p>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Customers</h1>
+                  <p className={`text-sm ${muted} mt-0.5`}>{customers.length} registered users</p>
                 </div>
-                <button onClick={exportCustomersCSV} disabled={custLoading || customers.length === 0} className="text-sm border rounded-xl px-4 py-2 hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2">
-                  📥 Export CSV
-                </button>
+                <div className="flex items-center gap-2">
+                  {selectedCustomerIds.size > 0 && (
+                    <span className="text-sm text-slate-500 mr-2">{selectedCustomerIds.size} selected</span>
+                  )}
+                  <button onClick={()=>exportCustomersCSV(selectedCustomerIds.size>0)} disabled={custLoading || customers.length === 0} className="text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2 transition-colors">
+                    <FileDown className="w-4 h-4"/> Export{selectedCustomerIds.size>0?' Selected':' All'}
+                  </button>
+                </div>
               </div>
-              <input placeholder="Search by name..."
-                value={custSearch} onChange={e=>setCustSearch(e.target.value)}
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm mb-4 outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}/>
+
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
+                <input placeholder="Search by name, email, or phone..."
+                  value={custSearch} onChange={e=>setCustSearch(e.target.value)}
+                  className={`${inputCls} pl-10`}/>
+              </div>
 
               {custLoading && (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/>
+                  <div className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin"/>
                 </div>
               )}
 
               {!custLoading && custError && (
                 <div className="text-center py-12 px-4">
-                  <p className="text-amber-600 font-medium">⚠️ Could not load customers</p>
-                  <p className="text-sm text-gray-500 mt-1">{custError}</p>
-                  <p className="text-xs text-gray-400 mt-2">Check SUPABASE_SERVICE_ROLE_KEY in Vercel</p>
-                  <button onClick={() => fetchCustomers()} className="mt-4 px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Retry</button>
-                </div>
-              )}
-              {!custLoading && !custError && customers.length === 0 && (
-                <div className={`text-center py-16 ${muted}`}>
-                  <p className="text-4xl mb-2">👥</p>
-                  <p>No customers yet</p>
-                  <p className="text-sm mt-2">Run migration 005_backfill_profiles.sql in Supabase to add existing users</p>
+                  <p className="text-amber-600 font-medium">Could not load customers</p>
+                  <p className={`text-sm ${muted} mt-1`}>{custError}</p>
+                  <button onClick={() => fetchCustomers()} className="mt-4 px-4 py-2 border rounded-lg text-sm hover:bg-slate-50">Retry</button>
                 </div>
               )}
 
               {pointsMsg && !custLoading && (
-                <div className={`p-3 rounded-xl text-sm font-medium mb-4 ${pointsMsg.includes('✅')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200'}`}>{pointsMsg}</div>
+                <div className={`p-3 rounded-lg text-sm font-medium mb-4 ${pointsMsg.includes('✅')?'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700':'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800'}`}>{pointsMsg}</div>
               )}
+
               {!custLoading && !custError && customers.length > 0 && (
-              <div className="grid gap-3">
-                {customers
-                  .filter(c=>!custSearch ||
-                    c.full_name?.toLowerCase().includes(custSearch.toLowerCase()))
-                  .map(c=>{
-                    const tier = c.tier || getTierFromPoints(c.points || 0)
-                    const badge = TIER_BADGE[tier] || TIER_BADGE['Homie']
-                    const isEditingPoints = editingPoints === c.id
-                    const isEditingName = editingName === c.id
-                    const isEditingPhone = editingPhone === c.id
-                    return (
-                      <div key={c.id} className={`${card} border rounded-2xl p-4 ${(isEditingPoints||isEditingName||isEditingPhone)?(dm?'bg-gray-800/50':'bg-green-50/30'):''} transition-shadow`}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
-                            {(c.full_name||'?')[0].toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            {isEditingName ? (
-                              <div className="flex gap-2 items-center">
-                                <input value={nameInput} onChange={e=>setNameInput(e.target.value)} placeholder="Full name" className={`${inputCls} flex-1 py-2`} onKeyDown={e=>e.key==='Enter'&&saveCustomerName(c.id)}/>
-                                <button onClick={()=>saveCustomerName(c.id)} disabled={pointsSaving||!nameInput.trim()} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
-                                <button onClick={()=>{setEditingName(null);setNameInput('')}} className={`text-xs ${muted}`}>Cancel</button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold text-sm">{c.full_name||'Unknown'}</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
-                                <button onClick={()=>{setEditingName(c.id);setNameInput(c.full_name||'')}} className="text-xs text-gray-400 hover:text-green-600">Edit</button>
-                              </div>
-                            )}
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                              {c.email && <span className={`text-xs ${muted}`} title="Email (from auth)">📧 {c.email}</span>}
-                              {isEditingPhone ? (
-                                <div className="flex gap-1.5 items-center">
-                                  <input value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} placeholder="Phone" className={`${inputCls} py-1 text-xs w-36`} onKeyDown={e=>e.key==='Enter'&&saveCustomerPhone(c.id)}/>
-                                  <button onClick={()=>saveCustomerPhone(c.id)} disabled={pointsSaving} className="px-2 py-1 bg-green-600 text-white rounded text-xs disabled:opacity-50">Save</button>
-                                  <button onClick={()=>{setEditingPhone(null);setPhoneInput('')}} className={`text-xs ${muted}`}>✕</button>
-                                </div>
-                              ) : (
-                                <span className={`text-xs ${muted}`}>
-                                  📞 {c.phone || '—'}
-                                  <button onClick={()=>{setEditingPhone(c.id);setPhoneInput(c.phone||'')}} className="ml-1 text-gray-400 hover:text-green-600">Edit</button>
-                                </span>
-                              )}
-                            </div>
-                            <p className={`text-xs ${muted}`}>Joined {new Date(c.created_at).toLocaleDateString('en-GB')}</p>
-                          </div>
-                          <div className="text-right shrink-0 flex items-center gap-2">
-                            <p className="font-bold text-green-600 text-sm">{c.points||0} pts</p>
-                            {!isEditingPoints ? (
-                              <button onClick={()=>{setEditingPoints(c.id);setPointsInput('');setPointsMode('add')}} className="text-xs border px-3 py-1.5 rounded-xl hover:bg-gray-50">Edit Points</button>
-                            ) : (
-                              <button onClick={()=>{setEditingPoints(null);setPointsInput('')}} className={`text-xs ${muted}`}>✕</button>
-                            )}
-                            <button onClick={()=>setDeleteConfirmId(c.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-300">Delete</button>
-                          </div>
-                        </div>
-                        {isEditingPoints && (
-                          <div className={`mt-4 p-4 rounded-2xl border ${dm?'bg-gray-800 border-gray-700':'bg-white border-gray-200'}`}>
-                            <div className="flex gap-2 mb-3">
-                              <button onClick={()=>setPointsMode('add')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='add'?'bg-green-600 text-white border-green-600':'border-gray-200 text-gray-600'}`}>Add / Remove</button>
-                              <button onClick={()=>setPointsMode('set')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='set'?'bg-blue-600 text-white border-blue-600':'border-gray-200 text-gray-600'}`}>Set Exact</button>
-                            </div>
-                            <div className="flex gap-2 mb-2">
-                              <input type="number" placeholder={pointsMode==='add'?'e.g. 50 or -20':`Current: ${c.points||0}`} value={pointsInput} onChange={e=>setPointsInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&applyPoints(c.id)} className={`${inputCls} flex-1`}/>
-                              <button onClick={()=>applyPoints(c.id)} disabled={pointsSaving||!pointsInput} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">{pointsSaving?'...':pointsMode==='set'?'Set':'Apply'}</button>
-                            </div>
-                            <div className="flex gap-1.5 flex-wrap">
-                              {[10,25,50,100,200,-50,-100].map(n=>(
-                                <button key={n} onClick={()=>setPointsInput(String(n))} className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${n>0?'border-green-200 text-green-600 hover:bg-green-50':'border-red-200 text-red-500 hover:bg-red-50'}`}>{n>0?`+${n}`:n}</button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-              </div>
+                (()=>{
+                  const q = custSearch.toLowerCase().trim()
+                  const filtered = customers.filter(c=>!q || [c.full_name,c.email,c.phone,c.address].some(v=>String(v||'').toLowerCase().includes(q)))
+                  const sorted = [...filtered].sort((a,b)=>{
+                    const mult = custSortDir==='asc'?1:-1
+                    if(custSortBy==='name') return mult*((a.full_name||'').localeCompare(b.full_name||''))
+                    if(custSortBy==='points') return mult*((a.points||0)-(b.points||0))
+                    return mult*(new Date(a.created_at).getTime()-new Date(b.created_at).getTime())
+                  })
+                  return (
+                  <div className={`${card} border rounded-lg overflow-hidden`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
+                            <th className="text-left py-3 px-4 w-10"><input type="checkbox" checked={sorted.length>0&&selectedCustomerIds.size===sorted.length} onChange={e=>{if(e.target.checked)setSelectedCustomerIds(new Set(sorted.map(c=>c.id)));else setSelectedCustomerIds(new Set())}}/></th>
+                            <th className="text-left py-3 px-4 font-medium"><button onClick={()=>{setCustSortBy('name');setCustSortDir(custSortBy==='name'&&custSortDir==='asc'?'desc':'asc')}} className="flex items-center gap-1 hover:text-slate-900">Name {custSortBy==='name'&&<ChevronUp className={`w-4 h-4 ${custSortDir==='desc'?'rotate-180':''}`}/>}</button></th>
+                            <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Email</th>
+                            <th className="text-left py-3 px-4 font-medium">Phone</th>
+                            <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Address</th>
+                            <th className="text-left py-3 px-4 font-medium"><button onClick={()=>{setCustSortBy('points');setCustSortDir(custSortBy==='points'&&custSortDir==='asc'?'desc':'asc')}} className="flex items-center gap-1 hover:text-slate-900">Points {custSortBy==='points'&&<ChevronUp className={`w-4 h-4 ${custSortDir==='desc'?'rotate-180':''}`}/>}</button></th>
+                            <th className="text-left py-3 px-4 font-medium">Tier</th>
+                            <th className="text-left py-3 px-4 font-medium"><button onClick={()=>{setCustSortBy('joined');setCustSortDir(custSortBy==='joined'&&custSortDir==='asc'?'desc':'asc')}} className="flex items-center gap-1 hover:text-slate-900">Joined {custSortBy==='joined'&&<ChevronUp className={`w-4 h-4 ${custSortDir==='desc'?'rotate-180':''}`}/>}</button></th>
+                            <th className="w-20"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sorted.map(c=>{
+                            const tier = c.tier || getTierFromPoints(c.points || 0)
+                            const badge = TIER_BADGE[tier] || TIER_BADGE['Homie']
+                            return (
+                              <tr key={c.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'} transition-colors`}>
+                                <td className="py-3 px-4" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedCustomerIds.has(c.id)} onChange={e=>{const next=new Set(selectedCustomerIds);if(e.target.checked)next.add(c.id);else next.delete(c.id);setSelectedCustomerIds(next)}}/></td>
+                                <td className="py-3 px-4"><span className="font-medium">{c.full_name||'Unknown'}</span></td>
+                                <td className="py-3 px-4 hidden md:table-cell text-slate-500 max-w-[180px] truncate" title={c.email}>{c.email||'—'}</td>
+                                <td className="py-3 px-4 text-slate-500">{c.phone||'—'}</td>
+                                <td className="py-3 px-4 hidden lg:table-cell text-slate-500 max-w-[160px] truncate" title={c.address}>{c.address||'—'}</td>
+                                <td className="py-3 px-4 font-semibold tabular-nums">{c.points||0}</td>
+                                <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${badge.cls}`}>{badge.label}</span></td>
+                                <td className="py-3 px-4 text-slate-500">{new Date(c.created_at).toLocaleDateString('en-GB')}</td>
+                                <td className="py-3 px-4">
+                                  <div className="flex gap-1">
+                                    <button onClick={()=>{setCustomerEditModal(c);setNameInput(c.full_name||'');setPhoneInput(c.phone||'');setAddressInput(c.address||'');setPointsInput('');setPointsMode('set')}} className="px-2 py-1 rounded text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Edit</button>
+                                    <button onClick={()=>setDeleteConfirmId(c.id)} className="px-2 py-1 rounded text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">Delete</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {sorted.length===0 && <div className={`text-center py-12 ${muted}`}>No customers match your search</div>}
+                  </div>
+                  )
+                })()
               )}
+
+              {!custLoading && !custError && customers.length === 0 && (
+                <div className={`text-center py-16 ${muted}`}>
+                  <p>No customers yet</p>
+                  <p className="text-sm mt-2">Run migration 005_backfill_profiles.sql in Supabase</p>
+                </div>
+              )}
+
+              {/* Customer Edit Modal */}
+              {customerEditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className={`${card} rounded-lg p-6 max-w-md w-full shadow-xl`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">Edit Customer</h3>
+                      <button onClick={()=>setCustomerEditModal(null)} className="p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="space-y-4">
+                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Name</label><input value={nameInput} onChange={e=>setNameInput(e.target.value)} className={inputCls} placeholder="Full name"/></div>
+                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Email</label><p className={`text-sm ${muted} py-2`}>{customerEditModal.email||'—'}</p></div>
+                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Phone</label><input value={phoneInput} onChange={e=>setPhoneInput(e.target.value)} className={inputCls} placeholder="Phone"/></div>
+                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Address</label><input value={addressInput} onChange={e=>setAddressInput(e.target.value)} className={inputCls} placeholder="Delivery address"/></div>
+                      <div><label className="block text-xs font-medium text-slate-500 mb-1">Points</label><div className="flex gap-2 mb-2"><button onClick={()=>setPointsMode('add')} className={`flex-1 py-1.5 rounded-lg text-xs font-medium border ${pointsMode==='add'?'bg-slate-900 dark:bg-slate-700 text-white border-slate-900':'border-slate-200'}`}>Add/Remove</button><button onClick={()=>setPointsMode('set')} className={`flex-1 py-1.5 rounded-lg text-xs font-medium border ${pointsMode==='set'?'bg-slate-900 dark:bg-slate-700 text-white border-slate-900':'border-slate-200'}`}>Set</button></div><div className="flex gap-2"><input type="number" value={pointsInput} onChange={e=>setPointsInput(e.target.value)} placeholder={pointsMode==='add'?'e.g. 50 or -20':`Current: ${customerEditModal.points||0}`} className={inputCls}/><button onClick={async()=>{if(!pointsInput)return;setPointsSaving(true);try{const val=parseInt(pointsInput);if(isNaN(val))return;const delta=pointsMode==='set'?val-(customerEditModal.points||0):val;const res=await fetch('/api/admin/add-points',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:customerEditModal.id,points_to_add:delta})});if(!res.ok)throw new Error();const newPts=pointsMode==='set'?val:(customerEditModal.points||0)+delta;setPointsMsg('Points updated ✅');setPointsInput('');fetchCustomers();setCustomerEditModal(c=>c?{...c,points:newPts}:null);setTimeout(()=>setPointsMsg(''),2000)}catch{setPointsMsg('Failed')}setPointsSaving(false)}} disabled={pointsSaving||!pointsInput} className="px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-lg text-sm font-medium disabled:opacity-50">Apply</button></div></div>
+                      <div className="flex gap-2 pt-4">
+                        <button onClick={async()=>{if(nameInput.trim()){setPointsSaving(true);try{const res=await fetch('/api/admin/customers',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({customerId:customerEditModal.id,full_name:nameInput.trim(),phone:phoneInput.trim(),address:addressInput.trim()})});if(res.ok){setPointsMsg('Saved ✅');setCustomerEditModal(null);fetchCustomers();setTimeout(()=>setPointsMsg(''),2000)}else throw new Error()}catch{setPointsMsg('❌ Failed')}setPointsSaving(false)}}} disabled={pointsSaving||!nameInput.trim()} className="flex-1 py-2.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg font-medium disabled:opacity-50">Save</button>
+                        <button onClick={()=>setCustomerEditModal(null)} className="flex-1 py-2.5 border rounded-lg font-medium">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Delete customer confirmation modal */}
               {deleteConfirmId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                  <div className={`${card} border rounded-2xl p-6 max-w-sm w-full shadow-xl`}>
-                    <h3 className="font-bold text-lg mb-2">Delete customer?</h3>
+                  <div className={`${card} border rounded-lg p-6 max-w-sm w-full shadow-xl`}>
+                    <h3 className="font-semibold text-lg mb-2">Delete customer?</h3>
                     <p className={`text-sm ${muted} mb-4`}>
                       This will remove the customer account and profile. Orders will remain for records. This cannot be undone.
                     </p>
                     <div className="flex gap-3">
-                      <button onClick={()=>deleteCustomer(deleteConfirmId)} disabled={pointsSaving} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50">
+                      <button onClick={()=>deleteCustomer(deleteConfirmId)} disabled={pointsSaving} className="flex-1 py-2.5 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700 disabled:opacity-50 transition-colors">
                         {pointsSaving ? 'Deleting...' : 'Delete'}
                       </button>
-                      <button onClick={()=>setDeleteConfirmId(null)} disabled={pointsSaving} className="flex-1 py-2.5 border rounded-xl font-semibold text-gray-600 hover:bg-gray-50">
+                      <button onClick={()=>setDeleteConfirmId(null)} disabled={pointsSaving} className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-800">
                         Cancel
                       </button>
                     </div>
@@ -1157,80 +1231,86 @@ export default function AdminPage() {
           {/* ═══ REFERRAL SYSTEM ════════════════════════════════════════════ */}
           {tab==='referrals' && (
             <div>
-              <div className="mb-5 flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
-                  <h2 className="text-xl font-bold">🎁 Referral System</h2>
-                  <p className={`text-sm ${muted}`}>Manage customer referrals and rewards</p>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Referral System</h1>
+                  <p className={`text-sm ${muted} mt-0.5`}>Who referred who · referral codes · bonus tracking</p>
                 </div>
-                <button onClick={fetchReferrals} disabled={referralsLoading} className="text-sm border rounded-xl px-3 py-2 hover:bg-gray-50 disabled:opacity-50">
-                  {referralsLoading ? 'Loading...' : '↻ Refresh'}
+                <button onClick={fetchReferrals} disabled={referralsLoading} className="text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4"/> Refresh
                 </button>
               </div>
               {referralsLoading ? (
-                <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/></div>
+                <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin"/></div>
               ) : (
                 <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className={`${card} border rounded-2xl p-5`}>
-                  <p className={`text-sm ${muted} mb-1`}>Total Referrals</p>
-                  <p className="text-3xl font-bold text-green-600">{referralsStats.total}</p>
-                  <p className={`text-xs ${muted} mt-1`}>Signups with referral code</p>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className={`${card} border rounded-lg p-4`}>
+                  <p className={`text-xs font-medium ${muted}`}>Total</p>
+                  <p className="text-xl font-semibold tabular-nums">{referralsStats.total}</p>
                 </div>
-                <div className={`${card} border rounded-2xl p-5`}>
-                  <p className={`text-sm ${muted} mb-1`}>Completed</p>
-                  <p className="text-3xl font-bold text-emerald-600">{referralsStats.completed}</p>
-                  <p className={`text-xs ${muted} mt-1`}>Referred friend made first order</p>
+                <div className={`${card} border rounded-lg p-4`}>
+                  <p className={`text-xs font-medium ${muted}`}>Completed</p>
+                  <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{referralsStats.completed}</p>
                 </div>
-                <div className={`${card} border rounded-2xl p-5`}>
-                  <p className={`text-sm ${muted} mb-1`}>Pending</p>
-                  <p className="text-3xl font-bold text-amber-600">{referralsStats.pending}</p>
-                  <p className={`text-xs ${muted} mt-1`}>Awaiting first order</p>
+                <div className={`${card} border rounded-lg p-4`}>
+                  <p className={`text-xs font-medium ${muted}`}>Pending</p>
+                  <p className="text-xl font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{referralsStats.pending}</p>
                 </div>
-              </div>
-
-              <div className={`${card} border rounded-2xl p-6 mb-4`}>
-                <h3 className="font-bold mb-4">📋 Customer Referral Codes</h3>
-                <div className={`${dm?'bg-gray-800':'bg-gray-50'} rounded-xl p-4`}>
-                  {referralCodes.length === 0 ? (
-                    <p className={`text-sm ${muted} text-center`}>No referral codes yet. Codes are auto-generated when customers sign up.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {referralCodes.map((p: any) => (
-                        <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
-                          <span className="font-medium">{p.full_name || 'Unknown'}</span>
-                          <span className="font-mono text-sm text-green-600 font-bold tracking-wider">{p.referral_code}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className={`${card} border rounded-lg p-4`}>
+                  <p className={`text-xs font-medium ${muted}`}>Bonus per referral</p>
+                  <p className="text-xl font-semibold tabular-nums">+100 pts</p>
                 </div>
               </div>
 
-              <div className={`${card} border rounded-2xl p-6`}>
-                <h3 className="font-bold mb-4">📊 Recent Referrals</h3>
-                {referrals.length === 0 ? (
-                  <div className={`text-center py-12 ${muted}`}>
-                    <p className="text-4xl mb-2">🎯</p>
-                    <p>No referrals yet</p>
-                    <p className="text-xs mt-2">Referrals appear when new customers sign up with a referral code and make their first order</p>
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className={`${card} border rounded-lg overflow-hidden`}>
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold">Referral Codes</h3>
+                    <p className={`text-xs ${muted} mt-0.5`}>Each customer has a unique code to share</p>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {referrals.map((r: any) => (
-                      <div key={r.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                        <div>
-                          <p className="font-medium">{r.referrer_name} → {r.referred_user_name}</p>
-                          <p className={`text-xs ${muted}`}>{new Date(r.created_at).toLocaleString('th-TH')} · Code: {r.referral_code}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          r.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {r.status === 'completed' ? 'Completed (+100 pts)' : 'Pending'}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                    {referralCodes.length === 0 ? (
+                      <div className={`p-6 text-center ${muted} text-sm`}>No codes yet</div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead><tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}><th className="text-left py-2 px-4 font-medium">Customer</th><th className="text-left py-2 px-4 font-medium">Code</th></tr></thead>
+                        <tbody>{referralCodes.map((p: any)=>(<tr key={p.id} className={`border-b ${dm?'border-slate-800':'border-slate-100'}`}><td className="py-2 px-4">{p.full_name||'Unknown'}</td><td className="py-2 px-4 font-mono font-semibold text-slate-600 dark:text-slate-400">{p.referral_code}</td></tr>))}</tbody>
+                      </table>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div className={`${card} border rounded-lg overflow-hidden`}>
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div><h3 className="font-semibold">Who Referred Who</h3><p className={`text-xs ${muted} mt-0.5`}>Full referral audit trail</p></div>
+                    <select value={referralStatusFilter} onChange={e=>setReferralStatusFilter(e.target.value as 'all'|'completed'|'pending')} className={`text-xs border rounded-lg px-2 py-1.5 ${dm?'bg-slate-800 border-slate-700':'border-slate-200'}`}>
+                      <option value="all">All status</option>
+                      <option value="completed">Completed</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </div>
+                  <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                    {referrals.filter((r:any)=>referralStatusFilter==='all'||r.status===referralStatusFilter).length === 0 ? (
+                      <div className={`p-6 text-center ${muted} text-sm`}>No referrals yet</div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead><tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}><th className="text-left py-2 px-4 font-medium">Referrer</th><th className="text-left py-2 px-4 font-medium">Referred</th><th className="text-left py-2 px-4 font-medium">Date</th><th className="text-left py-2 px-4 font-medium">Status</th><th className="text-right py-2 px-4 font-medium">Bonus</th></tr></thead>
+                        <tbody>
+                          {referrals.filter((r:any)=>referralStatusFilter==='all'||r.status===referralStatusFilter).map((r: any)=>(
+                            <tr key={r.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'}`}>
+                              <td className="py-2 px-4 font-medium">{r.referrer_name}</td>
+                              <td className="py-2 px-4">{r.referred_user_name}</td>
+                              <td className="py-2 px-4 text-slate-500">{new Date(r.created_at).toLocaleDateString()}</td>
+                              <td className="py-2 px-4"><span className={`text-xs px-2 py-0.5 rounded font-medium ${r.status==='completed'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400':'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{r.status}</span></td>
+                              <td className="py-2 px-4 text-right font-semibold">{r.status==='completed'?'+100 pts':'—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
               </div>
                 </>
               )}
@@ -1240,10 +1320,10 @@ export default function AdminPage() {
           {/* ═══ ANALYTICS ════════════════════════════════════════════════ */}
           {tab==='analytics' && (
             <div>
-              <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <div>
-                  <h2 className="text-xl font-bold">Analytics</h2>
-                  <p className={`text-sm ${muted}`}>Business performance overview</p>
+                  <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Analytics</h1>
+                  <p className={`text-sm ${muted} mt-0.5`}>Business performance overview</p>
                 </div>
                 <div className="flex gap-2">
                   <select value={period} onChange={e=>setPeriod(e.target.value)}
@@ -1253,16 +1333,16 @@ export default function AdminPage() {
                     <option value="90">Last 90 days</option>
                     <option value="365">All time</option>
                   </select>
-                  <button onClick={exportCSV} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700">
+                  <button onClick={exportCSV} className="bg-slate-900 dark:bg-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
                     ⬇️ Export CSV
                   </button>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                <StatCard icon="💰" label="Total Revenue" value={`฿${fmt(totalRev)}`} color="green"/>
-                <StatCard icon="📦" label="Total Orders" value={filteredByPeriod.length} color="blue"/>
-                <StatCard icon="📈" label="Avg Order" value={`฿${fmt(Math.round(avgOrder))}`} color="orange"/>
-                <StatCard icon="👥" label="Customers" value={customers.length} color="purple"/>
+                <StatCard icon={<DollarSign className="w-5 h-5"/>} label="Total Revenue" value={`฿${fmt(totalRev)}`} color="emerald" darkMode={dm}/>
+                <StatCard icon={<Package className="w-5 h-5"/>} label="Total Orders" value={filteredByPeriod.length} color="blue" darkMode={dm}/>
+                <StatCard icon={<TrendingUp className="w-5 h-5"/>} label="Avg Order" value={`฿${fmt(Math.round(avgOrder))}`} color="amber" darkMode={dm}/>
+                <StatCard icon={<Users className="w-5 h-5"/>} label="Customers" value={customers.length} color="slate" darkMode={dm}/>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className={`${card} border rounded-2xl p-4`}>
@@ -1275,8 +1355,8 @@ export default function AdminPage() {
                             <span className="flex gap-2"><span className={muted}>{i+1}.</span>{name}</span>
                             <span className="font-semibold">{count} sold</span>
                           </div>
-                          <div className={`h-2 ${dm?'bg-gray-700':'bg-gray-100'} rounded-full overflow-hidden`}>
-                            <div className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full"
+                          <div className={`h-2 ${dm?'bg-slate-700':'bg-slate-100'} rounded-full overflow-hidden`}>
+                            <div className="h-full bg-slate-500 dark:bg-slate-600 rounded-full"
                               style={{width:`${(count/(topItemsSorted[0]?.[1]||1))*100}%`}}/>
                           </div>
                         </div>
@@ -1292,7 +1372,7 @@ export default function AdminPage() {
                           <span className={`text-xs ${muted} w-14 shrink-0`}>{date}</span>
                           <div className="flex-1 relative h-6">
                             <div className={`absolute inset-0 ${dm?'bg-gray-800':'bg-gray-100'} rounded-lg`}/>
-                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-600 to-emerald-500 rounded-lg flex items-center pl-2 transition-all"
+                            <div className="absolute inset-y-0 left-0 bg-slate-700 dark:bg-slate-600 rounded-lg flex items-center pl-2 transition-all"
                               style={{width:`${Math.max(8,(rev/Math.max(...Object.values(revenueByDay)))*100)}%`}}>
                               <span className="text-white text-xs font-medium whitespace-nowrap">฿{fmt(rev)}</span>
                             </div>
@@ -1337,9 +1417,9 @@ export default function AdminPage() {
           {/* ═══ SETTINGS ══════════════════════════════════════════════════ */}
           {tab==='settings' && (
             <div>
-              <div className="mb-5">
-                <h2 className="text-xl font-bold">Settings</h2>
-                <p className={`text-sm ${muted}`}>Admin configuration</p>
+              <div className="mb-6">
+                <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+                <p className={`text-sm ${muted} mt-0.5`}>Admin configuration</p>
               </div>
               <div className="space-y-4 max-w-lg">
                 <div className={`${card} border rounded-2xl p-4`}>

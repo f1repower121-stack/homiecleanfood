@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { Search, ChevronUp, FileDown, RefreshCw } from 'lucide-react'
 
 interface LoyaltyConfig {
   id: string; points_per_baht: number; first_order_bonus: number
@@ -34,10 +35,10 @@ interface AdminLoyaltyTabProps {
 
 const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customersLoading = false }: AdminLoyaltyTabProps) => {
   const dm = darkMode
-  const card = dm ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'
-  const muted = dm ? 'text-gray-400' : 'text-gray-500'
+  const card = dm ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+  const muted = dm ? 'text-slate-400' : 'text-slate-500'
   const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm ? 'bg-gray-800 border-gray-700 text-gray-100' : 'border-gray-200'}`
-  const [section, setSection] = useState<'overview'|'earn'|'tiers'>('overview')
+  const [section, setSection] = useState<'overview'|'earn'|'tiers'|'history'>('overview')
   const [config, setConfig] = useState<LoyaltyConfig>(DEFAULT_CONFIG)
   const [configSaving, setConfigSaving] = useState(false)
   const [configMsg, setConfigMsg] = useState('')
@@ -78,8 +79,23 @@ const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customers
   }
   const sections = [
     {key:'overview',label:'Overview',icon:'📊'},{key:'earn',label:'Earn Rules',icon:'⚡'},
-    {key:'tiers',label:'Tiers',icon:'🏆'},
+    {key:'tiers',label:'Tiers',icon:'🏆'},{key:'history',label:'Points History',icon:'📋'},
   ]
+
+  const [pointsHistory, setPointsHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historySort, setHistorySort] = useState<'date'|'user'>('date')
+  const fetchPointsHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await fetch('/api/admin/loyalty-history')
+      const data = await res.json()
+      setPointsHistory(data.transactions || [])
+    } catch { setPointsHistory([]) }
+    setHistoryLoading(false)
+  }, [])
+  useEffect(() => { if (section === 'history') fetchPointsHistory() }, [section, fetchPointsHistory])
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/></div>
 
@@ -89,10 +105,10 @@ const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customers
         <h2 className="text-xl font-bold">Loyalty Program</h2>
         <p className={`text-sm ${muted}`}>Manage earn rules and tier thresholds</p>
       </div>
-      <div className={`flex gap-1 p-1 rounded-xl mb-6 overflow-x-auto ${dm?'bg-gray-800':'bg-gray-100'}`}>
+      <div className={`flex gap-1 p-1 rounded-lg mb-6 overflow-x-auto ${dm?'bg-slate-800':'bg-slate-100'}`}>
         {sections.map(s=>(
           <button key={s.key} onClick={()=>setSection(s.key as any)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${section===s.key?'bg-green-600 text-white shadow-sm':`${muted} hover:bg-white/50`}`}>
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${section===s.key?'bg-slate-900 dark:bg-slate-700 text-white':`${muted} hover:bg-slate-200 dark:hover:bg-slate-700`}`}>
             <span>{s.icon}</span>{s.label}
           </button>
         ))}
@@ -180,6 +196,53 @@ const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customers
           <button onClick={saveConfig} disabled={configSaving} className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50">
             {configSaving?'Saving...':'💾 Save Earn Rules'}
           </button>
+        </div>
+      )}
+
+      {section==='history' && (
+        <div className="space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="font-semibold text-slate-900 dark:text-white">Points audit trail</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
+                <input placeholder="Search by name..." value={historySearch} onChange={e=>setHistorySearch(e.target.value)} className={`pl-9 pr-3 py-2 border rounded-lg text-sm w-48 ${dm?'bg-slate-800 border-slate-700':'border-slate-200'}`}/>
+              </div>
+              <button onClick={fetchPointsHistory} disabled={historyLoading} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <RefreshCw className={`w-4 h-4 ${historyLoading?'animate-spin':''}`}/>
+              </button>
+            </div>
+          </div>
+          <div className={`${card} border rounded-lg overflow-hidden`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
+                    <th className="text-left py-3 px-4 font-medium">Date</th>
+                    <th className="text-left py-3 px-4 font-medium">Customer</th>
+                    <th className="text-right py-3 px-4 font-medium">Points</th>
+                    <th className="text-left py-3 px-4 font-medium">Source</th>
+                    <th className="text-left py-3 px-4 font-medium">Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(historyLoading ? [] : pointsHistory)
+                    .filter(t=>!historySearch||t.user_name?.toLowerCase().includes(historySearch.toLowerCase()))
+                    .slice(0,100)
+                    .map((t,i)=>(
+                      <tr key={i} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'}`}>
+                        <td className="py-3 px-4 text-slate-500">{new Date(t.created_at).toLocaleString()}</td>
+                        <td className="py-3 px-4 font-medium">{t.user_name}</td>
+                        <td className={`py-3 px-4 text-right font-semibold tabular-nums ${t.points_delta>=0?'text-emerald-600':'text-rose-600'}`}>{t.points_delta>=0?'+':''}{t.points_delta}</td>
+                        <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${t.source==='order'?'bg-blue-100 text-blue-700':t.source==='referral'?'bg-amber-100 text-amber-700':t.source==='manual'?'bg-slate-100 text-slate-600':'bg-purple-100 text-purple-700'}`}>{t.source}</span></td>
+                        <td className="py-3 px-4 text-slate-500 max-w-[200px] truncate">{t.reference_label||'—'}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            {!historyLoading && pointsHistory.length===0 && <div className={`text-center py-12 ${muted}`}>No point transactions yet</div>}
+          </div>
         </div>
       )}
 
