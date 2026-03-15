@@ -418,9 +418,20 @@ export default function AdminPage() {
     }
   }, [authed, notificationsEnabled])
 
+  const updateOrder = async (orderId: string, updates: { status?: string; payment_confirmed?: boolean }) => {
+    const res = await fetch('/api/admin/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, ...updates }),
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed')
+    const { order } = await res.json()
+    if (order) setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...order } : o))
+  }
+
   const updateStatus = async (order: Order, newStatus: string) => {
-    await supabase.from('orders').update({status:newStatus}).eq('id',order.id)
-    setOrders(prev => prev.map(o => o.id===order.id ? {...o,status:newStatus} : o))
+    try {
+      await updateOrder(order.id, { status: newStatus })
     if (newStatus==='preparing'||newStatus==='out_for_delivery') {
       const phone = order.customer_phone?.replace(/\D/g,'').replace(/^0/,'66')
       const msg = newStatus==='preparing'
@@ -428,26 +439,35 @@ export default function AdminPage() {
         : `Hi ${order.customer_name}! 🚚 Your order is out for delivery! Should arrive soon. 🥗`
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank')
     }
+    } catch (e) {
+      console.error('Update status failed:', e)
+    }
   }
 
-  const confirmPayment = async (orderId: string, confirmed: boolean) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_confirmed: confirmed } : o))
-    await supabase.from('orders').update({ payment_confirmed: confirmed } as any).eq('id', orderId)
+  const confirmPayment = async (orderId: string, confirmed: boolean, alsoConfirmOrder = false) => {
+    try {
+      await updateOrder(orderId, {
+        payment_confirmed: confirmed,
+        ...(alsoConfirmOrder ? { status: 'confirmed' } : {}),
+      })
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_confirmed: confirmed, ...(alsoConfirmOrder ? { status: 'confirmed' } : {}) } : o))
+    } catch (e) {
+      console.error('Confirm payment failed:', e)
+    }
   }
 
   const bulkUpdateOrderStatus = async (newStatus: string) => {
     if (selectedOrderIds.size === 0) return
     setBulkStatusSaving(true)
-    for (const id of Array.from(selectedOrderIds)) {
-      const order = orders.find(o => o.id === id)
-      if (order) {
-        await supabase.from('orders').update({ status: newStatus }).eq('id', id)
-        setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
+    try {
+      for (const id of Array.from(selectedOrderIds)) {
+        await updateOrder(id, { status: newStatus })
       }
+      setSelectedOrderIds(new Set())
+      fetchOrders()
+    } finally {
+      setBulkStatusSaving(false)
     }
-    setSelectedOrderIds(new Set())
-    setBulkStatusSaving(false)
-    fetchOrders()
   }
 
   const saveMenuItem = async () => {
@@ -903,7 +923,7 @@ export default function AdminPage() {
                     {newOrdersCount > 0 && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${orderSubTab==='new'?'bg-white/20':'bg-amber-100 text-amber-700'}`}>{newOrdersCount}</span>}
                   </button>
                   <button onClick={()=>setOrderSubTab('confirmed')} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${orderSubTab==='confirmed'?'bg-slate-900 dark:bg-slate-700 text-white':'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                    Confirmed & Beyond
+                    Recent Orders
                   </button>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
@@ -995,15 +1015,23 @@ export default function AdminPage() {
                     <div className="p-4 space-y-4">
                       <div><p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Customer</p><p className="font-medium">{orderDetailPanel.customer_name} · {orderDetailPanel.customer_phone}</p><p className="text-sm text-slate-500 mt-0.5">{orderDetailPanel.delivery_address}</p></div>
                       <div><p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Items</p>{(orderDetailPanel.items||[]).map((item:any,i:number)=>(<div key={i} className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800 text-sm"><span>{item.name} ({item.portion}) ×{item.quantity}</span><span className="font-medium">฿{fmt(item.price*item.quantity)}</span></div>))}</div>
-                      {(orderDetailPanel.payment_method==='promptpay'||orderDetailPanel.payment_method==='card')&&(
-                        <div className={`rounded-lg p-4 ${dm?'bg-slate-800':'bg-slate-50'} border border-slate-200 dark:border-slate-700`}>
-                          <p className="text-xs font-medium text-slate-500 mb-2">Payment · {orderDetailPanel.payment_confirmed?'✓ Confirmed':'⏳ Pending'}</p>
-                          {orderDetailPanel.payment_slip_url&&(<img src={orderDetailPanel.payment_slip_url} alt="Slip" className="w-20 h-20 object-cover rounded cursor-pointer mb-2" onClick={()=>window.open(orderDetailPanel!.payment_slip_url,'_blank')}/>)}
-                          {!orderDetailPanel.payment_confirmed?(<button onClick={()=>{confirmPayment(orderDetailPanel.id,true);setOrderDetailPanel({...orderDetailPanel,payment_confirmed:true})}} className="w-full py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-lg">Confirm Payment</button>):(<button onClick={()=>{confirmPayment(orderDetailPanel.id,false);setOrderDetailPanel({...orderDetailPanel,payment_confirmed:false})}} className="w-full py-2 border text-sm font-medium rounded-lg">Undo</button>)}
+                      {orderDetailPanel.status==='pending' && (
+                        <div className={`rounded-lg p-4 ${dm?'bg-emerald-900/30':'bg-emerald-50'} border border-emerald-200 dark:border-emerald-800`}>
+                          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-2">Confirm this order → moves to Recent Orders</p>
+                          {(orderDetailPanel.payment_method==='promptpay'||orderDetailPanel.payment_method==='card') ? (
+                            <>
+                              <p className="text-xs text-slate-500 mb-2">Payment · {orderDetailPanel.payment_confirmed?'✓ Confirmed':'⏳ Pending'}</p>
+                              {orderDetailPanel.payment_slip_url&&(<img src={orderDetailPanel.payment_slip_url} alt="Slip" className="w-20 h-20 object-cover rounded cursor-pointer mb-2" onClick={()=>window.open(orderDetailPanel!.payment_slip_url,'_blank')}/>)}
+                              {!orderDetailPanel.payment_confirmed?(<button onClick={()=>{confirmPayment(orderDetailPanel.id,true,true);setOrderDetailPanel(null)}} className="w-full py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-lg">Confirm Payment & Order</button>):(<button onClick={()=>{updateStatus(orderDetailPanel,'confirmed');setOrderDetailPanel(null)}} className="w-full py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-lg">Confirm Order → Recent</button>)}
+                              {orderDetailPanel.payment_confirmed&&(<button onClick={()=>{confirmPayment(orderDetailPanel.id,false);setOrderDetailPanel({...orderDetailPanel,payment_confirmed:false})}} className="w-full mt-2 py-2 border text-sm font-medium rounded-lg">Undo Payment</button>)}
+                            </>
+                          ) : (
+                            <button onClick={async()=>{await updateStatus(orderDetailPanel,'confirmed');setOrderDetailPanel(null)}} className="w-full py-2 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-lg">Confirm Order (COD)</button>
+                          )}
                         </div>
                       )}
                       {orderDetailPanel.notes&&<div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm"><span className="font-medium">Note:</span> {orderDetailPanel.notes}</div>}
-                      <div><p className="text-xs text-slate-500 mb-2">Update status</p><div className="flex flex-wrap gap-2">{STATUS_STEPS.map(s=>(<button key={s} onClick={()=>{updateStatus(orderDetailPanel,s);setOrderDetailPanel({...orderDetailPanel,status:s})}} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${orderDetailPanel.status===s?'bg-slate-900 dark:bg-slate-700 text-white':'border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{STATUS_LABEL[s]}</button>))}</div></div>
+                      <div><p className="text-xs text-slate-500 mb-2">Update status</p><div className="flex flex-wrap gap-2">{STATUS_STEPS.map(s=>(<button key={s} onClick={async()=>{await updateStatus(orderDetailPanel,s); if(s==='confirmed')setOrderDetailPanel(null); else setOrderDetailPanel({...orderDetailPanel,status:s})}} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${orderDetailPanel.status===s?'bg-slate-900 dark:bg-slate-700 text-white':'border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{STATUS_LABEL[s]}</button>))}</div></div>
                       <button onClick={()=>window.open(`https://wa.me/${orderDetailPanel.customer_phone?.replace(/\D/g,'').replace(/^0/,'66')}?text=${encodeURIComponent(`Hi ${orderDetailPanel.customer_name}! 🥗 Homie Clean Food here.`)}`,'_blank')} className="w-full py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2">WhatsApp</button>
                     </div>
                   </div>

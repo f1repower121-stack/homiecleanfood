@@ -14,4 +14,6 @@ CREATE INDEX IF NOT EXISTS idx_loyalty_trans_user ON public.loyalty_point_transa
 CREATE INDEX IF NOT EXISTS idx_loyalty_trans_created ON public.loyalty_point_transactions(created_at DESC);
 
 ALTER TABLE public.loyalty_point_transactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role full access" ON public.loyalty_point_transactions;
 CREATE POLICY "Service role full access" ON public.loyalty_point_transactions FOR ALL USING (true) WITH CHECK (true);
