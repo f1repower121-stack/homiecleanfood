@@ -104,7 +104,7 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number; size?: string }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string }>;
     totalPrice: number;
     deliveryAddress: string;
     deliveryDate?: string;
@@ -140,7 +140,7 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number; size?: string }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string }>;
     totalPrice: number;
     deliveryAddress: string;
     deliveryDate?: string;
@@ -166,8 +166,8 @@ export class LineClient {
         const price = Number(item?.price) || 0;
         const itemTotal = (price * qty).toLocaleString('th-TH');
 
-        // Try to get portion from item.size field first, then from name
-        let portion = String(item?.size || '').toUpperCase();
+        // Try to get portion from item.size or item.portion field, then from name
+        let portion = String(item?.size || item?.portion || '').toUpperCase();
         if (!portion) {
           const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
           portion = portionMatch ? portionMatch[1].toUpperCase() : '';
