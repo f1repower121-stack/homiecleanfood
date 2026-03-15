@@ -185,11 +185,11 @@ export default function AdminPage() {
 
           // Trigger server-side Web Push to all subscribed devices
           try {
-            // Build item list with size (bulk/lean)
+            // Build item list with size (Bulk/Lean)
             const itemNames = (latestOrder.items || [])
               .slice(0, 2)
               .map((i: any) => {
-                const size = i.size === 'bulk' ? '(B)' : i.size === 'lean' ? '(L)' : ''
+                const size = i.size === 'bulk' ? 'Bulk' : i.size === 'lean' ? 'Lean' : ''
                 return `${i.name} ${size}`.trim()
               })
               .join(', ')
