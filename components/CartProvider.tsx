@@ -51,10 +51,12 @@ export default function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const updateQty = (id: string, portion: string, qty: number) => {
-    if (qty <= 0) { removeItem(id, portion); return }
-    setItems(prev => prev.map(i =>
-      i.id === id && i.portion === portion ? { ...i, quantity: qty } : i
-    ))
+    setItems(prev => {
+      if (qty <= 0) return prev.filter(i => !(i.id === id && i.portion === portion))
+      return prev.map(i =>
+        i.id === id && i.portion === portion ? { ...i, quantity: qty } : i
+      )
+    })
   }
 
   const clearCart = () => setItems([])
