@@ -5,23 +5,29 @@ function formatTimeICT(date: Date | string): string {
     timeZone: ICT,
     month: 'short',
     day: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   }) + ' ICT'
 }
 
+const GREEN = '#1DB446'
+const GRAY_DARK = '#333333'
+const GRAY_MID = '#666666'
+
 export class LineClient {
-  private channelAccessToken: string;
-  private adminUserIds: string[];
-  private baseUrl = 'https://api.line.me/v2/bot';
+  private channelAccessToken: string
+  private adminUserIds: string[]
+  private baseUrl = 'https://api.line.me/v2/bot'
 
   constructor() {
-    this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-    const userIdString = process.env.LINE_USER_ID || '';
-    this.adminUserIds = userIdString.split(',').map(id => id.trim()).filter(Boolean);
+    this.channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
+    const userIdString = process.env.LINE_USER_ID || ''
+    this.adminUserIds = userIdString.split(',').map(id => id.trim()).filter(Boolean)
 
     if (!this.channelAccessToken || this.adminUserIds.length === 0) {
-      throw new Error('LINE_CHANNEL_ACCESS_TOKEN and LINE_USER_ID are required');
+      throw new Error('LINE_CHANNEL_ACCESS_TOKEN and LINE_USER_ID are required')
     }
   }
 
@@ -33,15 +39,15 @@ export class LineClient {
         'Authorization': `Bearer ${this.channelAccessToken.trim()}`,
       },
       body: body ? JSON.stringify(body) : undefined,
-    });
-    const text = await res.text();
+    })
+    const text = await res.text()
     if (!res.ok) {
-      let errData: unknown;
-      try { errData = JSON.parse(text); } catch { errData = text; }
-      console.error('LINE API error', res.status, errData);
-      throw new Error(`LINE API ${res.status}: ${JSON.stringify(errData)}`);
+      let errData: unknown
+      try { errData = JSON.parse(text) } catch { errData = text }
+      console.error('LINE API error', res.status, errData)
+      throw new Error(`LINE API ${res.status}: ${JSON.stringify(errData)}`)
     }
-    return text ? JSON.parse(text) : {};
+    return text ? JSON.parse(text) : {}
   }
 
   async sendTextMessage(text: string): Promise<void> {
@@ -49,29 +55,51 @@ export class LineClient {
       await this.request('POST', '/message/push', {
         to: userId,
         messages: [{ type: 'text', text }],
-      });
+      })
     }
   }
 
-  /**
-   * Send order notification. Uses text message (most reliable).
-   * Format: compact, items with qty×, Bulk in bold/emoji, ICT time.
-   */
   async sendOrderNotification(orderData: {
-    orderId: string;
-    customerName: string;
-    customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number; portion?: string }>;
-    totalPrice: number;
-    deliveryAddress: string;
-    deliveryDate?: string;
-    deliveryTime: string;
-    orderTime: string;
+    orderId: string
+    customerName: string
+    customerPhone: string
+    items: Array<{ id?: string; name: string; quantity: number; price: number; portion?: string; image?: string }>
+    totalPrice: number
+    deliveryAddress: string
+    deliveryDate?: string
+    deliveryTime: string
+    orderTime: string
   }): Promise<void> {
-    const id = orderData.orderId.slice(0, 8).toUpperCase();
-    const totalMeals = orderData.items.reduce((s, i) => s + Math.max(1, i.quantity), 0);
+    const textFallback = this.buildTextFallback(orderData)
 
-    const lines: string[] = [
+    try {
+      const flexMsg = this.buildFlexMessage(orderData)
+      for (const userId of this.adminUserIds) {
+        await this.request('POST', '/message/push', {
+          to: userId,
+          messages: [flexMsg],
+        })
+      }
+    } catch (err) {
+      console.error('[LINE] Flex failed, fallback to text:', err)
+      await this.sendTextMessage(textFallback)
+    }
+  }
+
+  private buildTextFallback(orderData: {
+    orderId: string
+    customerName: string
+    customerPhone: string
+    items: Array<{ name: string; quantity: number; price: number; portion?: string }>
+    totalPrice: number
+    deliveryAddress: string
+    deliveryDate?: string
+    deliveryTime: string
+    orderTime: string
+  }): string {
+    const id = orderData.orderId.slice(0, 8).toUpperCase()
+    const totalMeals = orderData.items.reduce((s, i) => s + Math.max(1, i.quantity), 0)
+    const lines = [
       '📱 New Order',
       `#${id}`,
       '',
@@ -82,31 +110,183 @@ export class LineClient {
       '',
       `${totalMeals} meal${totalMeals !== 1 ? 's' : ''}:`,
       ...orderData.items.map(i => {
-        const qty = Math.max(1, i.quantity);
-        let portion = (i.portion || '').toUpperCase();
-        if (!portion) {
-          const m = (i.name || '').match(/\b(Bulk|Lean)\b/i);
-          portion = m ? m[1].toUpperCase() : '';
-        }
-        const emoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
-        const name = (i.name || 'Item').replace(/\s*-(Bulk|Lean)\s*/gi, '').trim();
-        const label = portion ? `${name} ${emoji}${portion}` : name;
-        const itemTotal = (i.price * qty).toLocaleString('th-TH');
-        return `  ${qty}× ${label} ฿${itemTotal}`;
+        const qty = Math.max(1, i.quantity)
+        const portion = ((i.portion || '').toUpperCase() || (i.name || '').match(/\b(Bulk|Lean)\b/i)?.[1]?.toUpperCase() || '')
+        const emoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : ''
+        const name = (i.name || 'Item').replace(/\s*-(Bulk|Lean)\s*/gi, '').trim()
+        const label = portion ? `${name} ${emoji}${portion}` : name
+        return `  ${qty}× ${label} ฿${(i.price * qty).toLocaleString('th-TH')}`
       }),
       '',
       `💰 Total: ฿${orderData.totalPrice.toFixed(2)}`,
       `🕐 ${formatTimeICT(orderData.orderTime)}`,
-    ];
+    ]
+    return lines.join('\n')
+  }
 
-    const text = lines.join('\n');
-    await this.sendTextMessage(text);
+  private buildFlexMessage(orderData: {
+    orderId: string
+    customerName: string
+    customerPhone: string
+    items: Array<{ id?: string; name: string; quantity: number; price: number; portion?: string; image?: string }>
+    totalPrice: number
+    deliveryAddress: string
+    deliveryDate?: string
+    deliveryTime: string
+    orderTime: string
+  }) {
+    const id = orderData.orderId.slice(0, 8).toUpperCase()
+    const totalMeals = orderData.items.reduce((s, i) => s + Math.max(1, i.quantity), 0)
+
+    const itemRows: object[] = orderData.items.map((item) => {
+      const qty = Math.max(1, item.quantity)
+      let portion = (item.portion || '').toUpperCase()
+      if (!portion) {
+        const m = (item.name || '').match(/\b(Bulk|Lean)\b/i)
+        portion = m ? m[1].toUpperCase() : ''
+      }
+      const baseName = (item.name || 'Item').replace(/\s*-(Bulk|Lean)\s*/gi, '').trim()
+      const itemTotal = (item.price * qty).toLocaleString('th-TH')
+
+      const emoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : ''
+
+      const line1Contents: object[] = [
+        { type: 'text', text: `${qty}× ${baseName} `, size: 'sm', wrap: true, weight: 'bold', color: GRAY_DARK, flex: 0 },
+      ]
+      if (portion) {
+        line1Contents.push({ type: 'text', text: `${portion}${emoji}`, size: 'sm', weight: 'bold', color: GREEN, flex: 0 })
+      }
+
+      const leftContent: object[] = []
+      if (item.image && item.image.startsWith('https://')) {
+        leftContent.push({
+          type: 'image',
+          url: item.image,
+          size: 'sm',
+          aspectRatio: '1:1',
+          flex: 0,
+          margin: 'none',
+        })
+      }
+      leftContent.push({
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        flex: 1,
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'xs',
+            contents: line1Contents,
+          },
+          {
+            type: 'text',
+            text: `฿${itemTotal}`,
+            size: 'sm',
+            color: GRAY_MID,
+            weight: 'bold',
+          },
+        ],
+      })
+
+      return {
+        type: 'box',
+        layout: 'horizontal',
+        spacing: 'sm',
+        margin: 'xs',
+        contents: leftContent,
+      }
+    })
+
+    const bodyContents: object[] = [
+      {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        contents: [
+          { type: 'text', text: '📱 Website Order', weight: 'bold', size: 'lg', color: GREEN },
+          { type: 'text', text: `#${id}`, weight: 'bold', size: 'md', color: GRAY_DARK },
+        ],
+      },
+      {
+        type: 'box',
+        layout: 'vertical',
+        margin: 'md',
+        paddingAll: 'md',
+        backgroundColor: GREEN,
+        cornerRadius: 'md',
+        contents: [
+          { type: 'text', text: '⏰ DELIVERY', size: 'xs', color: '#ffffff', weight: 'bold' },
+          {
+            type: 'text',
+            text: orderData.deliveryDate ? `${orderData.deliveryDate} at ${orderData.deliveryTime}` : (orderData.deliveryTime || 'ASAP'),
+            size: 'md',
+            weight: 'bold',
+            color: '#ffffff',
+          },
+        ],
+      },
+      { type: 'separator', margin: 'md' },
+      { type: 'text', text: `👤 ${orderData.customerName}`, weight: 'bold', size: 'md', color: '#1a1a1a', wrap: true },
+      { type: 'text', text: `📱 ${orderData.customerPhone}`, weight: 'bold', size: 'sm', color: GREEN, margin: 'xs' },
+      { type: 'text', text: `📍 ${orderData.deliveryAddress}`, size: 'sm', weight: 'bold', color: '#1a1a1a', wrap: true, margin: 'xs' },
+      {
+        type: 'box',
+        layout: 'vertical',
+        margin: 'md',
+        paddingAll: 'md',
+        paddingStart: 'md',
+        backgroundColor: '#fafbfc',
+        borderColor: GREEN,
+        borderWidth: '1px',
+        cornerRadius: 'md',
+        contents: [
+          { type: 'text', text: `${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: GRAY_MID, margin: 'sm' },
+          ...itemRows,
+        ],
+      },
+      {
+        type: 'box',
+        layout: 'vertical',
+        margin: 'md',
+        paddingAll: 'lg',
+        backgroundColor: GREEN,
+        cornerRadius: 'md',
+        contents: [
+          { type: 'text', text: 'Total', size: 'sm', color: '#ffffff', weight: 'bold' },
+          { type: 'text', text: `฿${orderData.totalPrice.toFixed(2)}`, size: 'xxl', weight: 'bold', color: '#ffffff' },
+        ],
+      },
+      {
+        type: 'text',
+        text: `🕐 ${formatTimeICT(orderData.orderTime)}`,
+        size: 'xs',
+        color: GRAY_MID,
+        margin: 'md',
+        align: 'center',
+      },
+    ]
+
+    return {
+      type: 'flex',
+      altText: `Order #${id} - ฿${orderData.totalPrice.toFixed(2)}`,
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'xs',
+          contents: bodyContents,
+        },
+      },
+    }
   }
 }
 
-let _client: LineClient | null = null;
+let _client: LineClient | null = null
 
 export function getLineClient(): LineClient {
-  if (!_client) _client = new LineClient();
-  return _client;
+  if (!_client) _client = new LineClient()
+  return _client
 }
