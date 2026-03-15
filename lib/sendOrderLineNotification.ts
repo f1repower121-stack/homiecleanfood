@@ -46,6 +46,7 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
       items: order.items,
       totalPrice: order.total,
       deliveryAddress: order.delivery_address,
+      deliveryDate: order.delivery_date,
       deliveryTime: order.delivery_time || 'ASAP',
       orderTime: order.created_at || new Date().toISOString(),
       paymentSlipUrl: order.payment_slip_url,

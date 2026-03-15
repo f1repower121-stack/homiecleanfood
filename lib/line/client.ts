@@ -104,9 +104,10 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string }>;
     totalPrice: number;
     deliveryAddress: string;
+    deliveryDate?: string;
     deliveryTime: string;
     orderTime: string;
     paymentSlipUrl?: string;
@@ -139,9 +140,10 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string }>;
     totalPrice: number;
     deliveryAddress: string;
+    deliveryDate?: string;
     deliveryTime: string;
     orderTime: string;
     paymentSlipUrl?: string;
@@ -163,10 +165,15 @@ export class LineClient {
         const name = String(item?.name || 'Item');
         const price = Number(item?.price) || 0;
         const itemTotal = (price * qty).toLocaleString('th-TH');
-        // Extract portion type from name (Bulk/Lean/Regular)
-        const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
-        const portion = portionMatch ? portionMatch[1] : '';
-        const portionEmoji = portion.toLowerCase() === 'bulk' ? '💪' : portion.toLowerCase() === 'lean' ? '🏃' : '';
+
+        // Try to get portion from item.size field first, then from name
+        let portion = String(item?.size || '').toUpperCase();
+        if (!portion) {
+          const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
+          portion = portionMatch ? portionMatch[1].toUpperCase() : '';
+        }
+
+        const portionEmoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
         const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
 
         return `${idx + 1}. ${qty}× ${baseName}  ${portionEmoji}${portion}\n   ฿${itemTotal}`;
@@ -205,7 +212,7 @@ export class LineClient {
               contents: [
                 {
                   type: 'text',
-                  text: '🎉 NEW ORDER',
+                  text: '📱 Website Order',
                   weight: 'bold',
                   size: 'xl',
                   color: '#1DB446',
@@ -231,14 +238,14 @@ export class LineClient {
               contents: [
                 {
                   type: 'text',
-                  text: '⏰ DELIVERY TIME',
+                  text: '⏰ DELIVERY',
                   size: 'xs',
                   color: '#ffffff',
                   weight: 'bold',
                 },
                 {
                   type: 'text',
-                  text: orderData.deliveryTime,
+                  text: `${orderData.deliveryDate ? orderData.deliveryDate + ' at ' : ''}${orderData.deliveryTime}`,
                   size: 'lg',
                   weight: 'bold',
                   color: '#ffffff',
