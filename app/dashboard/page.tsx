@@ -127,7 +127,7 @@ export default function DashboardPage() {
   const [reorderItems, setReorderItems] = useState<{ [key: string]: number }>({})
   const [ordersPage, setOrdersPage] = useState(1)
   const [ordersShowAll, setOrdersShowAll] = useState(false)
-  const ORDERS_PER_PAGE = 10
+  const ORDERS_PER_PAGE = 5
   const ordersTotalPages = Math.ceil(orders.length / ORDERS_PER_PAGE)
   const safeOrdersPage = Math.min(ordersPage, Math.max(1, ordersTotalPages))
   const displayedOrders = ordersShowAll
