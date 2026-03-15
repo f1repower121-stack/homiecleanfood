@@ -741,6 +741,19 @@ export default function DashboardPage() {
         {/* PROFILE / ACCOUNT TAB */}
         {tab === 'profile' && (
           <div className="space-y-6">
+            {/* Points & Tier — prominent, big, clear */}
+            <div className="bg-gradient-to-br from-homie-green to-homie-green/90 rounded-2xl p-8 border border-lime-200">
+              <p className="text-lime-200 text-sm font-semibold uppercase tracking-wider mb-2">Loyalty Points</p>
+              <p className="text-white text-4xl md:text-5xl font-bold">{userPoints.toLocaleString()}</p>
+              <p className="text-white/90 text-lg mt-1">points</p>
+              <div className="mt-6 flex items-center gap-3">
+                <span className="text-3xl">{currentTier.emoji}</span>
+                <div>
+                  <p className="text-lime-300 text-sm font-medium">Your tier</p>
+                  <p className="text-white text-2xl font-bold">{currentTier.name}</p>
+                </div>
+              </div>
+            </div>
             <Card className="border-gray-100">
               <CardHeader><CardTitle>Account Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
