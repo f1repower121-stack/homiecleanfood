@@ -8,6 +8,7 @@
     "start": "next start",
     "db:migrate": "node scripts/run-migrations.js",
     "db:menu-bucket": "node scripts/create-menu-bucket.js",
+    "deploy": "npx vercel --prod",
     "fetch:slack-customers": "ts-node fetch-slack-customers.ts"
   },
   "dependencies": {

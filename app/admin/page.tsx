@@ -116,7 +116,6 @@ export default function AdminPage() {
 
   // Orders state
   const [orders, setOrders] = useState<Order[]>([])
-  const [orderSubTab, setOrderSubTab] = useState<'new'|'confirmed'>('new')  // New = pending only; Confirmed = rest
   const [orderFilter, setOrderFilter] = useState('all')
   const [orderPaymentFilter, setOrderPaymentFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
@@ -691,9 +690,11 @@ export default function AdminPage() {
     revenueByDay[d]=(revenueByDay[d]||0)+(o.total||0)
   })
 
-  const newOrdersCount = orders.filter(o => o.status === 'pending').length
-  const filteredOrders = orders
-    .filter(o => orderSubTab === 'new' ? o.status === 'pending' : o.status !== 'pending')
+  const newOrders = orders
+    .filter(o => o.status === 'pending')
+    .filter(o => orderPaymentFilter==='all' || o.payment_method===orderPaymentFilter)
+  const recentOrders = orders
+    .filter(o => o.status !== 'pending')
     .filter(o => orderFilter==='all' || o.status===orderFilter)
     .filter(o => orderPaymentFilter==='all' || o.payment_method===orderPaymentFilter)
 
@@ -895,7 +896,7 @@ export default function AdminPage() {
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
                   <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Orders & Payments</h1>
-                  <p className={`text-sm ${muted} mt-0.5`}>{filteredOrders.length} orders · {unconfirmedPayments} pending payment</p>
+                  <p className={`text-sm ${muted} mt-0.5`}>{newOrders.length} new · {recentOrders.length} recent · {unconfirmedPayments} pending payment</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedOrderIds.size > 0 && (
@@ -916,28 +917,8 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-                <div className={`flex gap-1 p-1 rounded-xl ${dm?'bg-slate-800':'bg-slate-100'} w-fit`}>
-                  <button onClick={()=>setOrderSubTab('new')} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${orderSubTab==='new'?'bg-amber-500 text-white shadow-md':'text-slate-500 hover:text-slate-700'}`}>
-                    <Package className="w-4 h-4"/> New Orders
-                    {newOrdersCount > 0 && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${orderSubTab==='new'?'bg-white/20':'bg-amber-100 text-amber-700'}`}>{newOrdersCount}</span>}
-                  </button>
-                  <button onClick={()=>setOrderSubTab('confirmed')} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${orderSubTab==='confirmed'?'bg-slate-900 dark:bg-slate-700 text-white':'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-                    Recent Orders
-                  </button>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
-                  {(orderSubTab==='confirmed'?['all',...STATUS_STEPS.filter(s=>s!=='pending')]:['all','pending']).map(s=>{
-                    const base = orderSubTab==='new' ? orders.filter(o=>o.status==='pending') : orders.filter(o=>o.status!=='pending')
-                    const count = base.filter(o=>(s==='all'||o.status===s)&&(orderPaymentFilter==='all'||o.payment_method===orderPaymentFilter)).length
-                    return (
-                    <button key={s} onClick={()=>setOrderFilter(s)}
-                      className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
-                        ${orderFilter===s ? 'bg-slate-900 dark:bg-slate-700 text-white' : dm ? 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-                      {s==='all'?`All`:STATUS_LABEL[s]} ({count})
-                    </button>
-                  )})}
-                </div>
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="text-xs font-medium text-slate-500">Payment:</span>
                 <select value={orderPaymentFilter} onChange={e=>setOrderPaymentFilter(e.target.value as any)}
                   className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 min-w-[140px]">
                   <option value="all">All payment</option>
@@ -945,6 +926,18 @@ export default function AdminPage() {
                   <option value="cod">COD</option>
                   <option value="card">Card</option>
                 </select>
+                <span className="text-xs font-medium text-slate-500 ml-2">Recent filter:</span>
+                <div className="flex gap-1">
+                  {['all',...STATUS_STEPS.filter(s=>s!=='pending')].map(s=>{
+                    const count = orders.filter(o=>o.status!=='pending').filter(o=>orderPaymentFilter==='all'||o.payment_method===orderPaymentFilter).filter(o=>s==='all'||o.status===s).length
+                    return (
+                    <button key={s} onClick={()=>setOrderFilter(s)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+                        ${orderFilter===s ? 'bg-slate-900 dark:bg-slate-700 text-white' : dm ? 'bg-slate-800/50 text-slate-400 hover:bg-slate-800' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                      {s==='all'?'All':STATUS_LABEL[s]} ({count})
+                    </button>
+                  )})}
+                </div>
               </div>
 
               {loadingOrders ? (
@@ -952,54 +945,97 @@ export default function AdminPage() {
                   <div className="w-8 h-8 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin"/>
                 </div>
               ) : (
-                <div className={`${card} border rounded-lg overflow-hidden`}>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
-                          <th className="text-left py-3 px-4 w-10"><input type="checkbox" checked={filteredOrders.length>0&&selectedOrderIds.size===filteredOrders.length} onChange={e=>{if(e.target.checked)setSelectedOrderIds(new Set(filteredOrders.map(o=>o.id)));else setSelectedOrderIds(new Set())}}/></th>
-                          <th className="text-left py-3 px-4 font-medium">Date</th>
-                          <th className="text-left py-3 px-4 font-medium">Customer</th>
-                          <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Items</th>
-                          <th className="text-right py-3 px-4 font-medium">Total</th>
-                          <th className="text-left py-3 px-4 font-medium">Status</th>
-                          <th className="text-left py-3 px-4 font-medium">Payment</th>
-                          <th className="w-10"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredOrders.map(order=>{
-                          const isPP = order.payment_method==='promptpay'
-                          const needsConfirm = (isPP||order.payment_method==='card')&&!order.payment_confirmed
-                          const methodLabel = isPP?'PromptPay':order.payment_method==='cod'?'COD':'Card'
-                          return (
-                            <tr key={order.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'} transition-colors ${needsConfirm?'bg-amber-50/30 dark:bg-amber-950/20':''}`}>
-                              <td className="py-3 px-4" onClick={e=>e.stopPropagation()}>
-                                <input type="checkbox" checked={selectedOrderIds.has(order.id)} onChange={e=>{const next=new Set(selectedOrderIds);if(e.target.checked)next.add(order.id);else next.delete(order.id);setSelectedOrderIds(next)}}/>
-                              </td>
-                              <td className="py-3 px-4 text-slate-500">{fmtDate(order.created_at)}</td>
-                              <td className="py-3 px-4">
-                                <span className="font-medium">{order.customer_name||'Guest'}</span>
-                                {order.reference_id && <span className="text-xs font-mono text-slate-400 ml-1">#{order.reference_id}</span>}
-                              </td>
-                              <td className="py-3 px-4 hidden sm:table-cell text-slate-500 max-w-[180px] truncate">{(order.items||[]).slice(0,2).map((i:any)=>i.name).join(', ')}{(order.items||[]).length>2?'...':''}</td>
-                              <td className="py-3 px-4 text-right font-semibold tabular-nums">฿{fmt(order.total)}</td>
-                              <td className="py-3 px-4"><Badge s={order.status}/></td>
-                              <td className="py-3 px-4">
-                                <span className={`text-xs px-2 py-0.5 rounded ${needsConfirm?'bg-amber-100 text-amber-700':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>{methodLabel} {order.payment_confirmed?'✓':'⏳'}</span>
-                              </td>
-                              <td className="py-3 px-4">
-                                <button onClick={()=>setOrderDetailPanel(order)} className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"><ChevronDown className="w-4 h-4 rotate-[-90deg]"/></button>
-                              </td>
+                <div className="space-y-8">
+                  {/* New Orders table */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Package className="w-4 h-4 text-amber-500"/> New Orders
+                        {newOrders.length > 0 && <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">{newOrders.length}</span>}
+                      </h2>
+                    </div>
+                    <div className={`${card} border rounded-lg overflow-hidden`}>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
+                              <th className="text-left py-3 px-4 w-10"><input type="checkbox" checked={newOrders.length>0&&newOrders.every(o=>selectedOrderIds.has(o.id))} onChange={e=>{if(e.target.checked)setSelectedOrderIds(prev=>{const next=new Set(prev);newOrders.forEach(o=>next.add(o.id));return next});else setSelectedOrderIds(prev=>{const next=new Set(prev);newOrders.forEach(o=>next.delete(o.id));return next})}}/></th>
+                              <th className="text-left py-3 px-4 font-medium">Date</th>
+                              <th className="text-left py-3 px-4 font-medium">Customer</th>
+                              <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Items</th>
+                              <th className="text-right py-3 px-4 font-medium">Total</th>
+                              <th className="text-left py-3 px-4 font-medium">Status</th>
+                              <th className="text-left py-3 px-4 font-medium">Payment</th>
+                              <th className="w-10"></th>
                             </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody>
+                            {newOrders.map(order=>{
+                              const isPP = order.payment_method==='promptpay'
+                              const needsConfirm = (isPP||order.payment_method==='card')&&!order.payment_confirmed
+                              const methodLabel = isPP?'PromptPay':order.payment_method==='cod'?'COD':'Card'
+                              return (
+                                <tr key={order.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'} transition-colors ${needsConfirm?'bg-amber-50/30 dark:bg-amber-950/20':''}`}>
+                                  <td className="py-3 px-4" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedOrderIds.has(order.id)} onChange={e=>{const next=new Set(selectedOrderIds);if(e.target.checked)next.add(order.id);else next.delete(order.id);setSelectedOrderIds(next)}}/></td>
+                                  <td className="py-3 px-4 text-slate-500">{fmtDate(order.created_at)}</td>
+                                  <td className="py-3 px-4"><span className="font-medium">{order.customer_name||'Guest'}</span>{order.reference_id && <span className="text-xs font-mono text-slate-400 ml-1">#{order.reference_id}</span>}</td>
+                                  <td className="py-3 px-4 hidden sm:table-cell text-slate-500 max-w-[180px] truncate">{(order.items||[]).slice(0,2).map((i:any)=>i.name).join(', ')}{(order.items||[]).length>2?'...':''}</td>
+                                  <td className="py-3 px-4 text-right font-semibold tabular-nums">฿{fmt(order.total)}</td>
+                                  <td className="py-3 px-4"><Badge s={order.status}/></td>
+                                  <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${needsConfirm?'bg-amber-100 text-amber-700':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>{methodLabel} {order.payment_confirmed?'✓':'⏳'}</span></td>
+                                  <td className="py-3 px-4"><button onClick={()=>setOrderDetailPanel(order)} className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"><ChevronDown className="w-4 h-4 rotate-[-90deg]"/></button></td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {newOrders.length===0 && <div className={`text-center py-12 ${muted}`}>No new orders</div>}
+                    </div>
                   </div>
-                  {filteredOrders.length===0 && (
-                    <div className={`text-center py-16 ${muted}`}>No orders found</div>
-                  )}
+
+                  {/* Recent Orders table */}
+                  <div>
+                    <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-3">Recent Orders</h2>
+                    <div className={`${card} border rounded-lg overflow-hidden`}>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className={`border-b ${dm?'border-slate-700 bg-slate-800/50':'border-slate-200 bg-slate-50'}`}>
+                              <th className="text-left py-3 px-4 w-10"><input type="checkbox" checked={recentOrders.length>0&&recentOrders.every(o=>selectedOrderIds.has(o.id))} onChange={e=>{if(e.target.checked)setSelectedOrderIds(prev=>{const next=new Set(prev);recentOrders.forEach(o=>next.add(o.id));return next});else setSelectedOrderIds(prev=>{const next=new Set(prev);recentOrders.forEach(o=>next.delete(o.id));return next})}}/></th>
+                              <th className="text-left py-3 px-4 font-medium">Date</th>
+                              <th className="text-left py-3 px-4 font-medium">Customer</th>
+                              <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Items</th>
+                              <th className="text-right py-3 px-4 font-medium">Total</th>
+                              <th className="text-left py-3 px-4 font-medium">Status</th>
+                              <th className="text-left py-3 px-4 font-medium">Payment</th>
+                              <th className="w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {recentOrders.map(order=>{
+                              const isPP = order.payment_method==='promptpay'
+                              const needsConfirm = (isPP||order.payment_method==='card')&&!order.payment_confirmed
+                              const methodLabel = isPP?'PromptPay':order.payment_method==='cod'?'COD':'Card'
+                              return (
+                                <tr key={order.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'} transition-colors ${needsConfirm?'bg-amber-50/30 dark:bg-amber-950/20':''}`}>
+                                  <td className="py-3 px-4" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedOrderIds.has(order.id)} onChange={e=>{const next=new Set(selectedOrderIds);if(e.target.checked)next.add(order.id);else next.delete(order.id);setSelectedOrderIds(next)}}/></td>
+                                  <td className="py-3 px-4 text-slate-500">{fmtDate(order.created_at)}</td>
+                                  <td className="py-3 px-4"><span className="font-medium">{order.customer_name||'Guest'}</span>{order.reference_id && <span className="text-xs font-mono text-slate-400 ml-1">#{order.reference_id}</span>}</td>
+                                  <td className="py-3 px-4 hidden sm:table-cell text-slate-500 max-w-[180px] truncate">{(order.items||[]).slice(0,2).map((i:any)=>i.name).join(', ')}{(order.items||[]).length>2?'...':''}</td>
+                                  <td className="py-3 px-4 text-right font-semibold tabular-nums">฿{fmt(order.total)}</td>
+                                  <td className="py-3 px-4"><Badge s={order.status}/></td>
+                                  <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${needsConfirm?'bg-amber-100 text-amber-700':'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>{methodLabel} {order.payment_confirmed?'✓':'⏳'}</span></td>
+                                  <td className="py-3 px-4"><button onClick={()=>setOrderDetailPanel(order)} className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"><ChevronDown className="w-4 h-4 rotate-[-90deg]"/></button></td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {recentOrders.length===0 && <div className={`text-center py-12 ${muted}`}>No recent orders</div>}
+                    </div>
+                  </div>
                 </div>
               )}
 

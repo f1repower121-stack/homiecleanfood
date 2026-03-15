@@ -225,11 +225,13 @@ export default function DashboardPage() {
     router.replace('/signin')
   }
 
+  const itemKey = (item: { id: string; portion?: string }) => `${item.id}_${(item.portion || 'lean')}`
+
   const handleReorder = () => {
     if (!selectedOrder) return
-    // Add items to cart with selected quantities
-    selectedOrder.items.forEach(item => {
-      const qty = reorderItems[item.id] ?? item.quantity
+    selectedOrder.items.forEach((item: any) => {
+      const key = itemKey(item)
+      const qty = reorderItems[key] ?? item.quantity ?? 1
       if (qty > 0) {
         addItem({
           id: item.id,
@@ -242,7 +244,7 @@ export default function DashboardPage() {
     })
     setSelectedOrder(null)
     setReorderItems({})
-    router.push('/menu')
+    router.push('/order')
   }
 
   if (loading) {
@@ -395,7 +397,7 @@ export default function DashboardPage() {
                               <button
                                 onClick={() => {
                                   setSelectedOrder(o)
-                                  setReorderItems(Object.fromEntries(o.items.map((item: any) => [item.id, item.quantity])))
+                                  setReorderItems(Object.fromEntries((o.items || []).map((item: any) => [`${item.id}_${item.portion || 'lean'}`, item.quantity ?? 1])))
                                 }}
                                 className="text-homie-lime hover:text-homie-green font-semibold text-sm"
                               >
@@ -628,43 +630,46 @@ export default function DashboardPage() {
 
             {/* Items with Quantity Editor */}
             <div className="space-y-3">
-              {selectedOrder.items.map((item: any, idx) => (
-                <div key={`${item.id}-${idx}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              {selectedOrder.items.map((item: any, idx) => {
+                const key = itemKey(item)
+                return (
+                <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                   <div className="flex-1">
                     <p className="font-semibold text-homie-dark">{item.name}</p>
                     <p className="text-xs text-homie-gray">฿{item.price} • {item.portion || 'lean'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setReorderItems(prev => ({ ...prev, [item.id]: Math.max(0, (prev[item.id] ?? 1) - 1) }))}
+                      onClick={() => setReorderItems(prev => ({ ...prev, [key]: Math.max(0, (prev[key] ?? item.quantity ?? 1) - 1) }))}
                       className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-homie-green font-bold hover:bg-gray-50"
                     >
                       −
                     </button>
                     <input
                       type="number"
-                      value={reorderItems[item.id] ?? item.quantity}
-                      onChange={e => setReorderItems(prev => ({ ...prev, [item.id]: parseInt(e.target.value) || 0 }))}
+                      value={reorderItems[key] ?? item.quantity ?? 1}
+                      onChange={e => setReorderItems(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
                       className="w-12 text-center border border-gray-200 rounded-lg font-bold"
                       min="0"
                     />
                     <button
-                      onClick={() => setReorderItems(prev => ({ ...prev, [item.id]: (prev[item.id] ?? 1) + 1 }))}
+                      onClick={() => setReorderItems(prev => ({ ...prev, [key]: (prev[key] ?? item.quantity ?? 1) + 1 }))}
                       className="w-8 h-8 rounded-lg bg-homie-lime text-white font-bold hover:bg-lime-500"
                     >
                       +
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
 
             {/* Total Price Preview */}
             <div className="p-4 bg-homie-green/10 rounded-xl">
               <p className="text-sm text-homie-gray mb-1">Estimated Total</p>
               <p className="text-2xl font-bold text-homie-green">
-                ฿{(Object.entries(reorderItems).reduce((sum, [itemId, qty]) => {
-                  const item = selectedOrder.items.find((i: any) => i.id === itemId)
+                ฿{(Object.entries(reorderItems).reduce((sum, [key, qty]) => {
+                  const [id, portion] = key.includes('_') ? key.split('_') : [key, 'lean']
+                  const item = selectedOrder.items.find((i: any) => (i.id === id) && ((i.portion || 'lean') === portion))
                   return sum + (item?.price ?? 0) * qty
                 }, 0)).toFixed(2)}
               </p>

@@ -32,16 +32,17 @@ export default function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
   const addItem = (newItem: CartItem) => {
+    const qty = newItem.quantity ?? 1
     setItems(prev => {
       const existing = prev.find(i => i.id === newItem.id && i.portion === newItem.portion)
       if (existing) {
         return prev.map(i =>
           i.id === newItem.id && i.portion === newItem.portion
-            ? { ...i, quantity: i.quantity + 1 }
+            ? { ...i, quantity: i.quantity + qty }
             : i
         )
       }
-      return [...prev, { ...newItem, quantity: 1 }]
+      return [...prev, { ...newItem, quantity: qty }]
     })
   }
 

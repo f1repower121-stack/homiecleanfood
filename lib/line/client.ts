@@ -158,30 +158,33 @@ export class LineClient {
       console.warn('⚠️ [LINE] No items found in order - creating message with empty items');
     }
 
-    // Create detailed item display with portions - show ALL items with Bulk/Lean clearly
-    const itemsText = itemsArray
-      .map((item, idx) => {
-        const qty = Number(item?.quantity) || 1;
-        const name = String(item?.name || 'Item');
-        const price = Number(item?.price) || 0;
-        const itemTotal = (price * qty).toLocaleString('th-TH');
+    // Build item rows as Flex components - quantity bold & larger
+    const itemComponents = itemsArray.flatMap((item, idx) => {
+      const qty = Number(item?.quantity) || 1;
+      const name = String(item?.name || 'Item');
+      const price = Number(item?.price) || 0;
+      const itemTotal = (price * qty).toLocaleString('th-TH');
+      const it = item as { size?: string; portion?: string };
+      let portion = String(it?.size || it?.portion || '').toUpperCase();
+      if (!portion) {
+        const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
+        portion = portionMatch ? portionMatch[1].toUpperCase() : '';
+      }
+      const portionEmoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
+      const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
+      const nameAndPrice = `${baseName} ${portionEmoji}${portion}\n   ฿${itemTotal}`;
+      return [
+        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: [
+          { type: 'text', text: `${idx + 1}. ${qty}×`, weight: 'bold', size: 'md', color: '#1DB446', flex: 0 },
+          { type: 'text', text: nameAndPrice, size: 'sm', color: '#333333', wrap: true, flex: 1 },
+        ] },
+      ];
+    });
 
-        // Try to get portion from item.size or item.portion field, then from name
-        const it = item as { size?: string; portion?: string }
-        let portion = String(it?.size || it?.portion || '').toUpperCase();
-        if (!portion) {
-          const portionMatch = name.match(/-(Bulk|Lean|Regular|Light)(\s|$)/i);
-          portion = portionMatch ? portionMatch[1].toUpperCase() : '';
-        }
-
-        const portionEmoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
-        const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
-
-        return `${idx + 1}. ${qty}× ${baseName}  ${portionEmoji}${portion}\n   ฿${itemTotal}`;
-      })
-      .join('\n');
-
-    const itemsDisplay = `Total Items: ${itemsArray.length}\n\n${itemsText}`;
+    const itemsBoxContents = [
+      { type: 'text', text: `Total Items: ${itemsArray.length}`, weight: 'bold', size: 'xs', color: '#666666', margin: 'sm' },
+      ...itemComponents,
+    ];
 
     // Format time for better readability - English with Indochina Time (ICT)
     const orderDate = new Date(orderData.orderTime);
@@ -295,7 +298,7 @@ export class LineClient {
               margin: 'md',
             },
 
-            // Items List with improved styling
+            // Items List - quantity bold & larger
             {
               type: 'box',
               layout: 'vertical',
@@ -306,18 +309,7 @@ export class LineClient {
               borderColor: '#1DB446',
               borderWidth: '1px',
               cornerRadius: 'md',
-              contents: [
-                {
-                  type: 'text',
-                  text: itemsDisplay,
-                  size: 'sm',
-                  color: '#333333',
-                  weight: 'regular',
-                  wrap: true,
-                  align: 'start',
-                  lineHeight: '1.8',
-                },
-              ],
+              contents: itemsBoxContents,
             },
 
             ...(orderData.paymentSlipUrl ? [
