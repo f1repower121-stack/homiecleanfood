@@ -24,34 +24,42 @@ const TIER_BADGE: Record<string, { label: string; cls: string; emoji: string }> 
   'Clean Eater': { label: 'Clean Eater', cls: 'bg-lime-100 text-lime-700', emoji: '🥗' },
   'Protein King': { label: 'Protein King', cls: 'bg-amber-100 text-amber-700', emoji: '👑' },
 }
-export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boolean }) {
+interface AdminLoyaltyTabProps {
+  darkMode?: boolean
+  /** Customers for overview stats (from admin API) */
+  customers?: Customer[]
+  /** Loading state when customers are being fetched by parent */
+  customersLoading?: boolean
+}
+
+const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customersLoading = false }: AdminLoyaltyTabProps) => {
   const dm = darkMode
   const card = dm ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'
   const muted = dm ? 'text-gray-400' : 'text-gray-500'
   const inputCls = `w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm ? 'bg-gray-800 border-gray-700 text-gray-100' : 'border-gray-200'}`
-  const [section, setSection] = useState<'overview'|'earn'|'tiers'|'customers'>('overview')
+  const [section, setSection] = useState<'overview'|'earn'|'tiers'>('overview')
   const [config, setConfig] = useState<LoyaltyConfig>(DEFAULT_CONFIG)
   const [configSaving, setConfigSaving] = useState(false)
   const [configMsg, setConfigMsg] = useState('')
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [custSearch, setCustSearch] = useState('')
-  const [editingPoints, setEditingPoints] = useState<string|null>(null)
-  const [pointsInput, setPointsInput] = useState('')
-  const [pointsMode, setPointsMode] = useState<'add'|'set'>('add')
-  const [pointsSaving, setPointsSaving] = useState(false)
-  const [pointsMsg, setPointsMsg] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [localCustomers, setLocalCustomers] = useState<Customer[]>([])
+  const [configLoading, setConfigLoading] = useState(true)
+
+  // Use customers from parent (API) when provided, else local fetch
+  const customers = propCustomers ?? localCustomers
+  const loading = (propCustomers ? customersLoading : configLoading) || configLoading
 
   const fetchAll = useCallback(async () => {
-    setLoading(true)
+    setConfigLoading(true)
     try {
       const { data: cfg } = await supabase.from('loyalty_config').select('*').eq('id','singleton').single()
       if (cfg) setConfig(cfg)
-      const { data: cust } = await supabase.from('profiles').select('id,full_name,points,tier,created_at').order('points',{ascending:false})
-      setCustomers((cust||[]).map((c:any)=>({...c, tier: c.tier||getTierFromPoints(c.points||0, cfg||DEFAULT_CONFIG)})))
+      if (!propCustomers?.length) {
+        const { data: cust } = await supabase.from('profiles').select('id,full_name,points,tier,created_at').order('points',{ascending:false})
+        setLocalCustomers((cust||[]).map((c:any)=>({...c, tier: c.tier||getTierFromPoints(c.points||0, cfg||DEFAULT_CONFIG)})))
+      }
     } catch(e){ console.error(e) }
-    setLoading(false)
-  }, [])
+    setConfigLoading(false)
+  }, [propCustomers?.length])
 
   useEffect(()=>{ fetchAll() },[fetchAll])
 
@@ -62,25 +70,6 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
     setConfigSaving(false)
     setTimeout(()=>setConfigMsg(''),3000)
   }
-  const applyPoints = async (customerId:string) => {
-    const val = parseInt(pointsInput)
-    if (isNaN(val)) return
-    setPointsSaving(true)
-    try {
-      if (pointsMode==='set') {
-        const cust = customers.find(c=>c.id===customerId)
-        await supabase.rpc('add_points',{user_id:customerId, points_to_add: val-(cust?.points||0)})
-        setPointsMsg(`✅ Points set to ${val}`)
-      } else {
-        await supabase.rpc('add_points',{user_id:customerId, points_to_add:val})
-        setPointsMsg(`✅ ${val>0?'+':''}${val} pts applied`)
-      }
-      setEditingPoints(null); setPointsInput(''); fetchAll()
-      setTimeout(()=>setPointsMsg(''),3000)
-    } catch { setPointsMsg('❌ Failed'); setTimeout(()=>setPointsMsg(''),3000) }
-    setPointsSaving(false)
-  }
-
   const totalPoints = customers.reduce((s,c)=>s+(c.points||0),0)
   const tierCounts = {
     Homie: customers.filter(c=>c.tier==='Homie'||(!c.tier&&(c.points||0)<config.tier_clean_eater)).length,
@@ -89,7 +78,7 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
   }
   const sections = [
     {key:'overview',label:'Overview',icon:'📊'},{key:'earn',label:'Earn Rules',icon:'⚡'},
-    {key:'tiers',label:'Tiers',icon:'🏆'},{key:'customers',label:'Customers',icon:'👥'},
+    {key:'tiers',label:'Tiers',icon:'🏆'},
   ]
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"/></div>
@@ -98,7 +87,7 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
     <div>
       <div className="mb-5">
         <h2 className="text-xl font-bold">Loyalty Program</h2>
-        <p className={`text-sm ${muted}`}>Manage earn rules, tiers and customer points</p>
+        <p className={`text-sm ${muted}`}>Manage earn rules and tier thresholds</p>
       </div>
       <div className={`flex gap-1 p-1 rounded-xl mb-6 overflow-x-auto ${dm?'bg-gray-800':'bg-gray-100'}`}>
         {sections.map(s=>(
@@ -233,68 +222,8 @@ export default function AdminLoyaltyTab({ darkMode = false }: { darkMode?: boole
         </div>
       )}
 
-      {section==='customers' && (
-        <div className="space-y-4">
-          {pointsMsg && <div className={`p-3 rounded-xl text-sm font-medium ${pointsMsg.includes('✅')?'bg-green-50 text-green-700 border border-green-200':'bg-red-50 text-red-600 border border-red-200'}`}>{pointsMsg}</div>}
-          <div className="flex gap-3">
-            <input placeholder="Search by name..." value={custSearch} onChange={e=>setCustSearch(e.target.value)} className={`flex-1 border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-800 border-gray-700':'border-gray-200'}`}/>
-            <button onClick={fetchAll} className={`text-xs border px-3 py-2.5 rounded-xl ${muted} hover:bg-gray-50`}>↻ Refresh</button>
-          </div>
-          <div className={`${card} border rounded-2xl overflow-hidden`}>
-            {customers.filter(c=>!custSearch||c.full_name?.toLowerCase().includes(custSearch.toLowerCase())).map(c=>{
-              const tier=c.tier||getTierFromPoints(c.points||0,config)
-              const badge=TIER_BADGE[tier]||TIER_BADGE['Homie']
-              const isEditing=editingPoints===c.id
-              return (
-                <div key={c.id} className={`border-b last:border-0 ${isEditing?(dm?'bg-gray-800/50':'bg-green-50/50'):''}`}>
-                  <div className="px-4 py-3 grid grid-cols-4 items-center">
-                    <div className="col-span-2 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-                        {(c.full_name||'?')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{c.full_name||'Unknown'}</p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.emoji} {badge.label}</span>
-                      </div>
-                    </div>
-                    <div className="text-center"><span className="font-bold text-green-600">{(c.points||0).toLocaleString()}</span></div>
-                    <div className="text-right">
-                      {!isEditing
-                        ? <button onClick={()=>{setEditingPoints(c.id);setPointsInput('');setPointsMode('add')}} className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 hover:bg-gray-50">Edit Points</button>
-                        : <button onClick={()=>setEditingPoints(null)} className={`text-xs ${muted}`}>✕ Close</button>
-                      }
-                    </div>
-                  </div>
-                  {isEditing && (
-                    <div className={`mx-4 mb-4 p-4 rounded-2xl border ${dm?'bg-gray-800 border-gray-700':'bg-white border-gray-200'} shadow-sm`}>
-                      <div className="flex gap-2 mb-3">
-                        <button onClick={()=>setPointsMode('add')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='add'?'bg-green-600 text-white border-green-600':'border-gray-200 text-gray-600'}`}>Add / Remove</button>
-                        <button onClick={()=>setPointsMode('set')} className={`flex-1 py-1.5 rounded-xl text-xs font-medium border ${pointsMode==='set'?'bg-blue-600 text-white border-blue-600':'border-gray-200 text-gray-600'}`}>Set Exact Value</button>
-                      </div>
-                      <div className="flex gap-2 mb-3">
-                        <input type="number" placeholder={pointsMode==='add'?'e.g. 50 or -20':`Current: ${c.points||0}`} value={pointsInput} onChange={e=>setPointsInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&applyPoints(c.id)} className={`flex-1 border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-400 ${dm?'bg-gray-700 border-gray-600 text-white':'border-gray-200'}`}/>
-                        <button onClick={()=>applyPoints(c.id)} disabled={pointsSaving||!pointsInput} className={`px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40 ${pointsMode==='set'?'bg-blue-600':'bg-green-600'}`}>{pointsSaving?'...':pointsMode==='set'?'Set':'Apply'}</button>
-                      </div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        <span className={`text-xs ${muted}`}>Quick:</span>
-                        {[10,25,50,100,200,-50,-100].map(n=>(
-                          <button key={n} onClick={()=>setPointsInput(String(n))} className={`text-xs px-2.5 py-1 rounded-lg border font-medium ${n>0?'border-green-200 text-green-600 hover:bg-green-50':'border-red-200 text-red-500 hover:bg-red-50'}`}>{n>0?`+${n}`:n}</button>
-                        ))}
-                      </div>
-                      <p className={`text-xs ${muted} mt-2`}>
-                        After: {Math.max(0,(c.points||0)+(pointsMode==='add'?(parseInt(pointsInput)||0):0))} pts · New tier: <span className="font-medium text-green-600">{getTierFromPoints(pointsMode==='set'?(parseInt(pointsInput)||0):Math.max(0,(c.points||0)+(parseInt(pointsInput)||0)),config)}</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {customers.filter(c=>!custSearch||c.full_name?.toLowerCase().includes(custSearch.toLowerCase())).length===0 && (
-              <div className={`text-center py-12 ${muted}`}>No customers found</div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+
+export default AdminLoyaltyTab
