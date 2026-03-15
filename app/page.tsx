@@ -16,14 +16,14 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div className="animate-fadeUp">
               <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-white/20 backdrop-blur">
-                🌿 Fresh Daily in Bangkok
+                Fresh Daily · Delicious · Quick Delivery
               </div>
               <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-6">
                 Clean Food.<br />
                 <span className="text-homie-lime">Real Results.</span>
               </h1>
               <p className="text-green-200 text-lg leading-relaxed mb-8 max-w-md">
-                Macro-balanced meals crafted fresh daily. Lean or Bulk portions — chicken, fish &amp; beef. Order by 5 PM for same-day delivery.
+                Delicious macro-balanced meals crafted fresh daily in Bangkok. Order anytime — same-day delivery across Thailand. Lean or Bulk portions, chicken, fish &amp; beef.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/menu" className="bg-homie-lime hover:bg-lime-500 text-white font-bold px-8 py-4 rounded-full transition-all hover:shadow-xl hover:shadow-lime-500/30 active:scale-95 text-base">
@@ -32,6 +32,13 @@ export default function HomePage() {
                 <Link href="/menu" className="border-2 border-white/30 text-white hover:bg-white hover:text-homie-green font-semibold px-8 py-4 rounded-full transition-all text-base">
                   View Menu
                 </Link>
+              </div>
+
+              {/* Delivery promise */}
+              <div className="mt-6 flex flex-wrap items-center gap-4 md:gap-6 bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-5 py-4 text-white text-sm font-medium">
+                <span className="flex items-center gap-2">🕐 Order anytime — same-day by 5 PM</span>
+                <span className="flex items-center gap-2">Same-day delivery across Bangkok</span>
+                <span className="flex items-center gap-2">✨ Fresh made daily</span>
               </div>
 
               {/* Stats row */}
@@ -98,7 +105,7 @@ export default function HomePage() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="font-display text-3xl md:text-4xl font-bold text-homie-green">Featured Meals</h2>
-              <p className="text-homie-gray mt-1">Customer favourites this week</p>
+              <p className="text-homie-gray mt-1">Customer favourites · Fresh daily · Order anytime</p>
             </div>
             <Link href="/menu" className="text-homie-lime font-semibold text-sm hover:underline shrink-0 ml-4">
               View All →

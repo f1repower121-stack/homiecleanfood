@@ -300,41 +300,103 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-homie-green">Hi, {firstName} 👋</h1>
-            <p className="text-homie-gray text-sm">
-              <span className="text-yellow-500 font-semibold">{userPoints} pts</span>
-              {' · '}{currentTier.emoji} {currentTier.name}
-            </p>
+      <div className="flex min-h-screen">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-gray-200 lg:bg-white lg:shrink-0">
+          <div className="p-5 border-b border-gray-100">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-homie-lime to-homie-green rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-lime-200/50">
+                H
+              </div>
+              <div>
+                <span className="font-display font-bold text-homie-green block leading-tight">Homie</span>
+                <span className="text-[10px] text-homie-gray uppercase tracking-wider">Clean Food</span>
+              </div>
+            </Link>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
-            <LogOut size={16} /> Logout
-          </Button>
-        </div>
+          <nav className="flex-1 p-3 space-y-0.5">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  tab === t.key
+                    ? 'bg-lime-50 text-homie-green border border-lime-100'
+                    : 'text-homie-gray hover:bg-gray-50 hover:text-homie-dark border border-transparent'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          <div className="p-4 border-t border-gray-100">
+            <div className="bg-lime-50 border border-lime-100 rounded-xl p-4">
+              <p className="text-2xl font-bold text-homie-green">{userPoints.toLocaleString()} pts</p>
+              <p className="text-xs font-semibold text-homie-gray mt-0.5">{currentTier.emoji} {currentTier.name}</p>
+            </div>
+          </div>
+        </aside>
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm mb-6 overflow-x-auto">
-          {tabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                tab === t.key ? 'bg-homie-green text-white' : 'text-homie-gray hover:bg-gray-100'
-              }`}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          <div className="max-w-4xl mx-auto px-4 py-6 lg:py-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-homie-green">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {firstName}</h1>
+                <p className="text-homie-gray text-sm mt-0.5">Your wellness dashboard</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-homie-gray hover:text-homie-green">
+                <LogOut size={16} /> Log out
+              </Button>
+            </div>
 
-        {/* OVERVIEW TAB */}
+            {/* Mobile tabs */}
+            <div className="lg:hidden flex gap-2 p-2 bg-white rounded-xl border border-gray-100 mb-6 overflow-x-auto">
+              {tabs.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    tab === t.key ? 'bg-homie-green text-white' : 'text-homie-gray hover:bg-gray-50'
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* OVERVIEW TAB */}
         {tab === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+          <div className="space-y-6">
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
+                <div className="text-2xl mb-2">🔥</div>
+                <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Consumed</p>
+                <p className="text-2xl font-bold text-homie-green mt-0.5">{todayCalories} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
+                <div className="text-2xl mb-2">🎯</div>
+                <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Daily goal</p>
+                <p className="text-2xl font-bold text-homie-green mt-0.5">{dailyGoal} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all bg-lime-50/50">
+                <div className="text-2xl mb-2">✨</div>
+                <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Remaining</p>
+                <p className="text-2xl font-bold text-homie-lime mt-0.5">{remaining} kcal</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-lime-200 hover:shadow-sm transition-all">
+                <div className="text-2xl mb-2">🏃</div>
+                <p className="text-xs font-semibold text-homie-gray uppercase tracking-wider">Burned</p>
+                <p className="text-2xl font-bold text-homie-green mt-0.5">{burnedCalories} <span className="text-sm font-normal text-homie-gray">kcal</span></p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-gray-100">
               <CardHeader><CardTitle>Calorie Goals</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -349,19 +411,22 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader><CardTitle>Today&apos;s Tracker</CardTitle></CardHeader>
+            <Card className="border-gray-100">
+              <CardHeader><CardTitle>Daily Progress</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-homie-dark font-medium">Consumed: {todayCalories} / {dailyGoal} kcal</p>
-                <p className="text-homie-gray text-sm">Burned: {burnedCalories} kcal</p>
-                <p className="text-homie-lime font-semibold mt-2">Remaining: {remaining} kcal</p>
-                <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-homie-gray">{todayCalories} / {dailyGoal} kcal consumed</span>
+                  <span className="text-homie-lime font-semibold">{Math.round((todayCalories / dailyGoal) * 100)}%</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-homie-lime rounded-full transition-all" style={{ width: `${Math.min(100, (todayCalories / dailyGoal) * 100)}%` }} />
                 </div>
+                <p className="text-xs text-homie-gray mt-2">Burned: {burnedCalories} kcal today</p>
               </CardContent>
             </Card>
+            </div>
 
-            <Card className="md:col-span-2">
+            <Card className="border-gray-100 mt-6">
               <CardHeader><CardTitle>Weekly Progress</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-64">
@@ -379,7 +444,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
+            <Card className="border-gray-100 mt-6">
               <CardHeader><CardTitle>Recent Orders</CardTitle></CardHeader>
               <CardContent>
                 {orders.length === 0 ? (
@@ -646,6 +711,8 @@ export default function DashboardPage() {
         {tab === 'referrals' && (
           <ReferralTab profile={profile} user={user} />
         )}
+          </div>
+        </div>
       </div>
 
       {/* REORDER MODAL */}

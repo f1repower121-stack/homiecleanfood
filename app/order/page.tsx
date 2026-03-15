@@ -323,7 +323,12 @@ export default function OrderPage() {
           {/* CART STEP */}
           {step === 'cart' && (
             <div>
-              <h2 className="font-display text-2xl font-bold text-homie-green mb-6">Your Cart</h2>
+              <h2 className="font-display text-2xl font-bold text-homie-green mb-4">Your Cart</h2>
+              <div className="flex flex-wrap items-center gap-4 md:gap-6 bg-lime-50 border border-lime-100 rounded-xl px-4 py-3 mb-6 text-sm font-medium text-homie-green">
+                <span className="flex items-center gap-2">🕐 Order anytime</span>
+                <span className="flex items-center gap-2">Same-day delivery</span>
+                <span className="flex items-center gap-2">✨ Fresh daily</span>
+              </div>
               {items.length === 0 ? (
                 <div className="text-center py-16">
                   <ShoppingBag size={48} className="mx-auto text-gray-200 mb-4" />
@@ -338,14 +343,14 @@ export default function OrderPage() {
                     return (
                       <div key={item.id + item.portion} className="card p-4 flex items-center gap-3 md:gap-4">
                         {/* FIX: real photo */}
-                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl overflow-hidden flex-shrink-0 relative bg-gray-50">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden flex-shrink-0 relative bg-gray-50">
                           {menuItem?.image ? (
                             <Image
                               src={menuItem.image}
                               alt={item.name}
                               fill
                               className="object-cover"
-                              sizes="64px"
+                              sizes="96px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">🍽️</div>

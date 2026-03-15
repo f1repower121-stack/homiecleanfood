@@ -56,16 +56,16 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop/Top Navbar */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 h-[68px] flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-9 h-9 bg-homie-lime rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-base">H</span>
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-homie-lime to-homie-green rounded-xl flex items-center justify-center shadow-md shadow-lime-200/30">
+              <span className="text-white font-bold text-lg">H</span>
             </div>
             <div className="leading-none">
               <span className="font-display font-bold text-homie-green text-lg block">Homie</span>
-              <span className="text-[11px] font-medium text-homie-gray tracking-wide">Clean Food</span>
+              <span className="text-[10px] font-medium text-homie-gray uppercase tracking-wider">Fresh meals, daily</span>
             </div>
           </Link>
 
@@ -75,10 +75,10 @@ export default function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   pathname === l.href
-                    ? 'text-homie-lime bg-lime-50'
-                    : 'text-homie-dark hover:text-homie-lime hover:bg-gray-50'
+                    ? 'text-homie-green bg-lime-50 border border-lime-100'
+                    : 'text-homie-gray hover:text-homie-green hover:bg-gray-50'
                 }`}
               >
                 {l.label}
@@ -86,7 +86,7 @@ export default function Navbar() {
             ))}
             <Link
               href="/order"
-              className="ml-2 bg-homie-lime text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-homie-green transition-all shadow-sm hover:shadow-md"
+              className="ml-2 bg-homie-lime text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-homie-green transition-all"
             >
               Order Now
             </Link>
@@ -95,12 +95,12 @@ export default function Navbar() {
           {/* Right actions */}
           <div className="flex items-center gap-3">
             {user ? (
-              <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-full px-3 py-1.5 transition-colors">
+              <Link href="/dashboard" className="hidden md:flex items-center gap-2 bg-lime-50 hover:bg-lime-100/80 rounded-xl px-4 py-2 border border-lime-100 transition-colors">
                 <div className="w-6 h-6 bg-homie-lime rounded-full flex items-center justify-center">
                   <span className="text-white text-xs font-bold">{firstName?.[0]?.toUpperCase() ?? 'U'}</span>
                 </div>
                 <span className="text-sm font-medium text-homie-dark">{firstName}</span>
-                <span className="text-xs font-semibold text-homie-lime">{points} pts</span>
+                <span className="text-xs font-semibold text-homie-green">{points} pts</span>
               </Link>
             ) : (
               <Link href="/signin" className="hidden md:flex items-center gap-1.5 text-sm font-medium text-homie-gray hover:text-homie-green transition-colors">

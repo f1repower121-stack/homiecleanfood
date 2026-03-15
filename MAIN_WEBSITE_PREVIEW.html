@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homie Clean Food — Full Website Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #2D5016;
+      --lime: #7CB518;
+      --lime-light: #e8f5d8;
+      --cream: #F5F0E8;
+      --cream-warm: #faf8f4;
+      --sage: #6B8E4E;
+      --slate: #1A1A1A;
+      --slate-600: #4a5568;
+      --slate-400: #718096;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream-warm); color: var(--slate); }
+
+    /* Page containers */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Navbar — synced with dashboard */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid rgba(45,80,22,0.08);
+      padding: 0 24px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 100%;
+    }
+    .nav-inner { max-width: 1200px; margin: 0 auto; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .nav-logo .icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(145deg, var(--lime), var(--green));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(124,181,24,0.25);
+    }
+    .nav-logo .brand { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px; color: var(--green); }
+    .nav-logo .tag { font-size: 10px; color: var(--slate-400); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .nav-links a {
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--slate-600);
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { background: var(--lime-light); color: var(--green); }
+    .nav-links a.active { background: var(--lime-light); color: var(--green); font-weight: 600; }
+    .nav-cta {
+      background: var(--lime) !important;
+      color: white !important;
+    }
+    .nav-cta:hover { background: var(--green) !important; }
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: var(--cream);
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .nav-cart { position: relative; padding: 10px; }
+    .nav-cart .badge { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; background: #E8722A; color: white; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      background: linear-gradient(135deg, var(--green) 0%, var(--sage) 60%);
+      min-height: 85vh;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -20%;
+      width: 50%;
+      height: 150%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+    }
+    .hero-inner { max-width: 1200px; margin: 0 auto; padding: 60px 24px; width: 100%; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      color: white;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--lime); }
+    .hero p { font-size: 18px; color: rgba(255,255,255,0.9); max-width: 440px; margin-bottom: 32px; line-height: 1.6; }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--lime);
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(124,181,24,0.35);
+    }
+    .btn-primary:hover { background: #8fc91a; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(124,181,24,0.4); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid rgba(255,255,255,0.5);
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.15); border-color: white; }
+    .hero-stats { display: flex; gap: 20px; margin-top: 48px; flex-wrap: wrap; }
+    .hero-stat {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-align: center;
+      min-width: 100px;
+    }
+    .hero-stat .val { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: white; }
+    .delivery-bar {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 14px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+      color: white;
+    }
+    .delivery-bar span { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+    .hero-stat .lbl { font-size: 11px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+    .hero-right { display: flex; justify-content: flex-end; }
+    .hero-meal-preview {
+      width: 320px;
+      height: 320px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+      border: 2px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 120px;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+    }
+
+    /* Section */
+    .section { max-width: 1200px; margin: 0 auto; padding: 80px 24px; }
+    .section-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--green); text-align: center; margin-bottom: 12px; }
+    .section-sub { font-size: 16px; color: var(--slate-400); text-align: center; margin-bottom: 40px; }
+
+    /* Why Homie */
+    .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .why-card {
+      background: white;
+      border: 1px solid rgba(45,80,22,0.08);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      transition: all 0.25s;
+    }
+    .why-card:hover { border-color: rgba(124,181,24,0.3); box-shadow: 0 8px 24px rgba(45,80,22,0.06); transform: translateY(-4px); }
+    .why-card .icon { font-size: 40px; margin-bottom: 16px; }
+    .why-card h3 { font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+    .why-card p { font-size: 14px; color: var(--slate-600); line-height: 1.5; }
+
+    /* Featured meals */
+    .featured-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; }
+    .featured-header a { font-size: 14px; font-weight: 600; color: var(--lime); text-decoration: none; }
+    .featured-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .meal-card {
+      background: white;
+      border: 1px solid rgba(45,80,22,0.08);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.25s;
+    }
+    .meal-card:hover { border-color: rgba(124,181,24,0.3); box-shadow: 0 12px 32px rgba(45,80,22,0.08); transform: translateY(-4px); }
+    .meal-card .img { aspect-ratio: 1; background: linear-gradient(135deg, var(--cream) 0%, #e8e4dc 100%); display: flex; align-items: center; justify-content: center; font-size: 72px; }
+    .meal-card .body { padding: 20px; }
+    .meal-card .cat { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sage); margin-bottom: 8px; }
+    .meal-card h3 { font-size: 15px; font-weight: 700; color: var(--slate); margin-bottom: 8px; line-height: 1.3; }
+    .meal-card .desc { font-size: 12px; color: var(--slate-400); line-height: 1.5; margin-bottom: 16px; }
+    .meal-card .foot { display: flex; align-items: center; justify-content: space-between; }
+    .meal-card .price { font-weight: 700; font-size: 18px; color: var(--green); }
+    .meal-card .add { background: var(--lime); color: white; font-size: 12px; font-weight: 600; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s; }
+    .meal-card .add:hover { background: var(--green); }
+
+    /* How it works */
+    .how-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+    .how-step { text-align: center; }
+    .how-step .num {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(145deg, var(--lime), var(--green));
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 20px;
+      box-shadow: 0 6px 20px rgba(124,181,24,0.3);
+    }
+    .how-step h3 { font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+    .how-step p { font-size: 14px; color: var(--slate-400); line-height: 1.5; }
+
+    /* Loyalty CTA */
+    .loyalty-cta {
+      background: linear-gradient(135deg, var(--green) 0%, var(--sage) 100%);
+      border-radius: 24px;
+      padding: 56px 48px;
+      text-align: center;
+      color: white;
+      margin: 0 24px 80px;
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .loyalty-cta h2 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+    .loyalty-cta p { opacity: 0.9; font-size: 16px; margin-bottom: 24px; }
+    .loyalty-cta .btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* Footer */
+    .footer {
+      background: var(--green);
+      color: white;
+      padding: 48px 24px 24px;
+    }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px; }
+    .footer-brand h3 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+    .footer-brand p { font-size: 14px; opacity: 0.85; line-height: 1.6; margin-bottom: 20px; }
+    .footer-brand .social { display: flex; gap: 12px; }
+    .footer-brand .social a { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; text-decoration: none; transition: all 0.2s; }
+    .footer-brand .social a:hover { background: var(--lime); }
+    .footer h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.9; margin-bottom: 16px; }
+    .footer ul { list-style: none; }
+    .footer ul li { margin-bottom: 10px; }
+    .footer ul a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px; }
+    .footer ul a:hover { color: white; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.15); margin-top: 32px; padding-top: 20px; text-align: center; font-size: 12px; opacity: 0.7; }
+
+    /* Menu page */
+    .menu-hero { padding: 48px 24px 32px; max-width: 1200px; margin: 0 auto; }
+    .menu-hero h1 { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+    .menu-hero p { font-size: 16px; color: var(--slate-400); margin-bottom: 24px; }
+    .menu-tabs { display: flex; gap: 12px; margin-bottom: 32px; }
+    .menu-tabs button {
+      flex: 1;
+      max-width: 280px;
+      padding: 16px 24px;
+      border: 2px solid rgba(45,80,22,0.15);
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--slate-600);
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .menu-tabs button:hover { border-color: var(--lime); color: var(--green); }
+    .menu-tabs button.active { background: linear-gradient(135deg, var(--lime), var(--green)); color: white; border-color: transparent; }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* Order page */
+    .order-page { max-width: 1000px; margin: 0 auto; padding: 40px 24px 120px; }
+    .order-steps { display: flex; justify-content: center; gap: 16px; margin-bottom: 40px; }
+    .order-step {
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .order-step.active { background: var(--green); color: white; }
+    .order-step.done { background: var(--lime-light); color: var(--green); }
+    .order-step.pending { background: #f1f5f9; color: var(--slate-400); }
+    .order-grid { display: grid; grid-template-columns: 1fr 340px; gap: 32px; }
+    .order-main h2 { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: var(--green); margin-bottom: 24px; }
+    .order-promise {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: linear-gradient(135deg, var(--lime-light) 0%, rgba(255,255,255,0.9) 100%);
+      border: 1px solid rgba(124,181,24,0.25);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--slate-600);
+    }
+    .order-promise span { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: white;
+      border: 1px solid rgba(45,80,22,0.08);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .cart-item .thumb { width: 100px; height: 100px; min-width: 100px; border-radius: 14px; background: var(--cream); display: flex; align-items: center; justify-content: center; font-size: 44px; overflow: hidden; }
+    .cart-item .info { flex: 1; }
+    .cart-item .name { font-weight: 600; color: var(--slate); margin-bottom: 4px; }
+    .cart-item .meta { font-size: 13px; color: var(--slate-400); }
+    .cart-item .qty { display: flex; align-items: center; gap: 8px; }
+    .cart-item .qty button { width: 32px; height: 32px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; cursor: pointer; font-size: 16px; }
+    .cart-item .qty button:hover { background: var(--lime-light); border-color: var(--lime); }
+    .cart-item .price { font-weight: 700; color: var(--green); }
+    .order-summary {
+      position: sticky;
+      top: 100px;
+      height: fit-content;
+      background: white;
+      border: 1px solid rgba(45,80,22,0.08);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .order-summary h3 { font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 20px; }
+    .order-summary .row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 12px; }
+    .order-summary .total { font-size: 20px; font-weight: 700; color: var(--green); padding-top: 16px; border-top: 2px solid var(--cream); margin-top: 16px; }
+    .order-summary .tip { font-size: 12px; color: var(--slate-400); background: var(--lime-light); padding: 12px; border-radius: 12px; margin-top: 16px; }
+
+    /* Mobile nav */
+    .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: white; border-top: 1px solid rgba(45,80,22,0.08); padding: 12px 0; }
+    .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+    .mobile-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate-400);
+    }
+    .mobile-nav a.active { color: var(--lime); }
+    .mobile-nav a .icon { font-size: 20px; }
+    .mobile-nav .order-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--lime);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-top: -28px;
+      box-shadow: 0 4px 16px rgba(124,181,24,0.4);
+    }
+
+    @media (max-width: 1024px) {
+      .nav-links { display: none; }
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero p { margin-left: auto; margin-right: auto; }
+      .hero-btns { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-right { display: none; }
+      .why-grid, .featured-grid, .how-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { grid-template-columns: 1fr; }
+      .order-grid { grid-template-columns: 1fr; }
+      .mobile-nav { display: block; }
+    }
+    @media (max-width: 640px) {
+      .cart-item .thumb { width: 88px; height: 88px; min-width: 88px; font-size: 38px; }
+      .order-promise { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .why-grid, .featured-grid, .how-grid { grid-template-columns: 1fr; }
+      .featured-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" onclick="showPage('home');return false;">
+        <div class="icon">🥗</div>
+        <div>
+          <div class="brand">Homie Clean Food</div>
+          <div class="tag">Fresh meals, daily</div>
+        </div>
+      </a>
+      <div class="nav-links">
+        <a href="#" class="active" onclick="showPage('home');return false;">Home</a>
+        <a href="#" onclick="showPage('menu');return false;">Menu</a>
+        <a href="#">Loyalty</a>
+        <a href="#">Contact</a>
+        <a href="#" class="nav-cta" onclick="showPage('order');return false;">Order Now</a>
+      </div>
+      <div class="nav-links">
+        <div class="nav-user">Emre · 1,250 pts</div>
+        <a href="#" class="nav-cart" onclick="showPage('order');return false;">
+          🛒
+          <span class="badge">3</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Home Page -->
+  <div id="page-home" class="page active">
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-grid">
+          <div>
+            <div class="hero-badge">Fresh Daily · Delicious · Quick Delivery</div>
+            <h1>Clean Food.<br><span>Real Results.</span></h1>
+            <p>Delicious macro-balanced meals crafted fresh daily in Bangkok. Order anytime — same-day delivery across Thailand. Lean or Bulk portions, chicken, fish & beef.</p>
+            <div class="hero-btns">
+              <a href="#" class="btn-primary" onclick="showPage('order');return false;">Order Now 🛒</a>
+              <a href="#" class="btn-secondary" onclick="showPage('menu');return false;">View Menu</a>
+            </div>
+            <div class="delivery-bar">
+              <span>🕐 Order anytime — same-day by 5 PM</span>
+              <span>Same-day delivery across Bangkok</span>
+              <span>✨ Fresh made daily</span>
+            </div>
+            <div class="hero-stats">
+              <div class="hero-stat"><div class="val">500k+</div><div class="lbl">Dishes Sold</div></div>
+              <div class="hero-stat"><div class="val">50g+</div><div class="lbl">Protein/meal</div></div>
+              <div class="hero-stat"><div class="val">28.2k</div><div class="lbl">Instagram</div></div>
+              <div class="hero-stat"><div class="val">1000+</div><div class="lbl">Happy Customers</div></div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="hero-meal-preview">🥗</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background: white;">
+      <h2 class="section-title">Why Choose Homie?</h2>
+      <p class="section-sub">We make clean eating easy, delicious, and consistent</p>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="icon">🥗</div>
+          <h3>Fresh Daily</h3>
+          <p>Prepared every morning, never frozen</p>
+        </div>
+        <div class="why-card">
+          <div class="icon">⚖️</div>
+          <h3>Macro Tracked</h3>
+          <p>Exact calories, protein, carbs & fat</p>
+        </div>
+        <div class="why-card">
+          <div class="icon">🎯</div>
+          <h3>Lean or Bulk</h3>
+          <p>Two portion sizes for every goal</p>
+        </div>
+        <div class="why-card">
+          <div class="icon">🚫</div>
+          <h3>No Added Sugar</h3>
+          <p>Clean ingredients, no hidden nasties</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background: var(--cream-warm);">
+      <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+        <div class="featured-header">
+          <div>
+            <h2 class="section-title" style="text-align:left;">Featured Meals</h2>
+            <p class="section-sub" style="text-align:left;margin-bottom:0;">Customer favourites · Fresh daily · Order anytime</p>
+          </div>
+          <a href="#" onclick="showPage('menu');return false;">View All →</a>
+        </div>
+        <div class="featured-grid">
+          <div class="meal-card">
+            <div class="img">🥩</div>
+            <div class="body">
+              <div class="cat">Beef</div>
+              <h3>Australian Beef with Mexican Sauce</h3>
+              <p class="desc">Juicy beef with spaghetti & tomato sauce</p>
+              <div class="foot">
+                <span class="price">฿295</span>
+                <button class="add" onclick="showPage('order');return false;">Add +</button>
+              </div>
+            </div>
+          </div>
+          <div class="meal-card">
+            <div class="img">🍗</div>
+            <div class="body">
+              <div class="cat">Chicken</div>
+              <h3>Grilled Chicken with Garlic Rice</h3>
+              <p class="desc">Premium chicken, aromatic rice</p>
+              <div class="foot">
+                <span class="price">฿195</span>
+                <button class="add" onclick="showPage('order');return false;">Add +</button>
+              </div>
+            </div>
+          </div>
+          <div class="meal-card">
+            <div class="img">🐟</div>
+            <div class="body">
+              <div class="cat">Fish</div>
+              <h3>Salmon Teriyaki</h3>
+              <p class="desc">Fresh salmon with teriyaki glaze</p>
+              <div class="foot">
+                <span class="price">฿345</span>
+                <button class="add" onclick="showPage('order');return false;">Add +</button>
+              </div>
+            </div>
+          </div>
+          <div class="meal-card">
+            <div class="img">🥩</div>
+            <div class="body">
+              <div class="cat">Beef</div>
+              <h3>Australian Beef Steak</h3>
+              <p class="desc">Premium steak with garlic rice</p>
+              <div class="foot">
+                <span class="price">฿295</span>
+                <button class="add" onclick="showPage('order');return false;">Add +</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background: white;">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-sub">Simple steps to your perfect clean meal</p>
+      <div class="how-grid">
+        <div class="how-step">
+          <div class="num">🔍</div>
+          <h3>Browse Menu</h3>
+          <p>Explore 25+ clean meal options</p>
+        </div>
+        <div class="how-step">
+          <div class="num">⚖️</div>
+          <h3>Pick Portion</h3>
+          <p>Choose Lean or Bulk size</p>
+        </div>
+        <div class="how-step">
+          <div class="num">💳</div>
+          <h3>Pay Securely</h3>
+          <p>Card or Cash on Delivery</p>
+        </div>
+        <div class="how-step">
+          <div class="num">🚀</div>
+          <h3>Enjoy Fresh</h3>
+          <p>Delivered same day by 17:00</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="loyalty-cta">
+      <h2>Join Our Loyalty Program</h2>
+      <p>Earn 1 point per ฿100 spent and unlock exclusive member benefits!</p>
+      <div class="btns">
+        <a href="#" class="btn-primary">Learn More 🎁</a>
+        <a href="#" class="btn-secondary" style="border-color: white;">Create Account</a>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <h3>Homie Clean Food</h3>
+          <p>Macro-balanced meals crafted fresh daily in Bangkok. Fueling your lifestyle — one clean bite at a time.</p>
+          <div class="social">
+            <a href="#">📸</a>
+            <a href="#">👍</a>
+            <a href="#">L</a>
+          </div>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Menu</a></li>
+            <li><a href="#">Order Now</a></li>
+            <li><a href="#">Loyalty</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <ul>
+            <li>📍 Bangkok</li>
+            <li>📞 +66 95 950 5111</li>
+            <li>🕐 Order by 5 PM</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 Homie Clean Food. All rights reserved.</div>
+    </footer>
+  </div>
+
+  <!-- Menu Page -->
+  <div id="page-menu" class="page">
+    <div class="menu-hero">
+      <h1>Our Menu</h1>
+      <p>Delicious & fresh. Order anytime for same-day delivery across Bangkok</p>
+      <div class="menu-tabs">
+        <button class="active">💪 High Protein Meals</button>
+        <button>✨ Slim Meals</button>
+      </div>
+    </div>
+    <div class="menu-grid">
+      <div class="meal-card" onclick="showPage('order');return false;">
+        <div class="img">🥩</div>
+        <div class="body">
+          <div class="cat">Beef</div>
+          <h3>Australian Beef with Mexican Sauce</h3>
+          <p class="desc">Juicy beef with spaghetti & tomato sauce</p>
+          <div class="foot"><span class="price">฿295+</span><button class="add">Add +</button></div>
+        </div>
+      </div>
+      <div class="meal-card" onclick="showPage('order');return false;">
+        <div class="img">🍗</div>
+        <div class="body">
+          <div class="cat">Chicken</div>
+          <h3>Grilled Chicken with Garlic Rice</h3>
+          <p class="desc">Premium chicken, aromatic rice</p>
+          <div class="foot"><span class="price">฿195+</span><button class="add">Add +</button></div>
+        </div>
+      </div>
+      <div class="meal-card" onclick="showPage('order');return false;">
+        <div class="img">🐟</div>
+        <div class="body">
+          <div class="cat">Fish</div>
+          <h3>Salmon Teriyaki</h3>
+          <p class="desc">Fresh salmon with teriyaki glaze</p>
+          <div class="foot"><span class="price">฿345+</span><button class="add">Add +</button></div>
+        </div>
+      </div>
+      <div class="meal-card" onclick="showPage('order');return false;">
+        <div class="img">🥩</div>
+        <div class="body">
+          <div class="cat">Beef</div>
+          <h3>Australian Beef Steak</h3>
+          <p class="desc">Premium steak with garlic rice</p>
+          <div class="foot"><span class="price">฿295+</span><button class="add">Add +</button></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <h3>Homie Clean Food</h3>
+          <p>Macro-balanced meals crafted fresh daily in Bangkok.</p>
+        </div>
+        <div><h4>Quick Links</h4><ul><li><a href="#">Home</a></li><li><a href="#">Menu</a></li><li><a href="#">Order</a></li></ul></div>
+      </div>
+      <div class="footer-bottom">© 2025 Homie Clean Food</div>
+    </footer>
+  </div>
+
+  <!-- Order Page -->
+  <div id="page-order" class="page">
+    <div class="order-page">
+      <div class="order-steps">
+        <div class="order-step active">🛒 Cart</div>
+        <div class="order-step pending">📋 Details</div>
+        <div class="order-step pending">💳 Payment</div>
+      </div>
+      <div class="order-grid">
+        <div class="order-main">
+          <h2>Your Cart</h2>
+          <div class="order-promise">
+            <span>🕐 Order anytime</span>
+            <span>Same-day delivery</span>
+            <span>✨ Fresh daily</span>
+          </div>
+          <div class="cart-item">
+            <div class="thumb">🥩</div>
+            <div class="info">
+              <div class="name">Australian Beef with Mexican Sauce</div>
+              <div class="meta">Bulk portion · ฿350 each</div>
+            </div>
+            <div class="qty">
+              <button>−</button>
+              <span style="font-weight:600;min-width:24px;text-align:center;">2</span>
+              <button>+</button>
+            </div>
+            <div class="price">฿700</div>
+          </div>
+          <div class="cart-item">
+            <div class="thumb">🍗</div>
+            <div class="info">
+              <div class="name">Grilled Chicken with Garlic Rice</div>
+              <div class="meta">Lean portion · ฿195 each</div>
+            </div>
+            <div class="qty">
+              <button>−</button>
+              <span style="font-weight:600;min-width:24px;text-align:center;">1</span>
+              <button>+</button>
+            </div>
+            <div class="price">฿195</div>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:24px;justify-content:center;">Continue to Details →</button>
+          <a href="#" style="display:block;text-align:center;margin-top:12px;font-size:14px;font-weight:600;color:var(--lime);text-decoration:none;" onclick="showPage('menu');return false;">+ Add more items</a>
+        </div>
+        <div class="order-summary">
+          <h3>Order Summary</h3>
+          <div class="row"><span>Beef Mexican (Bulk) x2</span><span>฿700</span></div>
+          <div class="row"><span>Chicken (Lean) x1</span><span>฿195</span></div>
+          <div class="row"><span>Delivery</span><span style="color:var(--lime);font-weight:600;">Free</span></div>
+          <div class="row"><span>Points earned</span><span style="color:#a16207;">+9 ⭐</span></div>
+          <div class="row total"><span>Total</span><span>฿895</span></div>
+          <div class="tip">🕐 Order anytime · Same-day by 5 PM<br>Same-day delivery across Bangkok · +66 95 950 5111</div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand"><h3>Homie Clean Food</h3><p>Fresh meals, daily.</p></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav" style="display:none;">
+    <div class="mobile-nav-inner">
+      <a href="#" class="active" onclick="showPage('home');return false;"><span class="icon">🏠</span>Home</a>
+      <a href="#" onclick="showPage('menu');return false;"><span class="icon">🍽️</span>Menu</a>
+      <a href="#" onclick="showPage('order');return false;" style="flex-direction:column;margin-top:-20px;"><span class="order-btn">🛒</span><span style="margin-top:8px;">Order</span></a>
+      <a href="#"><span class="icon">⭐</span>Loyalty</a>
+      <a href="#"><span class="icon">👤</span>Account</a>
+    </div>
+  </nav>
+
+  <script>
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + id)?.classList.add('active');
+      document.querySelectorAll('.nav-links a').forEach(a => { a.classList.remove('active'); });
+      const links = { home: 0, menu: 1 };
+      if (links[id] !== undefined) {
+        document.querySelectorAll('.nav-links a')[links[id]]?.classList.add('active');
+      }
+      window.scrollTo(0, 0);
+    }
+    function updateNav() {
+      const m = document.querySelector('.mobile-nav');
+      if (window.innerWidth <= 1024) m.style.display = 'flex';
+      else m.style.display = 'none';
+    }
+    updateNav();
+    window.addEventListener('resize', updateNav);
+  </script>
+</body>
+</html>

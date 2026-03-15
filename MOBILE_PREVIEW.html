@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homie — Mobile Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .frame {
+      background: #111;
+      border-radius: 40px;
+      padding: 12px;
+      box-shadow: 0 50px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+      position: relative;
+    }
+    .frame::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 24px;
+      background: #222;
+      border-radius: 0 0 20px 20px;
+      z-index: 10;
+    }
+    .phone {
+      width: 375px;
+      height: 812px;
+      max-height: 90vh;
+      background: #fff;
+      border-radius: 32px;
+      overflow: hidden;
+    }
+    iframe {
+      width: 375px;
+      height: 812px;
+      max-height: calc(90vh - 24px);
+      border: none;
+      display: block;
+    }
+    .label {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    .label a { color: #7CB518; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="frame">
+      <div class="phone">
+        <iframe src="MAIN_WEBSITE_PREVIEW.html" title="Homie Mobile Preview"></iframe>
+      </div>
+    </div>
+    <p class="label">Mobile preview · 375×812 · <a href="MAIN_WEBSITE_PREVIEW.html">Open full width</a></p>
+  </div>
+</body>
+</html>

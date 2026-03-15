@@ -31,7 +31,7 @@ export default function MenuPage() {
       {/* Hero Section */}
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
         <h1 className="font-display text-3xl md:text-4xl font-bold text-homie-green mb-2">Our Menu</h1>
-        <p className="text-homie-gray mb-8 md:mb-10">Choose your perfect meal and add to cart</p>
+        <p className="text-homie-gray mb-8 md:mb-10">Delicious & fresh. Order anytime for same-day delivery across Bangkok</p>
 
         {/* Meal Type Tabs */}
         <div className="flex gap-3 mb-10">
