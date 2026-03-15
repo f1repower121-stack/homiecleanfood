@@ -42,7 +42,10 @@ export default function OrderPage() {
   const [userTier, setUserTier] = useState<string>('Homie')
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
 
-  // Auto-fill user details + load loyalty data
+  // Recent addresses for easy checkout (logged-in users)
+  const [recentAddresses, setRecentAddresses] = useState<string[]>([])
+
+  // Auto-fill user details + load loyalty data + recent addresses
   useEffect(() => {
     const loadUser = async () => {
       const { data: { user: u } } = await supabase.auth.getUser()
@@ -50,7 +53,7 @@ export default function OrderPage() {
       if (u) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, points, tier')
+          .select('full_name, points, tier, address')
           .eq('id', u.id)
           .single()
         setForm(prev => ({
@@ -59,20 +62,32 @@ export default function OrderPage() {
           phone: u.user_metadata?.phone || '',
         }))
 
-        const { data: lastOrder } = await supabase
+        // Load recent addresses from orders (unique, most recent first)
+        const { data: orders } = await supabase
           .from('orders')
           .select('delivery_address, customer_phone')
           .eq('user_id', u.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        if (lastOrder) {
-          setForm(prev => ({
-            ...prev,
-            address: lastOrder.delivery_address || '',
-            phone: lastOrder.customer_phone || prev.phone,
-          }))
+          .limit(20)
+        const seen = new Set<string>()
+        const addrs: string[] = []
+        for (const o of orders || []) {
+          const a = (o as { delivery_address?: string }).delivery_address?.trim()
+          if (a && !seen.has(a)) {
+            seen.add(a)
+            addrs.push(a)
+          }
         }
+        setRecentAddresses(addrs)
+
+        // Pre-fill address: profile first, then last order, else first recent
+        const profileAddr = (profile as { address?: string })?.address?.trim()
+        const lastOrder = orders?.[0] as { delivery_address?: string; customer_phone?: string } | undefined
+        const defaultAddr = profileAddr || lastOrder?.delivery_address?.trim() || addrs[0] || ''
+        if (lastOrder?.customer_phone) {
+          setForm(prev => ({ ...prev, phone: lastOrder.customer_phone || prev.phone }))
+        }
+        setForm(prev => ({ ...prev, address: defaultAddr }))
       }
       setUserLoaded(true)
     }
@@ -239,6 +254,11 @@ export default function OrderPage() {
         try {
           await supabase.rpc('process_referral_bonus', { order_user_id: u.id })
         } catch { }
+
+        // Save delivery address to profile for admin visibility
+        try {
+          await supabase.from('profiles').update({ address: form.address }).eq('id', u.id)
+        } catch { }
       }
 
       setOrderId(data?.id?.slice(0, 8).toUpperCase() || 'HCF001')
@@ -387,9 +407,35 @@ export default function OrderPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-homie-dark mb-1">Delivery Address *</label>
-                  <input type="text" placeholder="Full address, building, floor, room" value={form.address}
+                  {user && recentAddresses.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {recentAddresses.slice(0, 5).map((addr) => (
+                        <button
+                          key={addr}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, address: addr }))}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors truncate max-w-full ${
+                            form.address === addr
+                              ? 'bg-homie-lime text-white ring-2 ring-homie-green'
+                              : 'bg-gray-100 text-homie-gray hover:bg-gray-200 hover:text-homie-dark'
+                          }`}
+                          title={addr}
+                        >
+                          📍 {addr.length > 35 ? addr.slice(0, 35) + '…' : addr}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder="Full address, building, floor, room — or choose above"
+                    value={form.address}
                     onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime" />
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime"
+                  />
+                  {user && recentAddresses.length > 0 && (
+                    <p className="text-xs text-homie-gray mt-1.5">Choose a recent address or type a new one</p>
+                  )}
                 </div>
 
                 {/* FIX: Delivery date & time */}

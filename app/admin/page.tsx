@@ -6,7 +6,7 @@ import NotificationBell from '@/components/admin/NotificationBell'
 import generatePayload from 'promptpay-qr'
 import QRCode from 'qrcode'
 import { requestNotificationPermission, sendOrderNotification, subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/lib/pushNotifications'
-import { LayoutDashboard, Package, UtensilsCrossed, Users, Star, Gift, BarChart3, Settings, Sun, Moon, LogOut, Menu, RefreshCw, ChevronDown, DollarSign, TrendingUp, CheckCircle, Truck, ChefHat, MoreHorizontal, X, Search, ChevronUp, FileDown } from 'lucide-react'
+import { LayoutDashboard, Package, UtensilsCrossed, Users, Star, Gift, BarChart3, Settings, Sun, Moon, LogOut, Menu, RefreshCw, ChevronDown, DollarSign, TrendingUp, CheckCircle, Truck, ChefHat, MoreHorizontal, X, Search, ChevronUp, FileDown, Upload, Copy, ImageIcon } from 'lucide-react'
 
 const ADMIN_PASSWORD = 'homie2024'
 
@@ -116,6 +116,7 @@ export default function AdminPage() {
 
   // Orders state
   const [orders, setOrders] = useState<Order[]>([])
+  const [orderSubTab, setOrderSubTab] = useState<'new'|'confirmed'>('new')  // New = pending only; Confirmed = rest
   const [orderFilter, setOrderFilter] = useState('all')
   const [orderPaymentFilter, setOrderPaymentFilter] = useState<'all'|'promptpay'|'cod'|'card'>('all')
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set())
@@ -128,6 +129,8 @@ export default function AdminPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [editItem, setEditItem] = useState<Partial<MenuItem>|null>(null)
   const [isNew, setIsNew] = useState(false)
+  const [menuImageUploading, setMenuImageUploading] = useState(false)
+  const [menuItemIds, setMenuItemIds] = useState<Set<string>>(new Set())  // Bulk select for menu
   const [menuSaving, setMenuSaving] = useState(false)
   const [menuMsg, setMenuMsg] = useState('')
 
@@ -461,6 +464,49 @@ export default function AdminPage() {
     await supabase.from('menu_items').delete().eq('id',id); fetchMenu()
   }
 
+  const duplicateMenuItem = async (item: MenuItem) => {
+    const { id, ...rest } = item
+    const copy = { ...rest, name: `${item.name} (Copy)` }
+    const { data, error } = await supabase.from('menu_items').insert([copy]).select().single()
+    if (!error && data) {
+      setEditItem(data)
+      setIsNew(false)
+      fetchMenu()
+    }
+  }
+
+  const uploadMenuImage = async (file: File) => {
+    if (!file?.type?.startsWith('image/')) return
+    setMenuImageUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      if (editItem?.id) fd.append('menuItemId', editItem.id)
+      const res = await fetch('/api/admin/upload-menu-image', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data?.url) {
+        setEditItem(prev => prev ? { ...prev, image_url: data.url } : null)
+        setMenuMsg('Image uploaded ✅')
+        setTimeout(() => setMenuMsg(''), 2000)
+      } else throw new Error(data?.error || 'Upload failed')
+    } catch (e) {
+      setMenuMsg('❌ ' + (e instanceof Error ? e.message : 'Upload failed'))
+      setTimeout(() => setMenuMsg(''), 4000)
+    }
+    setMenuImageUploading(false)
+  }
+
+  const bulkToggleMenuAvailability = async (available: boolean) => {
+    if (menuItemIds.size === 0) return
+    for (const id of Array.from(menuItemIds)) {
+      await supabase.from('menu_items').update({ available }).eq('id', id)
+    }
+    setMenuItemIds(new Set())
+    fetchMenu()
+    setMenuMsg(`${menuItemIds.size} items ${available ? 'enabled' : 'hidden'} ✅`)
+    setTimeout(() => setMenuMsg(''), 3000)
+  }
+
   // ✅ NEW: manually adjust points for a user
   const savePoints = async (customerId: string) => {
     const delta = parseInt(pointsInput)
@@ -625,7 +671,9 @@ export default function AdminPage() {
     revenueByDay[d]=(revenueByDay[d]||0)+(o.total||0)
   })
 
+  const newOrdersCount = orders.filter(o => o.status === 'pending').length
   const filteredOrders = orders
+    .filter(o => orderSubTab === 'new' ? o.status === 'pending' : o.status !== 'pending')
     .filter(o => orderFilter==='all' || o.status===orderFilter)
     .filter(o => orderPaymentFilter==='all' || o.payment_method===orderPaymentFilter)
 
@@ -848,15 +896,27 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                <div className={`flex gap-1 p-1 rounded-xl ${dm?'bg-slate-800':'bg-slate-100'} w-fit`}>
+                  <button onClick={()=>setOrderSubTab('new')} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${orderSubTab==='new'?'bg-amber-500 text-white shadow-md':'text-slate-500 hover:text-slate-700'}`}>
+                    <Package className="w-4 h-4"/> New Orders
+                    {newOrdersCount > 0 && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${orderSubTab==='new'?'bg-white/20':'bg-amber-100 text-amber-700'}`}>{newOrdersCount}</span>}
+                  </button>
+                  <button onClick={()=>setOrderSubTab('confirmed')} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${orderSubTab==='confirmed'?'bg-slate-900 dark:bg-slate-700 text-white':'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                    Confirmed & Beyond
+                  </button>
+                </div>
                 <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
-                  {['all',...STATUS_STEPS].map(s=>(
+                  {(orderSubTab==='confirmed'?['all',...STATUS_STEPS.filter(s=>s!=='pending')]:['all','pending']).map(s=>{
+                    const base = orderSubTab==='new' ? orders.filter(o=>o.status==='pending') : orders.filter(o=>o.status!=='pending')
+                    const count = base.filter(o=>(s==='all'||o.status===s)&&(orderPaymentFilter==='all'||o.payment_method===orderPaymentFilter)).length
+                    return (
                     <button key={s} onClick={()=>setOrderFilter(s)}
                       className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
                         ${orderFilter===s ? 'bg-slate-900 dark:bg-slate-700 text-white' : dm ? 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
-                      {s==='all'?`All`:STATUS_LABEL[s]} ({orders.filter(o=>(s==='all'||o.status===s)&&(orderPaymentFilter==='all'||o.payment_method===orderPaymentFilter)).length})
+                      {s==='all'?`All`:STATUS_LABEL[s]} ({count})
                     </button>
-                  ))}
+                  )})}
                 </div>
                 <select value={orderPaymentFilter} onChange={e=>setOrderPaymentFilter(e.target.value as any)}
                   className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 min-w-[140px]">
@@ -955,15 +1015,25 @@ export default function AdminPage() {
           {/* ═══ MENU ═════════════════════════════════════════════════════ */}
           {tab==='menu' && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div>
                   <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Menu / Meals</h1>
-                  <p className={`text-sm ${muted} mt-0.5`}>{menuItems.length} items</p>
+                  <p className={`text-sm ${muted} mt-0.5`}>{menuItems.length} items · Enterprise management</p>
                 </div>
-                <button onClick={()=>{setIsNew(true);setEditItem({available:true,category:'chicken',meal_type:'high-protein'})}}
-                  className="bg-slate-900 dark:bg-slate-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
-                  + Add Meal
-                </button>
+                <div className="flex items-center gap-2">
+                  {menuItemIds.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">{menuItemIds.size} selected</span>
+                      <button onClick={()=>bulkToggleMenuAvailability(true)} className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50">Enable</button>
+                      <button onClick={()=>bulkToggleMenuAvailability(false)} className="text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50">Hide</button>
+                      <button onClick={()=>setMenuItemIds(new Set())} className="text-xs text-slate-500 hover:text-slate-700">Clear</button>
+                    </div>
+                  )}
+                  <button onClick={()=>{setIsNew(true);setEditItem({available:true,category:'chicken',meal_type:'high-protein'})}}
+                    className="bg-slate-900 dark:bg-slate-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
+                    + Add Meal
+                  </button>
+                </div>
               </div>
               {editItem && (
                 <div className={`${card} border rounded-2xl p-5 mb-5 shadow-sm`}>
@@ -1016,8 +1086,25 @@ export default function AdminPage() {
                       <textarea value={editItem.description||''} onChange={e=>setEditItem({...editItem,description:e.target.value})} className={inputCls} rows={2} placeholder="Short description..."/>
                     </div>
                     <div className="col-span-2">
-                      <label className={`text-xs font-medium ${muted} block mb-1`}>Image URL</label>
-                      <input value={editItem.image_url||''} onChange={e=>setEditItem({...editItem,image_url:e.target.value})} className={inputCls} placeholder="https://..."/>
+                      <label className={`text-xs font-medium ${muted} block mb-1`}>Meal Image</label>
+                      <div className={`flex flex-col sm:flex-row gap-3`}>
+                        <label className={`flex-1 min-h-[120px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors
+                          ${dm?'border-slate-600 hover:border-slate-500 hover:bg-slate-800/50':'border-slate-300 hover:border-slate-400 hover:bg-slate-50'} ${menuImageUploading?'opacity-60 pointer-events-none':''}`}>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={e=>{const f=e.target.files?.[0];if(f)uploadMenuImage(f);e.target.value=''}} disabled={menuImageUploading}/>
+                          {menuImageUploading ? (
+                            <><div className="w-8 h-8 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"/><span className="text-xs">Uploading...</span></>
+                          ) : (
+                            <><Upload className="w-8 h-8 text-slate-400"/><span className="text-xs font-medium">Drop image or click to upload</span><span className="text-xs text-slate-400">JPG, PNG, WebP</span></>
+                          )}
+                        </label>
+                        <div className="flex-1 flex flex-col gap-2">
+                          {(editItem as any)?.image_url && (
+                            <img src={(editItem as any).image_url} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-200 dark:border-slate-700"/>
+                          )}
+                          <input value={editItem.image_url||''} onChange={e=>setEditItem({...editItem,image_url:e.target.value})} className={inputCls} placeholder="Or paste image URL"/>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4 items-center">
@@ -1039,6 +1126,8 @@ export default function AdminPage() {
               <div className="grid gap-3">
                 {menuItems.map(item=>(
                   <div key={item.id} className={`${card} border rounded-2xl p-4 flex items-center gap-3 transition-all duration-200`}>
+                    <input type="checkbox" checked={menuItemIds.has(item.id)} onChange={e=>{const next=new Set(menuItemIds);if(e.target.checked)next.add(item.id);else next.delete(item.id);setMenuItemIds(next)}}
+                      className="shrink-0 w-4 h-4 accent-slate-600" onClick={ev=>ev.stopPropagation()}/>
                     {item.image_url
                       ? <img src={item.image_url} className="w-14 h-14 rounded-xl object-cover shrink-0" alt={item.name}/>
                       : <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center text-2xl shrink-0">
@@ -1057,6 +1146,7 @@ export default function AdminPage() {
                       {item.calories_lean && <p className={`text-xs ${muted}`}>{item.calories_lean} kcal · {item.protein_lean}g protein</p>}
                     </div>
                     <div className="flex gap-2 shrink-0">
+                      <button onClick={()=>duplicateMenuItem(item)} className="text-xs border px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1" title="Duplicate"><Copy className="w-3.5 h-3.5"/>Duplicate</button>
                       <button onClick={()=>{setIsNew(false);setEditItem(item)}} className="text-xs border px-3 py-1.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-emerald-300 transition-colors">Edit</button>
                       <button onClick={()=>deleteMenuItem(item.id)} className="text-xs border px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 transition-colors">Delete</button>
                     </div>
