@@ -104,7 +104,7 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string; image?: string }>;
     totalPrice: number;
     deliveryAddress: string;
     deliveryDate?: string;
@@ -140,7 +140,7 @@ export class LineClient {
     orderId: string;
     customerName: string;
     customerPhone: string;
-    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string }>;
+    items: Array<{ name: string; quantity: number; price: number; size?: string; portion?: string; image?: string }>;
     totalPrice: number;
     deliveryAddress: string;
     deliveryDate?: string;
@@ -175,11 +175,23 @@ export class LineClient {
       const portionEmoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : '';
       const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
       const nameAndPrice = `${baseName} ${portionEmoji}${portion}\n   ฿${itemTotal}`;
+      const itemImage = (item as { image?: string })?.image;
+      const rowContents = [
+        { type: 'text', text: `${idx + 1}. ${qty}×`, weight: 'bold', size: 'md', color: '#1DB446', flex: 0 },
+        { type: 'text', text: nameAndPrice, size: 'sm', color: '#333333', wrap: true, flex: 1 },
+      ];
+      if (itemImage && itemImage.startsWith('http')) {
+        rowContents.unshift({
+          type: 'image' as const,
+          url: itemImage,
+          size: 'xs' as const,
+          aspectRatio: '1:1' as const,
+          flex: 0,
+          margin: 'xs' as const,
+        });
+      }
       return [
-        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: [
-          { type: 'text', text: `${idx + 1}. ${qty}×`, weight: 'bold', size: 'md', color: '#1DB446', flex: 0 },
-          { type: 'text', text: nameAndPrice, size: 'sm', color: '#333333', wrap: true, flex: 1 },
-        ] },
+        { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'xs', contents: rowContents },
       ];
     });
 

@@ -5,6 +5,7 @@ import { menuItems, type MenuItem } from '@/lib/menuData'
 import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useCart } from '@/components/CartProvider'
 import ReferralTab from '@/components/ReferralTab'
 import {
@@ -241,12 +242,14 @@ export default function DashboardPage() {
       const key = itemKey(item)
       const qty = reorderItems[key] ?? item.quantity ?? 1
       if (qty > 0) {
+        const menuItem = menuItems.find(m => m.id === item.id)
         addItem({
           id: item.id,
           name: item.name,
           portion: (item.portion as 'lean' | 'bulk') || 'lean',
           price: item.price,
           quantity: qty,
+          image: menuItem?.image,
         })
       }
     })
@@ -664,13 +667,23 @@ export default function DashboardPage() {
               Order from {new Date(selectedOrder.created_at).toLocaleDateString('en-GB')} • ฿{selectedOrder.total}
             </p>
 
-            {/* Items with Quantity Editor */}
+            {/* Items with Quantity Editor - hide items with qty 0 (remove when decreased to zero) */}
             <div className="space-y-3">
-              {selectedOrder.items.map((item: any, idx) => {
+              {selectedOrder.items
+                .filter((item: any) => (reorderItems[itemKey(item)] ?? item.quantity ?? 1) > 0)
+                .map((item: any) => {
                 const key = itemKey(item)
+                const menuItem = menuItems.find(m => m.id === item.id)
                 return (
-                <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                  <div className="flex-1">
+                <div key={key} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 relative bg-gray-200">
+                    {menuItem?.image ? (
+                      <Image src={menuItem.image} alt={item.name} fill className="object-cover" sizes="56px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🍽️</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-semibold text-homie-dark">{item.name}</p>
                     <p className="text-xs text-homie-gray">฿{item.price} • {item.portion || 'lean'}</p>
                   </div>
