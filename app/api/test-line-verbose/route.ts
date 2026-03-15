@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
         customerName: 'Test Customer',
         customerPhone: '0912345678',
         items: [
-          { name: 'Grilled Chicken Lean', quantity: 2, price: 180 },
-          { name: 'Beef Steak Bulk', quantity: 1, price: 220 },
+          { name: 'Grilled Chicken Lean', quantity: 2, price: 180, portion: 'lean' },
+          { name: 'Beef Steak Bulk', quantity: 1, price: 220, portion: 'bulk' },
         ],
         totalPrice: 580,
         deliveryAddress: '123 Test Street, Bangkok 10110',
