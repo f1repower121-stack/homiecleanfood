@@ -195,18 +195,23 @@ export default function AdminPage() {
               .join(', ')
             const itemsSuffix = (latestOrder.items || []).length > 2 ? '...' : ''
 
-            // Get delivery time from order (format: HH:MM or similar)
+            // Get delivery time and address from order
             const deliveryTime = latestOrder.delivery_time || 'ASAP'
+            const customerName = latestOrder.customer_name || 'Customer'
+            const deliveryAddr = latestOrder.delivery_address ? latestOrder.delivery_address.substring(0, 30) : 'Location TBD'
 
             const response = await fetch('/api/send-push-notification', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                title: `🌿 Website Order - ${deliveryTime}`,
-                body: `${itemNames}${itemsSuffix} - ฿${latestOrder.total || 0}`,
+                title: `🚀 DELIVER AT ${deliveryTime} | ${customerName}`,
+                body: `${itemNames}${itemsSuffix}\n📍 ${deliveryAddr}\n💰 ฿${latestOrder.total || 0}`,
                 data: {
                   orderId: latestOrder.id,
                   referenceId: latestOrder.reference_id,
+                  deliveryTime: deliveryTime,
+                  deliveryAddress: latestOrder.delivery_address,
+                  customerName: customerName,
                 },
               }),
             })
