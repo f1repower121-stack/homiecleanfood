@@ -13,6 +13,7 @@ function formatTimeICT(date: Date | string): string {
 }
 
 const GREEN = '#1DB446'
+const RED = '#E53935'
 const GRAY_DARK = '#333333'
 const GRAY_MID = '#666666'
 
@@ -149,23 +150,37 @@ export class LineClient {
       const itemTotal = (item.price * qty).toLocaleString('th-TH')
 
       const emoji = portion === 'BULK' ? '💪' : portion === 'LEAN' ? '🏃' : ''
+      const portionColor = portion === 'BULK' ? RED : GREEN
 
-      const line1Contents: object[] = [
-        { type: 'text', text: `${qty}× ${baseName} `, size: 'sm', wrap: true, weight: 'bold', color: GRAY_DARK, flex: 0 },
+      const textContents: object[] = [
+        { type: 'text', text: `${qty}× ${baseName}`, size: 'sm', wrap: true, weight: 'bold', color: GRAY_DARK },
       ]
       if (portion) {
-        line1Contents.push({ type: 'text', text: `${portion}${emoji}`, size: 'sm', weight: 'bold', color: GREEN, flex: 0 })
+        textContents.push({
+          type: 'text',
+          text: `${portion} ${emoji}`,
+          size: 'md',
+          weight: 'bold',
+          color: portionColor,
+        })
       }
+      textContents.push({
+        type: 'text',
+        text: `฿${itemTotal}`,
+        size: 'sm',
+        color: GRAY_MID,
+        weight: 'bold',
+      })
 
       const leftContent: object[] = []
       if (item.image && item.image.startsWith('https://')) {
         leftContent.push({
           type: 'image',
           url: item.image,
-          size: 'sm',
+          size: 'xs',
           aspectRatio: '1:1',
           flex: 0,
-          margin: 'none',
+          margin: 'xs',
         })
       }
       leftContent.push({
@@ -173,21 +188,7 @@ export class LineClient {
         layout: 'vertical',
         spacing: 'xs',
         flex: 1,
-        contents: [
-          {
-            type: 'box',
-            layout: 'horizontal',
-            spacing: 'xs',
-            contents: line1Contents,
-          },
-          {
-            type: 'text',
-            text: `฿${itemTotal}`,
-            size: 'sm',
-            color: GRAY_MID,
-            weight: 'bold',
-          },
-        ],
+        contents: textContents,
       })
 
       return {
@@ -205,15 +206,15 @@ export class LineClient {
         layout: 'vertical',
         spacing: 'xs',
         contents: [
-          { type: 'text', text: '📱 Website Order', weight: 'bold', size: 'lg', color: GREEN },
-          { type: 'text', text: `#${id}`, weight: 'bold', size: 'md', color: GRAY_DARK },
+          { type: 'text', text: '📱 Website Order', weight: 'bold', size: 'md', color: GREEN },
+          { type: 'text', text: `#${id}`, weight: 'bold', size: 'sm', color: GRAY_DARK },
         ],
       },
       {
         type: 'box',
         layout: 'vertical',
-        margin: 'md',
-        paddingAll: 'md',
+        margin: 'sm',
+        paddingAll: 'sm',
         backgroundColor: GREEN,
         cornerRadius: 'md',
         contents: [
@@ -221,41 +222,41 @@ export class LineClient {
           {
             type: 'text',
             text: orderData.deliveryDate ? `${orderData.deliveryDate} at ${orderData.deliveryTime}` : (orderData.deliveryTime || 'ASAP'),
-            size: 'md',
+            size: 'sm',
             weight: 'bold',
             color: '#ffffff',
           },
         ],
       },
-      { type: 'separator', margin: 'md' },
-      { type: 'text', text: `👤 ${orderData.customerName}`, weight: 'bold', size: 'md', color: '#1a1a1a', wrap: true },
-      { type: 'text', text: `📱 ${orderData.customerPhone}`, weight: 'bold', size: 'sm', color: GREEN, margin: 'xs' },
-      { type: 'text', text: `📍 ${orderData.deliveryAddress}`, size: 'sm', weight: 'bold', color: '#1a1a1a', wrap: true, margin: 'xs' },
+      { type: 'separator', margin: 'sm' },
+      { type: 'text', text: `👤 ${orderData.customerName}`, weight: 'bold', size: 'sm', color: '#1a1a1a', wrap: true },
+      { type: 'text', text: `📱 ${orderData.customerPhone}`, weight: 'bold', size: 'xs', color: GREEN, margin: 'xs' },
+      { type: 'text', text: `📍 ${orderData.deliveryAddress}`, size: 'xs', weight: 'bold', color: '#1a1a1a', wrap: true, margin: 'xs' },
       {
         type: 'box',
         layout: 'vertical',
-        margin: 'md',
-        paddingAll: 'md',
-        paddingStart: 'md',
+        margin: 'sm',
+        paddingAll: 'sm',
+        paddingStart: 'sm',
         backgroundColor: '#fafbfc',
         borderColor: GREEN,
         borderWidth: '1px',
         cornerRadius: 'md',
         contents: [
-          { type: 'text', text: `${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: GRAY_MID, margin: 'sm' },
+          { type: 'text', text: `${totalMeals} meal${totalMeals !== 1 ? 's' : ''}`, weight: 'bold', size: 'xs', color: GRAY_MID, margin: 'xs' },
           ...itemRows,
         ],
       },
       {
         type: 'box',
         layout: 'vertical',
-        margin: 'md',
-        paddingAll: 'lg',
+        margin: 'sm',
+        paddingAll: 'md',
         backgroundColor: GREEN,
         cornerRadius: 'md',
         contents: [
-          { type: 'text', text: 'Total', size: 'sm', color: '#ffffff', weight: 'bold' },
-          { type: 'text', text: `฿${orderData.totalPrice.toFixed(2)}`, size: 'xxl', weight: 'bold', color: '#ffffff' },
+          { type: 'text', text: 'Total', size: 'xs', color: '#ffffff', weight: 'bold' },
+          { type: 'text', text: `฿${orderData.totalPrice.toFixed(2)}`, size: 'xl', weight: 'bold', color: '#ffffff' },
         ],
       },
       {
@@ -263,7 +264,7 @@ export class LineClient {
         text: `🕐 ${formatTimeICT(orderData.orderTime)}`,
         size: 'xs',
         color: GRAY_MID,
-        margin: 'md',
+        margin: 'sm',
         align: 'center',
       },
     ]

@@ -63,9 +63,9 @@ function getTierFromPoints(pts: number): string {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+import { formatDateTimeICT, formatDateICT, formatDateThaiICT, formatDateShortICT, daysAgoICT, getTodayICT, toDateStringICT } from '@/lib/dateUtils'
 const fmt = (n:number) => n?.toLocaleString('th-TH') ?? '0'
-const fmtDate = (s:string) => new Date(s).toLocaleString('th-TH',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
-const daysAgo = (n:number) => { const d=new Date(); d.setDate(d.getDate()-n); return d }
+const fmtDate = (s:string) => formatDateTimeICT(s)
 
 // ─── Mini Components ──────────────────────────────────────────────────────────
 function Badge({s}:{s:string}) {
@@ -589,13 +589,13 @@ export default function AdminPage() {
       String(c.points ?? 0),
       c.tier || getTierFromPoints(c.points || 0),
       String(c.total_spent ?? 0),
-      c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB') : ''
+      c.created_at ? formatDateICT(c.created_at) : ''
     ])
     const csv = [cols.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `customers-${selectedOnly && selectedCustomerIds.size>0 ? 'selected-' : ''}${new Date().toISOString().slice(0,10)}.csv`
+    a.download = `customers-${selectedOnly && selectedCustomerIds.size>0 ? 'selected-' : ''}${getTodayICT()}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -663,7 +663,7 @@ export default function AdminPage() {
     const rows = [
       ['Date','Customer','Phone','Items','Total','Status','Payment'],
       ...orders.map(o => [
-        new Date(o.created_at).toLocaleDateString('th-TH'),
+        formatDateThaiICT(o.created_at),
         o.customer_name||'', o.customer_phone||'',
         (o.items||[]).map((i:any)=>`${i.name} x${i.quantity}`).join('; '),
         o.total, o.status, o.payment_method,
@@ -671,22 +671,22 @@ export default function AdminPage() {
     ]
     const blob = new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'})
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = `homie-orders-${new Date().toISOString().split('T')[0]}.csv`; a.click()
+    a.download = `homie-orders-${getTodayICT()}.csv`; a.click()
   }
 
   // Analytics
-  const filteredByPeriod = orders.filter(o => new Date(o.created_at) >= daysAgo(parseInt(period)))
+  const filteredByPeriod = orders.filter(o => new Date(o.created_at) >= daysAgoICT(parseInt(period)))
   const totalRev = filteredByPeriod.reduce((s,o)=>s+(o.total||0),0)
   const avgOrder = filteredByPeriod.length ? totalRev/filteredByPeriod.length : 0
   const pendingCount = orders.filter(o=>o.status==='pending').length
-  const todayOrders = orders.filter(o=>new Date(o.created_at).toDateString()===new Date().toDateString())
+  const todayOrders = orders.filter(o => toDateStringICT(o.created_at) === getTodayICT())
   const todayRev = todayOrders.reduce((s,o)=>s+(o.total||0),0)
   const topItems: Record<string,number> = {}
   filteredByPeriod.forEach(o=>{try{(o.items||[]).forEach((i:any)=>{if(i?.name)topItems[i.name]=(topItems[i.name]||0)+(i.quantity||1)})}catch{}})
   const topItemsSorted = Object.entries(topItems).sort((a,b)=>b[1]-a[1]).slice(0,5)
   const revenueByDay: Record<string,number> = {}
   filteredByPeriod.forEach(o=>{
-    const d = new Date(o.created_at).toLocaleDateString('th-TH',{day:'2-digit',month:'short'})
+    const d = formatDateShortICT(o.created_at)
     revenueByDay[d]=(revenueByDay[d]||0)+(o.total||0)
   })
 
@@ -1303,7 +1303,7 @@ export default function AdminPage() {
                                 <td className="py-3 px-4 hidden lg:table-cell text-slate-500 max-w-[160px] truncate" title={c.address}>{c.address||'—'}</td>
                                 <td className="py-3 px-4 font-semibold tabular-nums">{c.points||0}</td>
                                 <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${badge.cls}`}>{badge.label}</span></td>
-                                <td className="py-3 px-4 text-slate-500">{new Date(c.created_at).toLocaleDateString('en-GB')}</td>
+                                <td className="py-3 px-4 text-slate-500">{formatDateICT(c.created_at)}</td>
                                 <td className="py-3 px-4">
                                   <div className="flex gap-1">
                                     <button onClick={()=>{setCustomerEditModal(c);setNameInput(c.full_name||'');setPhoneInput(c.phone||'');setAddressInput(c.address||'');setPointsInput('');setPointsMode('set')}} className="px-2 py-1 rounded text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">Edit</button>
@@ -1455,7 +1455,7 @@ export default function AdminPage() {
                             <tr key={r.id} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'}`}>
                               <td className="py-2 px-4 font-medium">{r.referrer_name}</td>
                               <td className="py-2 px-4">{r.referred_user_name}</td>
-                              <td className="py-2 px-4 text-slate-500">{new Date(r.created_at).toLocaleDateString()}</td>
+                              <td className="py-2 px-4 text-slate-500">{formatDateICT(r.created_at)}</td>
                               <td className="py-2 px-4"><span className={`text-xs px-2 py-0.5 rounded font-medium ${r.status==='completed'?'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400':'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>{r.status}</span></td>
                               <td className="py-2 px-4 text-right font-semibold">{r.status==='completed'?'+100 pts':'—'}</td>
                             </tr>

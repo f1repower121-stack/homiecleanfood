@@ -1,6 +1,7 @@
 'use client';
 
-import { Pause, Play, Calendar, UtensilsCrossed, TrendingDown } from 'lucide-react';
+import { Pause, Play, Calendar, UtensilsCrossed, TrendingDown } from 'lucide-react'
+import { getTodayICT } from '@/lib/dateUtils'
 
 interface CustomerPackage {
   id: string;
@@ -159,7 +160,7 @@ export default function MealProgramCard({ package: pkg, onPause, onResume }: Pro
           {pkg.status === 'active' ? (
             <button
               onClick={() => {
-                const resumeDate = prompt('When will you return? (YYYY-MM-DD)', new Date().toISOString().split('T')[0]);
+                const resumeDate = prompt('When will you return? (YYYY-MM-DD)', getTodayICT());
                 if (resumeDate) onPause(pkg.id, resumeDate);
               }}
               className="flex-1 bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700 font-medium flex items-center justify-center gap-2"

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import Image from 'next/image'
 import Link from 'next/link'
+import { formatDateICT, formatDateThaiICT } from '@/lib/dateUtils'
 
 export default function OrderDetailsPage({ params }: { params: { id: string } }) {
   const orderId = params.id
@@ -83,7 +84,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             <h2 className="text-lg font-bold text-homie-dark mb-4">📍 Delivery Address</h2>
             <p className="text-homie-dark text-base leading-relaxed">{order.delivery_address}</p>
             <div className="mt-4 text-sm text-homie-gray">
-              <p><span className="font-semibold">Date:</span> {new Date(order.delivery_date).toLocaleDateString('th-TH')}</p>
+              <p><span className="font-semibold">Date:</span> {formatDateThaiICT(order.delivery_date)}</p>
               <p><span className="font-semibold">Time:</span> {order.delivery_time}</p>
             </div>
           </div>

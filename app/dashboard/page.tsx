@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { menuItems, type MenuItem } from '@/lib/menuData'
+import { getTodayICT, formatDateICT, formatWeekdayICT, toDateStringICT } from '@/lib/dateUtils'
 import { DEFAULT_LOYALTY, getTierFromPoints, calcPointsEarned } from '@/lib/loyalty'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -135,7 +136,7 @@ export default function DashboardPage() {
     ? orders
     : orders.slice((safeOrdersPage - 1) * ORDERS_PER_PAGE, safeOrdersPage * ORDERS_PER_PAGE)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayICT()
 
   const fetchData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -190,7 +191,7 @@ export default function DashboardPage() {
   }, [fetchData])
 
   useEffect(() => {
-    const ordersToday = orders.filter(o => new Date(o.created_at).toISOString().split('T')[0] === today)
+    const ordersToday = orders.filter(o => toDateStringICT(o.created_at) === today)
     const consumedFromOrders = ordersToday.reduce((s, o) => s + getNutritionFromOrder(o), 0)
     const todayLog = logs.find(l => l.log_date === today)
     const consumed = todayLog?.calories_consumed ?? consumedFromOrders
@@ -281,11 +282,11 @@ export default function DashboardPage() {
   const chartData = Array.from({ length: 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
-    const dateStr = d.toISOString().split('T')[0]
-    const dayOrders = orders.filter(o => new Date(o.created_at).toISOString().split('T')[0] === dateStr)
+    const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' })
+    const dayOrders = orders.filter(o => toDateStringICT(o.created_at) === dateStr)
     const dayLog = logs.find(l => l.log_date === dateStr)
     const consumed = dayLog?.calories_consumed ?? dayOrders.reduce((s, o) => s + getNutritionFromOrder(o), 0)
-    return { day: d.toLocaleDateString('en-GB', { weekday: 'short' }), consumed: Math.round(consumed), goal: dailyGoal }
+    return { day: formatWeekdayICT(d), consumed: Math.round(consumed), goal: dailyGoal }
   })
 
   const tabs = [
@@ -401,7 +402,7 @@ export default function DashboardPage() {
                           const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
                           return (
                             <TableRow key={o.id} className="hover:bg-gray-50 cursor-pointer">
-                              <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
+                              <TableCell>{formatDateICT(o.created_at)}</TableCell>
                               <TableCell>฿{o.total}</TableCell>
                               <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
                               <TableCell className="text-yellow-500 font-medium">+{pts} ⭐</TableCell>
@@ -664,7 +665,7 @@ export default function DashboardPage() {
 
             {/* Order Date */}
             <p className="text-sm text-homie-gray">
-              Order from {new Date(selectedOrder.created_at).toLocaleDateString('en-GB')} • ฿{selectedOrder.total}
+              Order from {formatDateICT(selectedOrder.created_at)} • ฿{selectedOrder.total}
             </p>
 
             {/* Items with Quantity Editor - hide items with qty 0 (remove when decreased to zero) */}

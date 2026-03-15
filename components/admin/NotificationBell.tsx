@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { supabase } from '@/lib/supabase/client'
+import { formatDateTimeICT } from '@/lib/dateUtils'
 
-const fmtDate = (s: string) =>
-  new Date(s).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+const fmtDate = (s: string) => formatDateTimeICT(s)
 const fmt = (n: number) => n?.toLocaleString('th-TH') ?? '0'
 
 type Order = { id: string; customer_name?: string; total?: number; created_at: string; status: string }

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { formatDateICT } from '@/lib/dateUtils'
 
 interface ReferralTabProps {
   profile: { full_name: string | null; points: number; tier?: string; referral_code?: string } | null
@@ -155,7 +156,7 @@ export default function ReferralTab({ profile, user }: ReferralTabProps) {
                     {r.referred_user?.full_name || 'Friend'}
                   </div>
                   <div className="text-xs text-homie-gray mt-0.5">
-                    {new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {formatDateICT(r.created_at)}
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${

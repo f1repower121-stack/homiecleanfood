@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { formatDateTimeICT } from '@/lib/dateUtils'
 import { Search, ChevronUp, FileDown, RefreshCw } from 'lucide-react'
 
 interface LoyaltyConfig {
@@ -231,7 +232,7 @@ const AdminLoyaltyTab = ({ darkMode = false, customers: propCustomers, customers
                     .slice(0,100)
                     .map((t,i)=>(
                       <tr key={i} className={`border-b ${dm?'border-slate-800 hover:bg-slate-800/50':'border-slate-100 hover:bg-slate-50'}`}>
-                        <td className="py-3 px-4 text-slate-500">{new Date(t.created_at).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-slate-500">{formatDateTimeICT(t.created_at)}</td>
                         <td className="py-3 px-4 font-medium">{t.user_name}</td>
                         <td className={`py-3 px-4 text-right font-semibold tabular-nums ${t.points_delta>=0?'text-emerald-600':'text-rose-600'}`}>{t.points_delta>=0?'+':''}{t.points_delta}</td>
                         <td className="py-3 px-4"><span className={`text-xs px-2 py-0.5 rounded ${t.source==='order'?'bg-blue-100 text-blue-700':t.source==='referral'?'bg-amber-100 text-amber-700':t.source==='manual'?'bg-slate-100 text-slate-600':'bg-purple-100 text-purple-700'}`}>{t.source}</span></td>

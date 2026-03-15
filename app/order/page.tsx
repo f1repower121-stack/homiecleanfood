@@ -4,6 +4,7 @@ import { useCart } from '@/components/CartProvider'
 import { supabase } from '@/lib/supabase/client'
 import { sendOrderPushNotification } from '@/lib/sendOrderPushNotification'
 import { sendOrderLineNotification } from '@/lib/sendOrderLineNotification'
+import { getTomorrowICT, getTodayICT } from '@/lib/dateUtils'
 import Link from 'next/link'
 import Image from 'next/image'
 import { menuItems, type MenuItem } from '@/lib/menuData'
@@ -111,12 +112,9 @@ export default function OrderPage() {
     loadLoyalty()
   }, [user])
 
-  // Set default delivery date to tomorrow
+  // Set default delivery date to tomorrow (ICT)
   useEffect(() => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateStr = tomorrow.toISOString().split('T')[0]
-    setForm(prev => ({ ...prev, deliveryDate: dateStr, deliveryTime: '12:00' }))
+    setForm(prev => ({ ...prev, deliveryDate: getTomorrowICT(), deliveryTime: '12:00' }))
   }, [])
 
   // Load PromptPay number from DB
@@ -445,7 +443,7 @@ export default function OrderPage() {
                     <input
                       type="date"
                       value={form.deliveryDate}
-                      min={new Date().toISOString().split('T')[0]}
+                      min={getTodayICT()}
                       onChange={e => setForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
                       className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-homie-lime focus:ring-1 focus:ring-homie-lime"
                     />
