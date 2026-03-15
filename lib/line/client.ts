@@ -176,18 +176,18 @@ export class LineClient {
       const baseName = name.replace(/\s*-(Bulk|Lean|Regular|Light)\s*/i, '').trim();
       const nameAndPrice = `${baseName} ${portionEmoji}${portion}\n   ฿${itemTotal}`;
       const itemImage = (item as { image?: string })?.image;
-      const rowContents = [
+      const rowContents: Array<Record<string, unknown>> = [
         { type: 'text', text: `${idx + 1}. ${qty}×`, weight: 'bold', size: 'md', color: '#1DB446', flex: 0 },
         { type: 'text', text: nameAndPrice, size: 'sm', color: '#333333', wrap: true, flex: 1 },
       ];
       if (itemImage && itemImage.startsWith('http')) {
         rowContents.unshift({
-          type: 'image' as const,
+          type: 'image',
           url: itemImage,
-          size: 'xs' as const,
-          aspectRatio: '1:1' as const,
+          size: 'xs',
+          aspectRatio: '1:1',
           flex: 0,
-          margin: 'xs' as const,
+          margin: 'xs',
         });
       }
       return [
