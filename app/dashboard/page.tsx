@@ -125,6 +125,14 @@ export default function DashboardPage() {
   const [loyaltyConfig, setLoyaltyConfig] = useState(DEFAULT_LOYALTY)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [reorderItems, setReorderItems] = useState<{ [key: string]: number }>({})
+  const [ordersPage, setOrdersPage] = useState(1)
+  const [ordersShowAll, setOrdersShowAll] = useState(false)
+  const ORDERS_PER_PAGE = 10
+  const ordersTotalPages = Math.ceil(orders.length / ORDERS_PER_PAGE)
+  const safeOrdersPage = Math.min(ordersPage, Math.max(1, ordersTotalPages))
+  const displayedOrders = ordersShowAll
+    ? orders
+    : orders.slice((safeOrdersPage - 1) * ORDERS_PER_PAGE, safeOrdersPage * ORDERS_PER_PAGE)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -139,7 +147,7 @@ export default function DashboardPage() {
 
     const [profileRes, ordersRes, goalsRes, logsRes, exRes, cfgRes] = await Promise.allSettled([
       supabase.from('profiles').select('full_name, points, tier, daily_calorie_goal, weekly_calorie_goal, referral_code').eq('id', u.id).single(),
-      supabase.from('orders').select('*').eq('user_id', u.id).order('created_at', { ascending: false }),
+      supabase.from('orders').select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(200),
       supabase.from('user_goals').select('calorie_target, weekly_calorie_goal').eq('user_id', u.id).maybeSingle(),
       supabase.from('calorie_logs').select('*').eq('user_id', u.id).order('log_date', { ascending: false }).limit(14),
       supabase.from('exercise_logs').select('*').eq('user_id', u.id).gte('log_date', getWeekStart()).order('log_date', { ascending: false }),
@@ -373,42 +381,70 @@ export default function DashboardPage() {
                 {orders.length === 0 ? (
                   <p className="text-homie-gray text-sm">No orders yet. <Link href="/menu" className="text-homie-lime hover:underline">Order now</Link></p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Calories</TableHead>
-                        <TableHead>Points</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orders.slice(0, 5).map(o => {
-                        const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
-                        const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
-                        return (
-                          <TableRow key={o.id} className="hover:bg-gray-50 cursor-pointer">
-                            <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
-                            <TableCell>฿{o.total}</TableCell>
-                            <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
-                            <TableCell className="text-yellow-500 font-medium">+{pts} ⭐</TableCell>
-                            <TableCell>
-                              <button
-                                onClick={() => {
-                                  setSelectedOrder(o)
-                                  setReorderItems(Object.fromEntries((o.items || []).map((item: any) => [`${item.id}_${item.portion || 'lean'}`, item.quantity ?? 1])))
-                                }}
-                                className="text-homie-lime hover:text-homie-green font-semibold text-sm"
-                              >
-                                Reorder
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Calories</TableHead>
+                          <TableHead>Points</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {displayedOrders.map(o => {
+                          const tier = profile?.tier || getTierFromPoints(profile?.points ?? 0, loyaltyConfig) || 'Homie'
+                          const pts = calcPointsEarned(o.total, loyaltyConfig, tier)
+                          return (
+                            <TableRow key={o.id} className="hover:bg-gray-50 cursor-pointer">
+                              <TableCell>{new Date(o.created_at).toLocaleDateString('en-GB')}</TableCell>
+                              <TableCell>฿{o.total}</TableCell>
+                              <TableCell>{Math.round(getNutritionFromOrder(o))} kcal</TableCell>
+                              <TableCell className="text-yellow-500 font-medium">+{pts} ⭐</TableCell>
+                              <TableCell>
+                                <button
+                                  onClick={() => {
+                                    setSelectedOrder(o)
+                                    setReorderItems(Object.fromEntries((o.items || []).map((item: any) => [`${item.id}_${item.portion || 'lean'}`, item.quantity ?? 1])))
+                                  }}
+                                  className="text-homie-lime hover:text-homie-green font-semibold text-sm"
+                                >
+                                  Reorder
+                                </button>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-100">
+                      <span className="text-sm text-homie-gray">{orders.length} order{orders.length !== 1 ? 's' : ''} total</span>
+                      {orders.length > 0 && orders.length > ORDERS_PER_PAGE && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => { setOrdersShowAll(!ordersShowAll); setSelectedOrder(null) }}
+                            className="text-sm font-medium text-homie-lime hover:text-homie-green"
+                          >
+                            {ordersShowAll ? 'Show pages' : 'Show all'}
+                          </button>
+                          {!ordersShowAll && (
+                            <>
+                              {Array.from({ length: Math.ceil(orders.length / ORDERS_PER_PAGE) }, (_, i) => i + 1).map(p => (
+                                <button
+                                  key={p}
+                                  onClick={() => { setOrdersPage(p); setSelectedOrder(null) }}
+                                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${safeOrdersPage === p ? 'bg-homie-green text-white' : 'bg-gray-100 text-homie-gray hover:bg-gray-200'}`}
+                                >
+                                  {p}
+                                </button>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
