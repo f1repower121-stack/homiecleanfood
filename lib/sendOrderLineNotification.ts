@@ -38,12 +38,20 @@ export async function sendOrderLineNotification(order: OrderNotificationData) {
     console.log('📤 [LINE] Sending notification for order:', order.id);
     console.log('📤 [LINE] Order items:', JSON.stringify(order.items, null, 2));
 
+    // Normalize items so LINE gets true quantities (support quantity or qty from cart/order)
+    const normalizedItems = (order.items || []).map((item: { id?: string; name?: string; portion?: string; price?: number; quantity?: number; qty?: number }) => ({
+      name: item.name || 'Item',
+      quantity: Math.max(1, Math.round(Number(item.quantity ?? item.qty ?? 1))),
+      price: Number(item.price) || 0,
+      portion: item.portion,
+    }));
+
     // Send rich flex message with order details
     await lineClient.sendOrderNotification({
       orderId: order.id,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
-      items: order.items,
+      items: normalizedItems,
       totalPrice: order.total,
       deliveryAddress: order.delivery_address,
       deliveryDate: order.delivery_date,
