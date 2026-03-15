@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         ],
         totalPrice: 580,
         deliveryAddress: '123 Test Street, Bangkok 10110',
+        deliveryTime: '17:30',
         orderTime: new Date().toISOString(),
       }
 
